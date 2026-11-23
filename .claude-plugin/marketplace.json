@@ -1,0 +1,11 @@
+{
+  "name": "tool-scout",
+  "owner": { "name": "Tool Scout contributors" },
+  "plugins": [
+    {
+      "name": "tool-scout",
+      "source": "./",
+      "description": "Personalized recommendations for trending Claude Code skills, plugins and MCP servers, based on your local session history."
+    }
+  ]
+}

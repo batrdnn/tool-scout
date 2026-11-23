@@ -1,0 +1,9 @@
+{
+  "name": "tool-scout",
+  "displayName": "Tool Scout",
+  "version": "0.1.0",
+  "description": "Recommends trending Claude Code skills, plugins and MCP servers based on how you actually work. Your session history is analyzed locally and never leaves your machine.",
+  "author": { "name": "Tool Scout contributors" },
+  "license": "MIT",
+  "keywords": ["discovery", "recommendations", "skills", "mcp", "plugins", "trending"]
+}

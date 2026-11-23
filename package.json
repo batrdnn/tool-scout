@@ -1,0 +1,10 @@
+{
+  "name": "tool-scout",
+  "version": "0.1.0",
+  "description": "Personalized recommendations for trending Claude Code skills, plugins and MCP servers",
+  "type": "module",
+  "bin": { "tool-scout": "scripts/scout.mjs" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
