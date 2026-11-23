@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them. Also use when the user says they're not interested in a recommended tool or repo ("not interested in X", "dismiss X", "stop showing X"), or wants to undo that.
+description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them. Also use when the user says they're not interested in a recommended tool or repo ("not interested in X", "dismiss X", "stop showing X"), or wants to undo that. Also use when the user rates picks ("1 useful, 2 not"), asks for their scout stats or share stats, or wants a project left out of their profile.
 argument-hint: "[focus, e.g. testing | mcp | refresh]"
 ---
 
@@ -118,9 +118,14 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --da
 - Resolve numbers and names to the exact `owner/repo` you showed. Skip any pick they didn't rate.
 - Confirm in one short line. Don't ask follow-up questions about the ratings.
 - A `not` rating is not a dismissal. If they also say "never show it again", dismiss it too.
-- `… stats` prints the share of rated picks that were useful. `… stats --share` prints the
-  only text a tester is asked to share (counts and rated repo names): show it to the user, and
-  never send it anywhere yourself.
+- `… stats` prints the share of rated picks that were useful. For "share stats", run
+
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" stats --share --data "${CLAUDE_PLUGIN_DATA}"
+  ```
+
+  and show its output verbatim in a code block. It's the only text a tester is asked to share
+  (counts and rated repo names). Never send it anywhere yourself.
 - To correct a rating: `… rate <owner/repo> clear`, then rate again.
 
 ## Feedback: "not interested"

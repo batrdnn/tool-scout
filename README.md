@@ -60,6 +60,8 @@ node scripts/scout.mjs undismiss owner/repo    # bring it back (--all to clear; 
 node scripts/scout.mjs exclude-project tool-scout   # leave a project's sessions out of the profile (persisted)
 node scripts/scout.mjs include-project tool-scout   # undo (--all to clear; `exclude-project` alone lists)
 node scripts/scout.mjs all --exclude-project tool-scout   # one run only
+node scripts/scout.mjs rate owner/repo useful   # or: not | clear (local ratings.json)
+node scripts/scout.mjs stats [--share]          # share of rated picks that were useful
 ```
 
 In Claude Code, just say "not interested in owner/repo" after a scout run.
@@ -118,3 +120,7 @@ npm test     # node --test, no dependencies
 - One-click install with a confirmation prompt
 - Weekly digest via a Claude Code hook ("3 new tools match your work")
 - Learn from feedback: down-weight topics whose picks keep getting dismissed
+
+## Testing
+
+Testers: see [TESTING.md](TESTING.md) (install, run, rate, and share only the `stats --share` output).
