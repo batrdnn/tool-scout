@@ -47,3 +47,19 @@ weak vs. specific keywords, sense rules (in-game/A-B testing, crypto in CTF cont
 injection, ReAct), comma-list detection inside the head, developer context for iOS/Android,
 a separate `offensive-security` topic, tool affinity (pytest user ≠ Playwright pick), and a
 soft diversity penalty instead of a hard per-topic cap.
+
+## Holdout (v0.3)
+
+`npm run eval -- --set holdout` scores a second, frozen set of 55 repos labeled blind (see
+`holdout/README.md`). It's for reporting only; rules are never tuned against it.
+
+| persona | v0.2 p@5 | v0.2 p@25 | v0.2 recall@25 | v0.3 p@5 | v0.3 p@25 | v0.3 recall@25 |
+|---|---|---|---|---|---|---|
+| quant-ios | 0.40 | 0.08 | 1.00 | 0.40 | 0.09 | 1.00 |
+| webdev    | 0.20 | 0.24 | 0.86 | 0.20 | 0.24 | 0.86 |
+| platform  | 0.00 | 0.08 | 1.00 | 0.20 | 0.09 | 1.00 |
+| **mean**  | **0.20** | **0.13** | **0.95** | **0.27** | **0.14** | **0.95** |
+
+The main set reads 0.80 p@5 for both versions; the holdout says the real precision is far
+lower. Its labeler rejected generic agent tools (database clients, chart servers, review bots)
+that the keyword ranker can't tell from stack-specific ones.
