@@ -83,3 +83,25 @@ test('ignores npx dev noise and commands that install a different repo', () => {
   assert.deepEqual(extractInstall('Requires GSAP: `/plugin marketplace add greensock/gsap-skills`', R('jouberth/motionshelf', 'skill')), []);
   assert.deepEqual(extractInstall('`/plugin marketplace add https://github.com/acme/kit`', R('acme/kit', 'plugin')), ['/plugin marketplace add https://github.com/acme/kit']);
 });
+
+test("multi-plugin marketplace detected from the repo's marketplace.json when the README shows one example", async () => {
+  const md = '```\n/plugin marketplace add wshobson/agents\n/plugin install python-development@claude-code-workflows\n```';
+  const h = extractInstallHint(md, R('wshobson/agents', 'plugin'), { marketplacePlugins: 93 });
+  assert.deepEqual(h.commands, ['/plugin marketplace add wshobson/agents']);
+  assert.match(h.note, /choose a plugin with \/plugin/);
+  const { scanRepo } = await import('../scripts/lib/scan.mjs');
+  const f = mockFetch((url) => {
+    if (url.endsWith('/readme')) return md;
+    if (url.includes('/git/trees/')) return { tree: [{ path: '.claude-plugin/marketplace.json', type: 'blob', size: 99 }] };
+    if (url.endsWith('/contents/.claude-plugin/marketplace.json')) return JSON.stringify({ name: 'm', plugins: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] });
+    return undefined;
+  });
+  const r = await scanRepo(createClient({ fetchImpl: f }), 'wshobson/agents', { kind: 'plugin' });
+  assert.deepEqual(r.install, ['/plugin marketplace add wshobson/agents']);
+  assert.match(r.installNote, /choose a plugin/);
+});
+
+test('an unbalanced closing parenthesis from README prose is not part of the command', () => {
+  const md = '```bash\n# (prefer a global install instead? cp -r acme-skills/skills/* ~/.claude/skills/)\n```';
+  assert.deepEqual(extractInstall(md, R('acme/acme-skills', 'skill')), ['cp -r acme-skills/skills/* ~/.claude/skills/']);
+});

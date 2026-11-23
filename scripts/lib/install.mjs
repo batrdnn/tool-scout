@@ -22,7 +22,9 @@ const AGENTS = 'codex|cursor|gemini|gemini-cli|windsurf|cline|roo|roo-code|openc
 const OTHER_AGENT = new RegExp(String.raw`(?:--(?:agent|agents|target|client|ide|editor|tool)[=\s]+|\s-a\s+)["']?(?!claude)(?:${AGENTS})\b|(?:^|[\s/~"'])\.(?:${AGENTS})\/|^\s*(?:\$\s*)?(?:${AGENTS})\s+(?:mcp|extensions?|plugins?|skills?)\b|\b(?:${AGENTS}):\/\/`, 'im');
 
 function sanitize(cmd) {
-  const c = cmd.replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().replace(/[.,:;]+$/, '');
+  let c = cmd.replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().replace(/[.,:;]+$/, '');
+  // "(… or run cp -r x ~/.claude/skills/)": the closing parenthesis belongs to the prose.
+  while (c.endsWith(')') && (c.match(/\)/g) || []).length > (c.match(/\(/g) || []).length) c = c.slice(0, -1).trimEnd();
   if (!c || c.length > 200 || CHAINING.test(c)) return null;
   return c;
 }
@@ -35,7 +37,7 @@ function codeRanges(text) {
  * Install hint for `repo` ({ full_name, name, kind }) from README text:
  * { commands: [] | [cmd] | [marketplace add, plugin install], note? }.
  */
-export function extractInstallHint(readme, repo) {
+export function extractInstallHint(readme, repo, { marketplacePlugins = 0 } = {}) {
   if (!readme) return { commands: [] };
   const code = codeRanges(readme);
   const inCode = (i) => code.some(([a, b]) => i >= a && i < b);
@@ -77,7 +79,8 @@ export function extractInstallHint(readme, repo) {
   if (best.type === 'marketplace') {
     const installs = found.filter((f) => f.type === 'plugin-install');
     const plugins = new Set(installs.map((f) => (f.cmd.match(/install\s+([^\s@]+)/i) || [])[1]?.toLowerCase()).filter(Boolean));
-    if (plugins.size >= 2) note = 'then choose a plugin with /plugin';
+    // The README may show a single example; the repo's marketplace.json says how many there are.
+    if (plugins.size >= 2 || marketplacePlugins >= 2) note = 'then choose a plugin with /plugin';
     else {
       const next = installs.filter((f) => f.idx > best.idx).sort((a, b) => a.idx - b.idx)[0];
       if (next) out.push(next.cmd);
@@ -87,4 +90,4 @@ export function extractInstallHint(readme, repo) {
 }
 
 /** Commands only (see extractInstallHint). */
-export const extractInstall = (readme, repo) => extractInstallHint(readme, repo).commands;
+export const extractInstall = (readme, repo, opts) => extractInstallHint(readme, repo, opts).commands;
