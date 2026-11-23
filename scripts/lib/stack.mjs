@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { inEnumeration } from './taxonomy.mjs';
 
 const MAX_BYTES = 1 << 20;
 const MANIFEST = /^(?:package\.json|requirements[\w.-]*\.txt|pyproject\.toml|Package\.swift|Podfile|go\.mod|Cargo\.toml|Gemfile)$/;
@@ -111,7 +112,7 @@ export function libraryTerms(lib) {
   t = t.replace(/(?:[-.]js)$/, '');
   return t.length >= 3 ? [t] : [];
 }
-const termRe = (term) => new RegExp(`(?<![a-z0-9])${escape(term).replace(/[-_ ]/g, '[-_ ]?')}(?![a-z0-9])`, 'i');
+const termRe = (term) => new RegExp(`(?<![a-z0-9])${escape(term).replace(/[-_ ]/g, '[-_ ]?')}(?![a-z0-9])`, 'gi');
 
 /** Libraries of the user's that a repo names in its name or description head: [{ library, projects }]. */
 export function stackMatches(repo, stack) {
@@ -121,7 +122,10 @@ export function stackMatches(repo, stack) {
   const text = `${String(repo.name || '').replace(/[_]/g, '-')} | ${head}`;
   const out = [];
   for (const [library, projects] of Object.entries(stack)) {
-    if (libraryTerms(library).some((t) => termRe(t).test(text))) out.push({ library, projects });
+    // A term that only appears inside a comma list ("OpenAI, Acme, Gemini, …") names a supported
+    // provider or integration, not what the repo is built around.
+    const hit = libraryTerms(library).some((t) => [...text.matchAll(termRe(t))].some((m) => !inEnumeration(text, m.index)));
+    if (hit) out.push({ library, projects });
   }
   return out.sort((a, b) => b.projects - a.projects).slice(0, 2);
 }

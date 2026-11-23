@@ -106,7 +106,10 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     const ev = repoTopicEvidence(repo);
     const w = (t) => (weights[t] / maxW) * ev[t].strength * toolAffinity(t, ev[t].keywords, profile.toolKeywords);
     const matched = Object.keys(ev).filter((t) => weights[t]).sort((a, b) => w(b) - w(a));
-    const stackEv = stackMatches(repo, profile.stack);
+    // The stack bonus needs corroboration: a matched topic backed by actions (weight >= 1), or a
+    // library used in 2+ projects. Otherwise a vendor SDK would match every repo using its brand.
+    const backed = matched.some((t) => ((profile.topicWeights || profile.topics || {})[t] || 0) >= 1);
+    const stackEv = stackMatches(repo, profile.stack).filter((s) => backed || s.projects >= 2);
     if (!matched.length && !stackEv.length) continue;
 
     // Best topic counts fully, extra topics add a little (avoids rewarding keyword-stuffed READMEs).

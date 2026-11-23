@@ -88,3 +88,57 @@ test('CLI: library names reach stdout and profile.json, never last-recommendatio
     else if (f !== 'catalog.json') assert.ok(!body.includes('zzlibmarker') && !/you use pytest/.test(body), `${f} must not contain library names`);
   }
 });
+
+// v0.4.1 regressions: the two real false picks, reproduced with synthetic names.
+// A vendor SDK ("acmeai") used in one project; the user's real actions are docs and git.
+const vendorProfile = (projects = 1) => ({
+  sessions: 5, topics: { docs: 3, git: 2, 'offensive-security': 1 }, friction: {},
+  topicSources: { actions: { docs: 3, git: 2 }, mentions: { docs: 1, git: 2, 'offensive-security': 1 } },
+  topicWeights: { docs: 3.3, git: 2.6, 'offensive-security': 0.3 },
+  languages: {}, installed: { names: [], repos: [] }, stack: { acmeai: projects },
+});
+const vgh = (full, description, stars = 3000) => {
+  const [owner, name] = full.split('/');
+  return { full_name: full, name, owner: { login: owner, type: 'User' }, html_url: `https://github.com/${full}`, description, topics: ['claude-skills'],
+    language: 'Python', stargazers_count: stars, forks_count: 50, license: { spdx_id: 'MIT' }, archived: false, fork: false, created_at: '2025-06-01T00:00:00Z', pushed_at: new Date().toISOString() };
+};
+
+test('a vendor brand inside a provider list is not a stack match', () => {
+  const desc = 'A multi-provider AI copilot hub for Blender—bring OpenAI, AcmeAI Claude, Google Gemini, OpenRouter and local models';
+  assert.deepEqual(stackMatches({ name: 'blender-ai-copilot-hub', description: desc }, { acmeai: 1 }), []);
+  assert.deepEqual(stackMatches({ name: 'x', description: 'AcmeAI SDK helpers for agents' }, { acmeai: 1 }).map((e) => e.library), ['acmeai'], 'outside a list it still matches');
+});
+
+test('a vendor brand in a repo name gets no stack bonus without action-backed topic evidence or 2+ projects', () => {
+  const cat = { repos: {} };
+  mergeRepos(cat, [
+    vgh('someone/AcmeAI-Cybersecurity-Skills', '817 structured cybersecurity skills for AI agents, mapped to MITRE ATT&CK and NIST: pentest and red team playbooks', 9000),
+    vgh('someone/blender-ai-copilot-hub', 'A multi-provider AI copilot hub for Blender—bring OpenAI, AcmeAI Claude, Google Gemini, OpenRouter and local models', 4000),
+    vgh('docs-org/readme-writer-skill', 'Claude skill that writes and fixes README documentation', 400),
+  ]);
+  const recs = recommend(vendorProfile(1), cat, { top: 5 });
+  const names = recs.map((r) => r.name);
+  assert.ok(!names.includes('someone/blender-ai-copilot-hub'), 'provider-list mention: no match at all');
+  assert.equal(names[0], 'docs-org/readme-writer-skill');
+  const cyber = recs.find((r) => r.name === 'someone/AcmeAI-Cybersecurity-Skills');
+  assert.ok(!cyber || (!cyber.stackNote && cyber.thinEvidence), 'no bonus, no stack evidence, and not counted as support');
+  // With only the vendor match and limited history, it must not become a pick on its own.
+  const thin = { ...vendorProfile(1), sessions: 1, topics: { docs: 1 }, topicSources: { actions: { docs: 1 }, mentions: {} }, topicWeights: { docs: 1 } };
+  const only = recommend(thin, cat, { top: 5 }).map((r) => r.name);
+  assert.ok(!only.includes('someone/AcmeAI-Cybersecurity-Skills'), only.join(', '));
+});
+
+test('the stack bonus still applies with action-backed topic evidence, or when the library is in 2+ projects', () => {
+  const cat = { repos: {} };
+  mergeRepos(cat, [
+    vgh('acme/acmeai-docs-skill', 'AcmeAI docs skill: write documentation for AcmeAI SDK projects', 300),
+    vgh('big/readme-writer-skill', 'Claude skill that writes and fixes README documentation', 20000),
+    vgh('acme/acmeai-mcp', 'AcmeAI MCP server', 300),
+  ]);
+  const recs = recommend(vendorProfile(1), cat, { top: 5 });
+  assert.equal(recs[0].name, 'acme/acmeai-docs-skill', 'docs is backed by actions (weight 3.3)');
+  assert.match(recs[0].stackNote, /you use acmeai in 1 project/);
+  assert.ok(!recs.some((r) => r.name === 'acme/acmeai-mcp' && r.stackNote), 'no action-backed topic, 1 project: no bonus');
+  const two = recommend(vendorProfile(2), cat, { top: 5 });
+  assert.match(two.find((r) => r.name === 'acme/acmeai-mcp')?.stackNote || '', /2 projects/, '2+ projects: bonus without topic evidence');
+});

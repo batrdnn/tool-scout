@@ -147,7 +147,7 @@ function validMatches(topic, text) {
 }
 
 /** True when position `i` sits in a comma list ("…, Anthropic, AWS, OpenAI, …"): a feature/integration list, not the purpose. */
-function inEnumeration(text, i) {
+export function inEnumeration(text, i) {
   const clauseStart = Math.max(...['.', ':', ';', '(', '|', '。'].map((c) => text.lastIndexOf(c, i))) + 1;
   const ends = ['.', ':', ';', ')', '|', '。'].map((c) => text.indexOf(c, i)).filter((x) => x >= 0);
   const clauseEnd = ends.length ? Math.min(...ends) : text.length;
