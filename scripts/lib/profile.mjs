@@ -39,13 +39,70 @@ function textOfUserMessage(msg) {
   return '';
 }
 
+// Shell parsing for command heads. Quoted text, $(…) / backticks and heredoc bodies are
+// arguments, never commands: a multi-line `node -e '…'` or `python3 - <<EOF` is one command.
+const MASK = '·'; // stands in for quoted / substituted text: not a word character, so never a head
+const LEAD_KEYWORDS = new Set(['do', 'then', 'else', 'elif', 'if', 'while', 'until', '{', '(', '!', 'time', 'exec', 'command', 'builtin']);
+const NOT_COMMANDS = new Set(['for', 'case', 'select', 'function', 'done', 'fi', 'esac', '}', ')', 'in']);
+
+/** Remove heredoc bodies (the lines after `<<EOF` up to the closing `EOF`). */
+function stripHeredocs(cmd) {
+  const out = [];
+  const pending = [];
+  for (const line of cmd.split('\n')) {
+    if (pending.length) {
+      const d = pending[0];
+      if (line.replace(/^\t+/, '').trim() === d) pending.shift();
+      continue;
+    }
+    out.push(line);
+    for (const m of line.matchAll(/(?<!<)<<-?\s*(['"]?)([A-Za-z_][\w-]*)\1/g)) pending.push(m[2]);
+  }
+  return out.join('\n');
+}
+
+/** Split into simple commands on unquoted && || ; | & and newlines, with quoted text masked. */
+export function shellSegments(cmd) {
+  const s = stripHeredocs(String(cmd));
+  const segs = [];
+  let cur = '', quote = null, depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (quote) {
+      if (c === '\\' && quote !== "'") { cur += MASK + MASK; i++; continue; }
+      if (c === quote) { quote = null; cur += MASK; continue; }
+      cur += MASK; continue;
+    }
+    if (depth) {
+      if (c === '(') depth++;
+      else if (c === ')') depth--;
+      cur += MASK; continue;
+    }
+    if (c === '\\') { if (s[i + 1] === '\n') { cur += ' '; i++; } else { cur += MASK + MASK; i++; } continue; }
+    if (c === "'" || c === '"' || c === '`') { quote = c; cur += MASK; continue; }
+    if (c === '$' && s[i + 1] === '(') { depth = 1; cur += MASK + MASK; i++; continue; }
+    if (c === '#' && (!cur || /\s$/.test(cur))) { while (i + 1 < s.length && s[i + 1] !== '\n') i++; continue; } // comment
+    if (c === '\n' || c === ';' || c === '|' || c === '&') {
+      if (c === '&' && (s[i + 1] === '>' || cur.endsWith('>') || cur.endsWith('<'))) { cur += c; continue; } // &> and 2>&1 redirect
+      segs.push(cur); cur = '';
+      if ((c === '&' || c === '|') && s[i + 1] === c) i++;
+      continue;
+    }
+    cur += c;
+  }
+  segs.push(cur);
+  return segs.map((x) => x.trim()).filter(Boolean);
+}
+
 /** "git rebase -i HEAD~3 && npm test" -> ["git rebase", "npm test"] */
 export function commandHeads(cmd) {
   if (typeof cmd !== 'string') return [];
   const heads = [];
-  for (const seg of cmd.split(/&&|\|\||;|\||\n/)) {
-    const toks = seg.trim().split(/\s+/).filter(Boolean);
-    while (toks.length && /^[A-Z_][A-Z0-9_]*=/.test(toks[0])) toks.shift(); // FOO=bar cmd
+  for (const seg of shellSegments(cmd)) {
+    const toks = seg.split('\n')[0].split(/\s+/).filter(Boolean);
+    while (toks.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(toks[0])) toks.shift(); // FOO=bar cmd
+    while (toks.length && LEAD_KEYWORDS.has(toks[0])) toks.shift(); // do echo …, then npm test
+    if (!toks.length || NOT_COMMANDS.has(toks[0])) continue;
     if (toks[0] === 'sudo' || toks[0] === 'npx' || toks[0] === 'uv' || toks[0] === 'uvx') toks.shift();
     if (!toks.length) continue;
     const bin = path.basename(toks[0]);
