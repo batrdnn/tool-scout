@@ -12,7 +12,7 @@ import { RateLimitError } from './github.mjs';
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 4; // bump when rules change so cached scans are redone
+export const SCAN_VERSION = 6; // bump when rules change so cached scans are redone
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -51,7 +51,7 @@ const INJECTION = [
 const AI_WORDS = /\b(claude|assistant|ai|agent|llm|model|copilot|cursor|gpt|chatgpt)\b/i;
 const IMPERATIVE = /\b(ignore|must|always|never|do not|don'?t|execute|run|install|send|upload|you are|you should|instead)\b/i;
 // Needs an argument between the downloader and the pipe, so prose like "`curl | sh`" doesn't count.
-const PIPE_SHELL = /\b(?:curl|wget)\s+[^\s|\\][^\n|;]*\|\s*(?:(?:sudo|\$\{?\w+\}?)\s+)?(?:ba|z|da)?sh\b|\b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\s+[^\s|\\][^\n|]*\|\s*(?:iex|Invoke-Expression)\b|\b(?:iex|Invoke-Expression)\s*\(\s*(?:New-Object\s+Net\.WebClient|iwr|irm)/i;
+const PIPE_SHELL = /\b(?:curl|wget)\s+[^\s|\\][^\n|;]*(?<!\\)\|\s*(?:(?:sudo|\$\{?\w+\}?)\s+)?(?:ba|z|da)?sh\b|\b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\s+[^\s|\\][^\n|]*(?<!\\)\|\s*(?:iex|Invoke-Expression)\b|\b(?:iex|Invoke-Expression)\s*\(\s*(?:New-Object\s+Net\.WebClient|iwr|irm)/i;
 // Widely used official installers: still a pipe-to-shell, but a well-known one.
 const KNOWN_INSTALLERS = /^(?:astral\.sh|bun\.sh|deno\.land|sh\.rustup\.rs|get\.docker\.com|install\.python-poetry\.org|get\.pnpm\.io|(?:deb|rpm)\.nodesource\.com|fnm\.vercel\.app|cli\.github\.com|claude\.ai|raw\.githubusercontent\.com\/(?:Homebrew|nvm-sh)\/)/i;
 const COMMENT_LINE = /^\s*(?:#|\/\/|REM\b|::|\*)/i;
@@ -126,8 +126,10 @@ export function scanText(text, { file, role, explainedHosts = new Set(), repo = 
     const own = repo && new RegExp(`^(?:raw\\.githubusercontent\\.com|github\\.com)/${repo.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}/`, 'i').test(url);
     const known = KNOWN_INSTALLERS.test(url);
     const runs = role !== 'readme' && !COMMENT_LINE.test(lineText);
-    const severity = own || known ? 'low' : runs ? 'high' : 'medium';
-    const where = own ? " (the repo's own installer)" : known ? ` (well-known installer: ${url.split('/')[0]})` : '';
+    // No URL, host or $variable: a placeholder like "curl … | sh" describing the pattern.
+    const pattern = !/https?:\/\/|\$|\b[\w-]+\.[a-z]{2,}\b/i.test(m[0]);
+    const severity = own || known || pattern ? 'low' : runs ? 'high' : 'medium';
+    const where = own ? " (the repo's own installer)" : known ? ` (well-known installer: ${url.split('/')[0]})` : pattern ? ' (pattern mention, no URL)' : '';
     add('pipe-to-shell', severity, m.index, `downloads and executes a script in one step${where}`, clean(m[0]));
   }
   // Network calls from code that runs on install / inside the agent (not README prose).

