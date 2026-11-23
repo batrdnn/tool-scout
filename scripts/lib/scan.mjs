@@ -245,7 +245,7 @@ function saveCache(dataDir, c) { fs.mkdirSync(dataDir, { recursive: true }); fs.
  * Scan the given recommendations (already the final candidates), reusing cached scans while
  * the repo hasn't been pushed since and the rules haven't changed. Mutates rec.trust.
  */
-export async function scanRecommendations(recs, catalog, { client, dataDir, reserve = 20, log = () => {}, ttlDays = 7, now = Date.now() }) {
+export async function scanRecommendations(recs, catalog, { client, dataDir, reserve = 20, log = () => {}, ttlDays = 7, now = Date.now(), memo = null }) {
   const cache = dataDir ? loadCache(dataDir) : {};
   const stats = { scanned: 0, cached: 0, skipped: 0, failed: 0 };
   let stop = false;
@@ -253,7 +253,9 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
     const repo = catalog.repos[rec.name] || {};
     const hit = cache[rec.name];
     let scan = null;
-    if (hit && hit.v === SCAN_VERSION && hit.pushedAt === repo.pushedAt && now - Date.parse(hit.at) < ttlDays * 86400e3) {
+    if (memo?.has(rec.name)) {
+      scan = memo.get(rec.name); // already handled earlier in this run: not counted again
+    } else if (hit && hit.v === SCAN_VERSION && hit.pushedAt === repo.pushedAt && now - Date.parse(hit.at) < ttlDays * 86400e3) {
       scan = hit; stats.cached++;
     } else if (stop || !client.hasBudget(reserve)) {
       stats.skipped++;
@@ -267,6 +269,7 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
         else { scan = { flags: [], error: e.message }; stats.failed++; }
       }
     }
+    if (memo && scan) memo.set(rec.name, scan);
     rec.trust = applyFlags(rec.trust, scan);
     // Real install command from the README when there is one (display only, never run).
     if (scan?.install?.length) {
