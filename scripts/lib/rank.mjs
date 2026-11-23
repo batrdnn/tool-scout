@@ -120,6 +120,8 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     stars: c.repo.stars,
     starsPerDay: Number(c.m.perDay.toFixed(1)),
     momentumSource: c.m.source,
+    starsLast7d: c.m.starsInWindow ?? null,
+    momentumComplete: c.m.complete,
     trust: c.tr,
     score: Number(c.score.toFixed(3)),
     matchedTopics: c.matched,

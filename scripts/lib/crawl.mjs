@@ -4,7 +4,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { githubToken, createClient, sleep } from './github.mjs';
+
+export { githubToken };
 
 const TOPIC_QUERIES = [
   'topic:mcp-server', 'topic:mcp', 'topic:model-context-protocol',
@@ -14,15 +16,6 @@ const TOPIC_QUERIES = [
 
 const day = (d = new Date()) => d.toISOString().slice(0, 10);
 const daysAgo = (n) => day(new Date(Date.now() - n * 86400e3));
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-export function githubToken() {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-  try {
-    return execFileSync('gh', ['auth', 'token'], { stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).toString().trim() || null;
-  } catch { return null; }
-}
 
 export function classify(repo) {
   const t = new Set(repo.topics || []);
@@ -55,38 +48,16 @@ function slim(r) {
   };
 }
 
-async function search(q, { token, page = 1, log }) {
+async function search(client, q, page = 1) {
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=100&page=${page}`;
-  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'tool-scout', 'X-GitHub-Api-Version': '2022-11-28' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let res;
-    try { res = await fetch(url, { headers }); } catch (e) {
-      throw new Error(`could not reach GitHub (${e.cause?.code || e.message}). Behind a proxy? Try NODE_USE_ENV_PROXY=1`);
-    }
-    if (res.ok) {
-      const remaining = Number(res.headers.get('x-ratelimit-remaining'));
-      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000;
-      if (remaining === 0 && reset) await sleep(Math.min(Math.max(reset - Date.now(), 0) + 1000, 65000));
-      return (await res.json()).items || [];
-    }
-    if (res.status === 403 || res.status === 429) {
-      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000;
-      const wait = Math.min(Math.max((reset || Date.now() + 60000) - Date.now(), 1000) + 1000, 65000);
-      log?.(`rate limited; waiting ${Math.round(wait / 1000)}s`);
-      await sleep(wait);
-      continue;
-    }
-    if (res.status === 401 && headers.Authorization) {
-      log?.('GitHub token was rejected; continuing without it');
-      delete headers.Authorization;
-      search.tokenRejected = true;
-      continue;
-    }
-    if (res.status === 422) return []; // past the 1000-result window
-    throw new Error(`GitHub search failed (${res.status}) for ${q}`);
+  const res = await client.request(url);
+  if (res.data) {
+    // The search quota is 10–30/min; pause on the last call instead of failing the next one.
+    if (client.state.remaining === 0 && client.state.resetAt) await sleep(Math.min(Math.max(client.state.resetAt - Date.now(), 0) + 1000, 65000));
+    return res.data.items || [];
   }
-  return [];
+  if (res.status === 422) return []; // past the 1000-result window
+  throw new Error(`GitHub search failed (${res.status}) for ${q}`);
 }
 
 export function loadCatalog(dataDir) {
@@ -112,8 +83,17 @@ export function mergeRepos(cat, items, today = day()) {
   return cat;
 }
 
-/** Stars per day: measured from snapshots when possible, otherwise estimated. */
+/**
+ * Stars per day, best source first:
+ *   'stargazers' / 'events'  stars actually given in the last 7 days (shortlist only, see momentum.mjs)
+ *   'measured'               difference between our own daily snapshots
+ *   'estimated'              lifetime average (stars / age)
+ */
 export function momentum(repo, now = Date.now()) {
+  const sv = repo.starVelocity;
+  if (sv && !sv.unavailable && !sv.blocked && now - Date.parse(sv.fetchedAt) < 3 * 86400e3) {
+    return { perDay: sv.perDay, source: sv.method || 'stargazers', days: sv.days, starsInWindow: sv.stars, complete: sv.complete };
+  }
   const h = repo.history || [];
   if (h.length >= 2) {
     const [lastD, lastS] = h[h.length - 1];
@@ -128,8 +108,9 @@ export function momentum(repo, now = Date.now()) {
   return { perDay: repo.stars / ageDays, source: 'estimated', days: Math.round(ageDays) };
 }
 
-export async function crawl({ dataDir, maxPages = 1, log = () => {}, queries } = {}) {
-  let token = githubToken();
+export async function crawl({ dataDir, maxPages = 1, log = () => {}, queries, fetchImpl } = {}) {
+  const client = createClient({ token: githubToken(), log, fetchImpl });
+  const authed = () => !!client.state.token;
   const cat = loadCatalog(dataDir);
   const pushedSince = daysAgo(180);
   const createdSince = daysAgo(45);
@@ -137,18 +118,17 @@ export async function crawl({ dataDir, maxPages = 1, log = () => {}, queries } =
     `${t} pushed:>${pushedSince} archived:false`, // established + still alive
     `${t} created:>${createdSince}`, // new and rising
   ]);
-  log(`crawling ${qs.length} queries${token ? ' (authenticated)' : ' (unauthenticated: slower, 10 searches/min)'}`);
+  log(`crawling ${qs.length} queries${authed() ? ' (authenticated)' : ' (unauthenticated: slower, 10 searches/min)'}`);
   let total = 0;
   for (const q of qs) {
     for (let page = 1; page <= maxPages; page++) {
-      if (search.tokenRejected) token = null;
-      const items = await search(q, { token, page, log });
+      const items = await search(client, q, page);
       mergeRepos(cat, items);
       total += items.length;
       if (items.length < 100) break;
-      if (!token) await sleep(6500);
+      if (!authed()) await sleep(6500);
     }
-    if (!token) await sleep(6500);
+    if (!authed()) await sleep(6500);
   }
   cat.updatedAt = new Date().toISOString();
   saveCatalog(dataDir, cat);

@@ -35,8 +35,10 @@ user's own work.
 2. Read the JSON. `profile` shows what the user does (`topics` = sessions touching it,
    `friction` = sessions where they hit trouble with it, `repeatedCommands`, `languages`,
    `installed`). `recommendations` is a keyword-ranked shortlist with `evidence`, momentum
-   (`starsPerDay`, `momentumSource`: `measured` means real stars per day between crawls,
-   `estimated` means lifetime average) and basic `trust`.
+   and `trust`. Momentum: `starsLast7d` is the real number of stars in the last 7 days when
+   `momentumSource` is `events` or `stargazers` (`momentumComplete: false` means the window was
+   shorter than 7 days, so it's a lower bound); `measured` means stars/day between our own
+   daily crawls; `estimated` means lifetime average. Only say "trending" for measured numbers.
 
 3. **Filter the shortlist.** For each candidate, read its description and ask: would this
    actually help with what the profile shows? Drop:

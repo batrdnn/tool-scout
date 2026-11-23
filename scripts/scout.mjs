@@ -6,6 +6,7 @@
 //   scout.mjs crawl     [--max-pages 1]
 //   scout.mjs recommend [--top 8] [--kind skill,plugin,mcp-server] [--include-low] [--json]
 //   scout.mjs all       [--refresh] [...]     profile + crawl (if stale) + recommend
+//   recommend/all also measure 7-day star momentum for the top 25 (cached 20h); --offline skips it
 //
 // Common: --data DIR (default $SCOUT_DATA or ~/.tool-scout), --home DIR (default ~)
 
@@ -15,6 +16,10 @@ import path from 'node:path';
 import { buildProfile } from './lib/profile.mjs';
 import { crawl, loadCatalog } from './lib/crawl.mjs';
 import { recommend } from './lib/rank.mjs';
+import { createClient, githubToken } from './lib/github.mjs';
+import { measureShortlist } from './lib/momentum.mjs';
+
+const SHORTLIST = 25; // network work (momentum, trust scan) is limited to this many candidates
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -61,7 +66,9 @@ function showRecs(recs) {
   }
   recs.forEach((r, i) => {
     const ev = r.evidence.map((e) => `${e.topic} in ${e.sessions}/${e.ofSessions} sessions${e.friction ? `, friction in ${e.friction}` : ''}`).join('; ');
-    const mom = `${r.momentumSource === 'measured' ? '+' : '~'}${r.starsPerDay}★/day`;
+    const mom = r.starsLast7d != null
+      ? `+${r.starsLast7d}${r.momentumComplete ? '' : '+'}★ last 7d (${r.starsPerDay}/day)`
+      : `${r.momentumSource === 'measured' ? '+' : '~'}${r.starsPerDay}★/day`;
     console.log(`\n${i + 1}. ${r.name}  [${r.kind}]  ${r.stars}★  ${mom}  trust: ${r.trust.tier}`);
     if (r.description) console.log(`   ${r.description}`);
     console.log(`   Why: ${ev}`);
@@ -91,11 +98,22 @@ async function main() {
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
       else if (!cat.updatedAt) { log('catalog is empty; run `crawl` first'); }
-      const recs = recommend(p, cat, {
-        top: Number(opts.top || 8),
+      const top = Number(opts.top || 8);
+      const rankOpts = {
         kinds: typeof opts.kind === 'string' ? opts.kind.split(',') : null,
         includeLow: !!opts['include-low'],
-      });
+      };
+      const offline = !!opts.offline;
+      const client = offline ? null : createClient({ token: githubToken(), log });
+      if (client && cat.updatedAt) {
+        // Measure real 7-day momentum for the shortlist only, then re-rank with it.
+        const first = recommend(p, cat, { ...rankOpts, top: Math.max(top, SHORTLIST) });
+        try {
+          const st = await measureShortlist(first.slice(0, SHORTLIST).map((r) => r.name), cat, { client, dataDir, log });
+          log(`momentum: ${st.measured} measured, ${st.cached} cached, ${st.unavailable} unavailable, ${st.skipped} skipped`);
+        } catch (e) { log(`momentum measurement skipped: ${e.message}`); }
+      }
+      const recs = recommend(p, cat, { ...rankOpts, top });
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));

@@ -16,6 +16,7 @@ Type `/tool-scout:scout` in Claude Code and get up to 5 picks, each with the rea
   ├─ profile   reads your local Claude Code history (~/.claude/projects) → counts only
   ├─ crawl     GitHub topic search: mcp-server, claude-skills, agent-skills, claude-code-plugin …
   │            saves daily star snapshots → real momentum (stars/day), not just total stars
+  ├─ momentum  for the top 25 only: stars actually given in the last 7 days (cached 20h)
   ├─ rank      matches your topics, friction, languages, skips what you already have,
   │            adds basic trust signals (maintenance, license, age, archived)
   └─ Claude    reads the shortlist, drops keyword coincidences, explains the best 5
@@ -56,7 +57,14 @@ node scripts/scout.mjs all --json              # everything, as JSON
 ```
 
 Options: `--days 30`, `--kind skill,plugin,mcp-server`, `--include-low` (show low-trust repos),
-`--data DIR`. Behind a proxy, use `NODE_USE_ENV_PROXY=1`.
+`--offline` (no network after the crawl: no momentum or trust scan), `--data DIR`. Behind a proxy,
+use `NODE_USE_ENV_PROXY=1`.
+
+**Momentum** for the shortlist is measured, not guessed: Tool Scout first asks the stargazers API
+(`Accept: application/vnd.github.star+json`, which has `starred_at`). GitHub currently serves
+stargazer lists only to a repo's owner, so when that's refused it counts `WatchEvent`s (stars) in the
+repo's public events feed instead. The feed holds the newest 300 events, so for very busy repos the
+window can be shorter than 7 days; that's shown as `+N+★`.
 
 ## Safety
 
