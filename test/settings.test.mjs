@@ -60,3 +60,17 @@ test('CLI: --exclude-project for one run, exclude-project to persist it', () => 
   cli('include-project', 'tool-scout');
   assert.equal(JSON.parse(cli('profile', '--json')).sessions, 4);
 });
+
+test('exclusion is decided per session from its own cwd, not per project folder', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-set-'));
+  const dir = path.join(home, '.claude', 'projects', '-Users-me-Projects-proxy');
+  fs.mkdirSync(dir, { recursive: true });
+  // The folder's first file ran in tool-scout; the second in the proxy project itself.
+  fs.writeFileSync(path.join(dir, 'a.jsonl'), user('fix the docker build', '/Users/me/Downloads/tool-scout'));
+  fs.writeFileSync(path.join(dir, 'b.jsonl'), user('write pytest tests', '/Users/me/Projects/proxy'));
+  const p = buildProfile({ home, days: 30, cwd: home, excludeSessions: [], excludeProjects: ['tool-scout'] });
+  assert.equal(p.sessions, 1);
+  assert.equal(p.excludedProjectSessions, 1);
+  assert.equal(p.topics.testing, 1);
+  assert.equal(p.topics.devops, undefined);
+});

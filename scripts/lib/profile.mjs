@@ -66,14 +66,12 @@ function hintsForPath(p) {
   return { topics, lang };
 }
 
-/** The working directory a project's sessions ran in (from the transcripts' `cwd`), or null. */
-function projectCwd(files) {
-  for (const file of files.slice(0, 3)) {
-    let head = '';
-    try { const fd = fs.openSync(file, 'r'); const b = Buffer.alloc(65536); head = b.toString('utf8', 0, fs.readSync(fd, b, 0, b.length, 0)); fs.closeSync(fd); } catch { continue; }
-    const m = head.match(/"cwd"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-    if (m) { try { return JSON.parse(`"${m[1]}"`); } catch { /* malformed */ } }
-  }
+/** The working directory a session ran in (its transcript's first `cwd`), or null. */
+function sessionCwd(file) {
+  let head = '';
+  try { const fd = fs.openSync(file, 'r'); const b = Buffer.alloc(65536); head = b.toString('utf8', 0, fs.readSync(fd, b, 0, b.length, 0)); fs.closeSync(fd); } catch { return null; }
+  const m = head.match(/"cwd"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (m) { try { return JSON.parse(`"${m[1]}"`); } catch { /* malformed */ } }
   return null;
 }
 
@@ -207,18 +205,16 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
   const all = listSessionFiles(path.join(home, '.claude', 'projects'), since);
   const afterSessions = all.filter(({ file }) => !skip.has(path.basename(file)));
   const excludedCurrent = all.length - afterSessions.length;
-  // Projects the user asked to leave out (e.g. while developing this plugin).
+  // Projects the user asked to leave out (e.g. while developing this plugin). Decided per
+  // session from its own cwd: a project folder can hold sessions started elsewhere.
   const names = excludeProjects.filter(Boolean);
-  const dropDir = new Set();
-  if (names.length) {
-    const byDir = {};
-    for (const f of afterSessions) (byDir[f.project] ||= []).push(f.file);
-    for (const [dir, fs_] of Object.entries(byDir)) {
-      const proj = { dir, cwd: projectCwd(fs_) };
-      if (names.some((n) => projectMatches(proj, n))) dropDir.add(dir);
-    }
-  }
-  const files = afterSessions.filter(({ project }) => !dropDir.has(project));
+  const dropped = new Set(); // project keys (cwd, else folder) left out, for the count only
+  const files = names.length ? afterSessions.filter(({ file, project }) => {
+    const proj = { dir: project, cwd: sessionCwd(file) };
+    if (!names.some((n) => projectMatches(proj, n))) return true;
+    dropped.add(proj.cwd || project);
+    return false;
+  }) : afterSessions;
   const excludedProjectSessions = afterSessions.length - files.length;
   const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
@@ -257,7 +253,7 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     windowDays: days,
     sessions, prompts, projects: projects.size, excludedCurrentSession: excludedCurrent > 0,
     // Counts only: which projects were left out stays in settings, not in the profile.
-    excludedProjects: dropDir.size, excludedProjectSessions,
+    excludedProjects: dropped.size, excludedProjectSessions,
     topics: sortObj(topicSessions),
     friction: sortObj(frictionSessions),
     // Sessions mentioning each fixed-vocabulary tool name (pytest, prisma, kubernetes, ...).
