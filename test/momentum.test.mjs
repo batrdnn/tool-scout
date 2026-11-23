@@ -6,26 +6,11 @@ import path from 'node:path';
 import { createClient } from '../scripts/lib/github.mjs';
 import { measureStarVelocity, measureShortlist } from '../scripts/lib/momentum.mjs';
 import { momentum } from '../scripts/lib/crawl.mjs';
+import { mockFetch } from './helpers.mjs';
 
 const NOW = Date.parse('2026-11-23T12:00:00Z');
 const daysAgo = (d) => new Date(NOW - d * 86400e3).toISOString();
 
-export function mockFetch(routes, { remaining = 4999 } = {}) {
-  const calls = [];
-  const fn = async (url, { headers }) => {
-    calls.push({ url, headers });
-    const body = routes(url);
-    const status = body === undefined ? 404 : body?.__status || 200;
-    return {
-      ok: status < 300, status,
-      headers: { get: (k) => ({ 'x-ratelimit-remaining': String(remaining), 'x-ratelimit-reset': String(Math.floor(NOW / 1000) + 3600) })[k.toLowerCase()] ?? null },
-      json: async () => body,
-      text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
-    };
-  };
-  fn.calls = calls;
-  return fn;
-}
 
 // 250 stars: page 3 = 50 stars within 2 days; page 2 = 50 within 7 days then 50 older.
 const stargazers = (url) => {

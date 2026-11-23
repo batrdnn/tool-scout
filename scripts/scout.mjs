@@ -18,6 +18,7 @@ import { crawl, loadCatalog } from './lib/crawl.mjs';
 import { recommend } from './lib/rank.mjs';
 import { createClient, githubToken } from './lib/github.mjs';
 import { measureShortlist } from './lib/momentum.mjs';
+import { scanRecommendations } from './lib/scan.mjs';
 
 const SHORTLIST = 25; // network work (momentum, trust scan) is limited to this many candidates
 
@@ -73,6 +74,10 @@ function showRecs(recs) {
     if (r.description) console.log(`   ${r.description}`);
     console.log(`   Why: ${ev}`);
     if (r.trust.notes.length) console.log(`   Watch out: ${r.trust.notes.join(', ')}`);
+    for (const f of r.trust.flags || []) {
+      console.log(`   ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
+    }
+    if (r.trust.scanned === false && r.trust.flags) console.log('   (content not scanned)');
     console.log(`   Install: ${r.install}`);
   });
 }
@@ -114,6 +119,13 @@ async function main() {
         } catch (e) { log(`momentum measurement skipped: ${e.message}`); }
       }
       const recs = recommend(p, cat, { ...rankOpts, top });
+      if (client && recs.length) {
+        // Read the final candidates' content (README, SKILL.md, install scripts, hooks).
+        try {
+          const st = await scanRecommendations(recs.slice(0, SHORTLIST), cat, { client, dataDir, log });
+          log(`trust scan: ${st.scanned} scanned, ${st.cached} cached, ${st.skipped} skipped, ${st.failed} failed`);
+        } catch (e) { log(`trust scan skipped: ${e.message}`); }
+      }
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));

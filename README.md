@@ -68,9 +68,26 @@ window can be shorter than 7 days; that's shown as `+N+★`.
 
 ## Safety
 
-Trust scores use repository metadata only. They are **not** a security review. Skills and MCP
-servers run with your permissions, so read a repo's `SKILL.md`, install scripts and network calls
-before installing. Tool Scout never installs anything on its own.
+Trust has two parts. Metadata (maintenance, license, age, archived) for every candidate, and a
+**content scan** for the final candidates: Tool Scout reads each one's README, `SKILL.md` files,
+install scripts, plugin hooks, `package.json` install scripts and `.mcp.json` through the GitHub API
+and sets `trust.flags`:
+
+| flag | what it catches |
+|---|---|
+| `pipe-to-shell` | `curl … \| sh`, `irm … \| iex`. `low` for the repo's own installer or a well-known one (uv, bun, rustup …), `high` when it runs from a script or skill |
+| `prompt-injection` | "ignore previous instructions", "don't tell the user about …", fake system prompts. Quoted examples in a README are `low` |
+| `hidden-instructions` | HTML / Markdown comments that address an AI with instructions |
+| `invisible-unicode` | bidirectional controls, Unicode tag characters, zero-width characters inside ASCII text |
+| `base64-blob` | 200+ character encoded blobs (inline images excluded) |
+| `network-call` | calls in scripts / skills / hooks to hosts the README never mentions. Uploads are `medium` |
+
+A `high` flag drops the repo to the low trust tier. Test fixtures and examples aren't scanned
+(they aren't installed). Flags for injection-type findings carry file and line only, never the
+repo's text. Results are cached per repo until it's pushed again.
+
+This is still a heuristic, **not** a security review: no flags doesn't mean safe. Skills and MCP
+servers run with your permissions. Tool Scout never installs anything on its own.
 
 ## Development
 
@@ -80,7 +97,7 @@ npm test     # node --test, no dependencies
 
 ## Roadmap
 
-- Deeper trust checks: scan `SKILL.md` for prompt-injection patterns, flag shell/network use
+- Deeper trust checks: follow scripts that installers download; scan MCP server source, not just configs
 - One-click install with a confirmation prompt
 - Weekly digest via a Claude Code hook ("3 new tools match your work")
 - Learn from feedback: remember picks you dismissed
