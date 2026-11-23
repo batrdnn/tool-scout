@@ -20,7 +20,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runEval, loadSet, precisionAt } from './eval.mjs';
+import { runEval, loadSet, precisionAt, precisionFixedAt } from './eval.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_PATH = path.join(here, '..', '..', 'skills', 'scout', 'SKILL.md');
@@ -139,6 +139,9 @@ export async function runE2E({ set = 'holdout', model = DEFAULT_MODEL, cacheDir 
       set, persona: row.persona, model, cached: !!hit && !refresh, shortlist: shortlist.length, picks: hit.picks,
       scriptP3: precisionAt(shortlist, row.persona, 3, labels), scriptP5: precisionAt(shortlist, row.persona, 5, labels),
       e2eP3: precisionAt(hit.picks, row.persona, 3, labels), e2eP5: precisionAt(hit.picks, row.persona, 5, labels),
+      // Fixed denominator: always / k, so a judge returning fewer picks can't score higher.
+      scriptFP3: precisionFixedAt(shortlist, row.persona, 3, labels), scriptFP5: precisionFixedAt(shortlist, row.persona, 5, labels),
+      e2eFP3: precisionFixedAt(hit.picks, row.persona, 3, labels), e2eFP5: precisionFixedAt(hit.picks, row.persona, 5, labels),
       relevantPicks: hit.picks.filter((n) => labels[n]?.[row.persona] === 1),
     });
   }
@@ -157,13 +160,14 @@ if (isMain) {
   if (args.includes('--json')) console.log(JSON.stringify(all, null, 2));
   else {
     const f = (x) => x.toFixed(2);
-    console.log(`End-to-end eval (judge: ${opts.model}). Precision = relevant / min(k, returned); 0 picks scores 0.\n`);
-    console.log('set      persona      script p@3  p@5   e2e p@3  p@5   picks');
+    console.log(`End-to-end eval (judge: ${opts.model}). p@k = relevant / min(k, returned); fixed fp@k = relevant / k.\n`);
+    console.log('set      persona      script p@3  p@5   fp@3  fp@5   e2e p@3  p@5   fp@3  fp@5   picks');
     for (const set of sets) {
       const rs = all.filter((r) => r.set === set);
-      for (const r of rs) console.log(`${set.padEnd(8)} ${r.persona.padEnd(12)} ${f(r.scriptP3)}        ${f(r.scriptP5)}  ${f(r.e2eP3)}     ${f(r.e2eP5)}  ${r.picks.length}`);
+      for (const r of rs) console.log(`${set.padEnd(8)} ${r.persona.padEnd(12)} ${f(r.scriptP3)}        ${f(r.scriptP5)}  ${f(r.scriptFP3)}  ${f(r.scriptFP5)}   ${f(r.e2eP3)}     ${f(r.e2eP5)}  ${f(r.e2eFP3)}  ${f(r.e2eFP5)}   ${r.picks.length}`);
       const m = (k) => f(rs.reduce((s, r) => s + r[k], 0) / rs.length);
-      console.log(`${set.padEnd(8)} ${'MEAN'.padEnd(12)} ${m('scriptP3')}        ${m('scriptP5')}  ${m('e2eP3')}     ${m('e2eP5')}`);
+      const mp = (rs.reduce((s, r) => s + r.picks.length, 0) / rs.length).toFixed(1);
+      console.log(`${set.padEnd(8)} ${'MEAN'.padEnd(12)} ${m('scriptP3')}        ${m('scriptP5')}  ${m('scriptFP3')}  ${m('scriptFP5')}   ${m('e2eP3')}     ${m('e2eP5')}  ${m('e2eFP3')}  ${m('e2eFP5')}   ${mp}`);
     }
     if (args.includes('--verbose')) for (const r of all) console.log(`\n${r.set}/${r.persona}: ${r.picks.join(', ')}  (relevant: ${r.relevantPicks.join(', ') || '—'})`);
   }

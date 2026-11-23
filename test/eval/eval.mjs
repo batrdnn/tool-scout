@@ -10,6 +10,7 @@
 //                                to eyeball generalization beyond the labeled set
 //
 // precision@k = relevant / min(k, returned). An empty shortlist scores 0.
+// fixed precision@k (fp@k) = relevant / k: missing picks count as not relevant.
 // recall@25 is reported so precision can't be "improved" by returning nothing.
 
 import fs from 'node:fs';
@@ -39,6 +40,10 @@ export function precisionAt(names, persona, k, labels = MAIN.labels) {
   if (!top.length) return 0;
   return top.filter((n) => labels[n]?.[persona] === 1).length / top.length;
 }
+/** Fixed denominator: always divide by k, so returning fewer picks can't raise the score. */
+export function precisionFixedAt(names, persona, k, labels = MAIN.labels) {
+  return names.slice(0, k).filter((n) => labels[n]?.[persona] === 1).length / k;
+}
 export function recallAt(names, persona, k, labels = MAIN.labels) {
   const total = Object.values(labels).filter((l) => l[persona] === 1).length;
   return total ? names.slice(0, k).filter((n) => labels[n]?.[persona] === 1).length / total : 0;
@@ -56,7 +61,10 @@ export function runEval(set = 'main', { platform = 'darwin' } = {}) {
       const names = recs.map((r) => r.name);
       rows.push({
         persona, profile, recs, names,
+        p3: precisionAt(names, persona, 3, labels),
         p5: precisionAt(names, persona, 5, labels),
+        fp3: precisionFixedAt(names, persona, 3, labels),
+        fp5: precisionFixedAt(names, persona, 5, labels),
         p25: precisionAt(names, persona, 25, labels),
         r25: recallAt(names, persona, 25, labels),
         returned: names.length,
@@ -75,12 +83,12 @@ if (isMain) {
   const f = (x) => x.toFixed(2);
   const mean = (k) => rows.reduce((s, r) => s + r[k], 0) / rows.length;
   if (args.includes('--json')) {
-    console.log(JSON.stringify(rows.map(({ persona, p5, p25, r25, returned, names }) => ({ persona, p5, p25, r25, returned, names })), null, 2));
+    console.log(JSON.stringify(rows.map(({ persona, p3, p5, fp3, fp5, p25, r25, returned, names }) => ({ persona, p3, p5, fp3, fp5, p25, r25, returned, names })), null, 2));
   } else {
     console.log(`Eval [${set}]: ${Object.keys(labels).length} labeled repos, ${rows.length} personas (catalog frozen ${catalog.frozenFrom})\n`);
-    console.log('persona      p@5    p@25   recall@25  returned');
-    for (const r of rows) console.log(`${r.persona.padEnd(12)} ${f(r.p5)}   ${f(r.p25)}   ${f(r.r25)}       ${r.returned}`);
-    console.log(`${'MEAN'.padEnd(12)} ${f(mean('p5'))}   ${f(mean('p25'))}   ${f(mean('r25'))}`);
+    console.log('persona      p@3    p@5    fixed p@3  fixed p@5  p@25   recall@25  returned');
+    for (const r of rows) console.log(`${r.persona.padEnd(12)} ${f(r.p3)}   ${f(r.p5)}   ${f(r.fp3)}       ${f(r.fp5)}       ${f(r.p25)}   ${f(r.r25)}       ${r.returned}`);
+    console.log(`${'MEAN'.padEnd(12)} ${f(mean('p3'))}   ${f(mean('p5'))}   ${f(mean('fp3'))}       ${f(mean('fp5'))}       ${f(mean('p25'))}   ${f(mean('r25'))}`);
     if (args.includes('--verbose')) {
       for (const r of rows) {
         console.log(`\n== ${r.persona}`);

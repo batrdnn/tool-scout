@@ -42,7 +42,7 @@ test('e2e results are cached by input hash: a rerun makes no judge calls', async
   assert.equal(calls, 3);
   assert.equal(a.length, 3);
   for (const r of a) {
-    for (const k of ['scriptP3', 'scriptP5', 'e2eP3', 'e2eP5']) assert.ok(r[k] >= 0 && r[k] <= 1, `${r.persona} ${k}`);
+    for (const k of ['scriptP3', 'scriptP5', 'e2eP3', 'e2eP5', 'scriptFP3', 'scriptFP5', 'e2eFP3', 'e2eFP5']) assert.ok(r[k] >= 0 && r[k] <= 1, `${r.persona} ${k}`);
     assert.equal(r.e2eP5, r.scriptP5, 'a judge that keeps the first 5 scores like the script');
   }
   const b = await runE2E({ set: 'holdout', model: 'm', cacheDir, judge });
@@ -50,4 +50,15 @@ test('e2e results are cached by input hash: a rerun makes no judge calls', async
   assert.deepEqual(b.map((r) => r.picks), a.map((r) => r.picks));
   await runE2E({ set: 'holdout', model: 'other-model', cacheDir, judge });
   assert.equal(calls, 6, 'the model is part of the hash');
+});
+
+test('a judge that returns fewer picks scores lower on the fixed-denominator version', async () => {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-e2e-'));
+  const { labels } = loadSet('holdout');
+  const judge = async (prompt, shortlist) => shortlist.filter((n) => Object.values(labels[n] || {}).includes(1)).slice(0, 1);
+  for (const r of await runE2E({ set: 'holdout', model: 'one-pick', cacheDir, judge })) {
+    if (!r.picks.length) continue;
+    assert.equal(r.picks.length, 1);
+    assert.ok(r.e2eFP5 <= 0.2 && r.e2eFP5 <= r.e2eP5, `${r.persona}: ${r.e2eFP5} vs ${r.e2eP5}`);
+  }
 });
