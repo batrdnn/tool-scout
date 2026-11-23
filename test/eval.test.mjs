@@ -33,3 +33,11 @@ test('shortlist precision does not regress below the v0.2 floor', () => {
   assert.ok(mean('p25') >= 0.45, `mean p@25 ${mean('p25')}`);
   assert.ok(mean('r25') >= 0.9, `mean recall@25 ${mean('r25')}`);
 });
+
+test('the holdout set is frozen (never tune against it)', async () => {
+  const { createHash } = await import('node:crypto');
+  const sha = (f) => createHash('sha256').update(fs.readFileSync(new URL(`./eval/holdout/${f}`, import.meta.url))).digest('hex');
+  assert.equal(sha('labels.json'), '098a2bdd049851bfcef2ff32d17bca3430c90fef6cbd12293d5a668b93fc4a95');
+  assert.equal(sha('catalog.json'), '0e1b383ae7a6c615855379ec61b42580250c8b324d8eac7f315c94d053d49e26');
+  assert.ok(runEval('holdout').length === 3);
+});

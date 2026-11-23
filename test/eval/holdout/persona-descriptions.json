@@ -1,0 +1,5 @@
+{
+ "quant-ios": "Solo developer: Python backtesting engine for trading strategies, plus a SwiftUI companion iPhone app.",
+ "webdev": "Full-stack TypeScript: Next.js + Tailwind frontend, Postgres via Prisma, Playwright e2e tests, deploys on Vercel, works through GitHub PRs.",
+ "platform": "Platform/DevOps engineer: Go services on Kubernetes, Terraform on AWS, GitHub Actions pipelines, cares about security and secrets."
+}

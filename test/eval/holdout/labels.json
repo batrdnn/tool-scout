@@ -1,0 +1,333 @@
+{
+ "_comment": "Holdout relevance labels. Labeled blind from persona descriptions and repo metadata only, without access to the ranker or its rules.",
+ "tirth8205/code-review-graph": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "Code-intelligence MCP aimed at code review; fits webdev's PR workflow, generic otherwise"
+ },
+ "msmahdinejad/iran-bourse-mcp": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Tehran Stock Exchange data only; no sign quant persona trades that market"
+ },
+ "glitternetwork/pinme": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Deploys to its own hosting; webdev deploys on Vercel"
+ },
+ "zarazhangrui/frontend-slides": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Slide generation, not dev work"
+ },
+ "lemonadesaltbagel/veil": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 1,
+  "why": "Keeps secrets/PII out of LLM traffic; fits secrets-focused platform engineer"
+ },
+ "antvis/mcp-server-chart": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic chart generation, not tied to any persona's stack"
+ },
+ "NVIDIA/SkillSpector": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Scans agent skills, not the persona's services/infra; borderline for security-minded platform"
+ },
+ "JouberthAlves/motionshelf": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "React/shadcn animated components with agent prompts; fits Next.js+Tailwind"
+ },
+ "lillyguisnet/sam3-segmentation": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Image segmentation, unrelated"
+ },
+ "larashero3-dotcom/lieflat-charts": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic HTML charts skill, unrelated"
+ },
+ "microsoft/flint-chart": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Charting language, unrelated"
+ },
+ "Raja0sama/vibex": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "ERD/architecture docs from Prisma/OpenAPI; webdev uses Prisma"
+ },
+ "ashmitmittal/trip-map-skill": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Travel maps"
+ },
+ "ysunyang4/Nexus": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Browser extension for web AI assistants, not Claude Code"
+ },
+ "kgraph57/mckinsey-style-visualization-skill": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Consulting slides"
+ },
+ "Ikalus1988/MisakaNet": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic debugging knowledge base, not stack-specific"
+ },
+ "obsidianmd/obsidian-skills": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Note-taking app skills"
+ },
+ "OtterMind/Chat2DB": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Standalone database client app"
+ },
+ "kubesphere/kubesphere": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "A Kubernetes platform you deploy, not a coding-agent add-on"
+ },
+ "caru-ini/stack-diagram": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic architecture-diagram skill"
+ },
+ "QingYunA/answer-me-with-html": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic answer-format skill"
+ },
+ "ngocanhnckh/renderlint": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "Rendered-UI linter for Next.js/React via Playwright"
+ },
+ "eugeniughelbur/obsidian-second-brain": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic agent memory in Obsidian"
+ },
+ "tonhowtf/omniget": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Personal accounts/media downloader MCP"
+ },
+ "citrolabs/ego-lite": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic agent browser automation, not testing-focused"
+ },
+ "JCodesMore/ai-website-cloner-template": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Website-cloning template, not a tool for own app work"
+ },
+ "0xJacky/nginx-ui": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Nginx web UI, standalone app"
+ },
+ "vercel-labs/ui": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "UI behavior library for apps, not an agent add-on; borderline for webdev"
+ },
+ "beenuar/AiSOC": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Self-hosted SOC platform, not the persona's infra work"
+ },
+ "aoci-spec/aoci-code": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic codebase-map/memory MCP"
+ },
+ "pierridotite/mobile-agent-testers": {
+  "quant-ios": 1,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Claude Code agents testing apps on iOS Simulators; fits SwiftUI app"
+ },
+ "TabularisDB/tabularis": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Desktop SQL app"
+ },
+ "fzn0x/idx": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Indonesian stock market data only"
+ },
+ "drawdb-io/drawdb": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Online diagram editor web app"
+ },
+ "ChromeDevTools/chrome-devtools-mcp": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "Browser debugging MCP for frontend work"
+ },
+ "osaurus-ai/osaurus": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Standalone macOS agent harness"
+ },
+ "djfksjd/ir-search": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Korean government grants"
+ },
+ "D4Vinci/Scrapling": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Web scraping framework, not persona's work"
+ },
+ "sickn33/agentic-awesome-skills": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Do-everything skill bundle"
+ },
+ "Shubhamkumartrichy/claude-trading-skills-india": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Indian-market investor skills; not tied to a backtesting engine"
+ },
+ "agentskills/agentskills": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Spec documentation"
+ },
+ "alextraykov/glyph-kit": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Product-design text figures"
+ },
+ "LibreChat-AI/LibreChat": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Chat UI"
+ },
+ "xiongcp/stock-skill": {
+  "quant-ios": 1,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Python stock analysis with no-lookahead backtest"
+ },
+ "NahumLitvin/prismantis": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Cosmetic theme mod"
+ },
+ "kyy-logs/code-review-gate-skill": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "Code review merge gate; fits webdev's PR workflow"
+ },
+ "jwuthri-cloud/Tracely-ai": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "CI/CD for AI agents; personas don't build agents"
+ },
+ "hsuanshao/TeamAgentMemory": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Generic team memory service"
+ },
+ "syahiidkamil/Software-Engineer-AI-Agent-Atlas": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Do-everything agent template"
+ },
+ "rediumvex/ai-video-generator-claude": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Video marketing prompts"
+ },
+ "lemonadesaltbagel/crab": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Clean-room reimplementation toolkit"
+ },
+ "alibaba/zvec": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "Vector database library"
+ },
+ "timescale/pg-aiguide": {
+  "quant-ios": 0,
+  "webdev": 1,
+  "platform": 0,
+  "why": "Postgres skills/docs plugin; webdev uses Postgres"
+ },
+ "chaenmasahiro0425/claude-security-scan": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 1,
+  "why": "Read-only security check across repo/GitHub/AWS"
+ },
+ "prest/prest": {
+  "quant-ios": 0,
+  "webdev": 0,
+  "platform": 0,
+  "why": "REST API server for Postgres, not an agent add-on"
+ }
+}
