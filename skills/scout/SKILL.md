@@ -36,8 +36,9 @@ user's own work.
    `friction` = sessions where they hit trouble with it, `repeatedCommands`, `languages`,
    `installed`). `recommendations` is a keyword-ranked shortlist with `evidence`, momentum
    and `trust`. Momentum: `starsLast7d` is the real number of stars in the last 7 days when
-   `momentumSource` is `events` or `stargazers` (`momentumComplete: false` means the window was
-   shorter than 7 days, so it's a lower bound); `measured` means stars/day between our own
+   `momentumSource` is `events` or `stargazers` (`momentumComplete: false` means GitHub's feed ran
+   out before 7 days, so say "at least N stars this week"; don't quote `starsPerDay` as a rate
+   then); `measured` means stars/day between our own
    daily crawls; `estimated` means lifetime average. Only say "trending" for measured numbers.
 
 3. **Filter the shortlist.** For each candidate, read its description and ask: would this

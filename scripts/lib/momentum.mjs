@@ -85,6 +85,18 @@ function saveCache(dataDir, cache) {
   fs.writeFileSync(path.join(dataDir, CACHE_FILE), JSON.stringify(cache));
 }
 
+/** Attach every fresh cached measurement to its catalog entry (no network), before any ranking. */
+export function applyCachedMomentum(catalog, dataDir, { ttlHours = 20, days = 7, now = Date.now() } = {}) {
+  const cache = dataDir ? loadCache(dataDir) : {};
+  let n = 0;
+  for (const [name, hit] of Object.entries(cache)) {
+    const repo = catalog.repos?.[name];
+    if (name === '_meta' || !repo || !hit?.fetchedAt) continue;
+    if (now - Date.parse(hit.fetchedAt) < ttlHours * 36e5 && hit.days === days) { repo.starVelocity = hit; n++; }
+  }
+  return n;
+}
+
 /**
  * Measure (or reuse cached) star velocity for `names`, attaching `starVelocity` to the
  * catalog entries in place. Stops early when the rate-limit budget gets low.

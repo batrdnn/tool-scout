@@ -92,8 +92,16 @@ export function mergeRepos(cat, items, today = day()) {
 export function momentum(repo, now = Date.now()) {
   const sv = repo.starVelocity;
   if (sv && !sv.unavailable && !sv.blocked && now - Date.parse(sv.fetchedAt) < 3 * 86400e3) {
-    return { perDay: sv.perDay, source: sv.method || 'stargazers', days: sv.days, starsInWindow: sv.stars, complete: sv.complete };
+    const out = { perDay: sv.perDay, source: sv.method || 'stargazers', days: sv.days, starsInWindow: sv.stars, complete: sv.complete };
+    // A partial window (+N+★) means at least N stars in the period, not a rate to extrapolate:
+    // rank it at N/days, or at the unmeasured estimate if that is higher.
+    if (sv.complete === false) out.perDay = Math.max(sv.stars / (sv.days || 7), unmeasured(repo, now).perDay);
+    return out;
   }
+  return unmeasured(repo, now);
+}
+
+function unmeasured(repo, now) {
   const h = repo.history || [];
   if (h.length >= 2) {
     const [lastD, lastS] = h[h.length - 1];

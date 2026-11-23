@@ -108,3 +108,17 @@ test('momentum prefers fresh stargazer counts over snapshots and estimates', () 
   assert.equal(m.perDay, 10);
   assert.equal(momentum(repo, NOW + 5 * 86400e3).source, 'measured', 'stale measurements are ignored');
 });
+
+test('a partial window (+N+★) ranks as at least N in 7 days, not as an exact short-window rate', async () => {
+  const { momentum } = await import('../scripts/lib/crawl.mjs');
+  const now = Date.parse('2026-11-23T12:00:00Z');
+  const repo = { stars: 1000, createdAt: '2025-11-23T00:00:00Z', history: [],
+    starVelocity: { stars: 255, days: 7, perDay: 255, complete: false, method: 'events', fetchedAt: new Date(now - 36e5).toISOString() } };
+  const m = momentum(repo, now);
+  assert.equal(m.complete, false);
+  assert.equal(m.starsInWindow, 255);
+  assert.ok(Math.abs(m.perDay - 255 / 7) < 1e-9, `perDay ${m.perDay}`);
+  // Never below what we'd assume without the measurement (lifetime average here).
+  const young = { ...repo, stars: 900, createdAt: '2026-11-20T12:00:00Z', starVelocity: { ...repo.starVelocity, stars: 70 } };
+  assert.ok(Math.abs(momentum(young, now).perDay - 300) < 1e-9);
+});

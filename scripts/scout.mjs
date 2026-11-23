@@ -6,7 +6,7 @@
 //   scout.mjs crawl     [--max-pages 1]
 //   scout.mjs recommend [--top 8] [--kind skill,plugin,mcp-server] [--include-low] [--json]
 //   scout.mjs all       [--refresh] [...]     profile + crawl (if stale) + recommend
-//   recommend/all also measure 7-day star momentum for the top 25 (cached 20h); --offline skips it
+//   recommend/all also measure 7-day star momentum for the shortlist and every final pick (cached 20h); --offline skips it
 //   scout.mjs dismiss   <owner/repo>          never recommend this repo again (no arg: list)
 //   scout.mjs undismiss <owner/repo> | --all  bring it back
 //
@@ -69,7 +69,7 @@ function showRecs(recs) {
   recs.forEach((r, i) => {
     const ev = r.evidence.map((e) => `${e.topic} in ${e.sessions}/${e.ofSessions} sessions${e.friction ? `, friction in ${e.friction}` : ''}`).join('; ');
     const mom = r.starsLast7d != null
-      ? `+${r.starsLast7d}${r.momentumComplete ? '' : '+'}★ last 7d (${r.starsPerDay}/day)`
+      ? `+${r.starsLast7d}${r.momentumComplete ? `★ last 7d (${r.starsPerDay}/day)` : '+★ last 7d (partial window: at least this many)'}`
       : `${r.momentumSource === 'measured' ? '+' : '~'}${r.starsPerDay}★/day`;
     console.log(`\n${i + 1}. ${r.name}  [${r.kind}]  ${r.stars}★  ${mom}  trust: ${r.trust.tier}`);
     if (r.description) console.log(`   ${r.description}`);

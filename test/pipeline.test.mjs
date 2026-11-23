@@ -49,3 +49,18 @@ test('a repo the content scan demotes is dropped and backfilled, unless --includ
   assert.equal(withLow.length, 2);
   assert.equal(withLow.find((r) => r.name === 'o/evil-test-mcp')?.trust.tier, 'low');
 });
+
+test('every repo in the final top N has a momentum lookup after re-ranking, cached or measured', async () => {
+  const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-pipe-'));
+  const cat = catalogOf(['a', 'b', 'c', 'd', 'e'].map((n, i) => ghRepo(`${n}-test-mcp`, `Testing MCP server ${n}`, { stars: 5000 - i * 800 })));
+  // e's surge is only in the cache (its events feed shows no stars), and it starts outside the shortlist.
+  fs.writeFileSync(path.join(dataDir, 'momentum-cache.json'), JSON.stringify({
+    'o/e-test-mcp': { stars: 400, days: 7, perDay: 400 / 7, complete: true, method: 'events', fetchedAt: new Date(NOW - 36e5).toISOString() },
+  }));
+  const gh = github({ stars: { 'a-test-mcp': 0, 'b-test-mcp': 0, 'c-test-mcp': 0, 'd-test-mcp': 0 } });
+  const { recs } = await runPipeline(profile(), cat, { top: 4, shortlist: 2, client: createClient({ fetchImpl: gh }), dataDir, now: NOW });
+  assert.equal(recs.length, 4);
+  for (const r of recs) assert.ok(['events', 'stargazers'].includes(r.momentumSource), `${r.name}: ${r.momentumSource}`);
+  assert.equal(recs[0].name, 'o/e-test-mcp', 'the cached surge is applied and re-ranked to the top');
+});
