@@ -85,6 +85,8 @@ and sets `trust.flags`:
 | `hidden-instructions` | HTML / Markdown comments that address an AI with instructions |
 | `invisible-unicode` | bidirectional controls, Unicode tag characters, zero-width characters inside ASCII text |
 | `base64-blob` | 200+ character encoded blobs (inline images excluded) |
+| `obfuscated-exec` | an encoded payload decoded and executed in one step (`base64 -d \| sh`, `eval(atob(…))`, `powershell -enc`) |
+| `exfiltration` | one file reads env vars, SSH keys or credentials and sends data to a host that isn't a known registry. Always `high` |
 | `network-call` | calls in scripts / skills / hooks to hosts the README never mentions. Uploads are `medium` |
 
 The same README read gives the **install hint**: the repo's real `claude mcp add …`,

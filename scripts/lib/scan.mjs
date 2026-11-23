@@ -13,7 +13,7 @@ import { extractInstall } from './install.mjs';
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 8; // bump when rules change so cached scans are redone
+export const SCAN_VERSION = 9; // bump when rules change so cached scans are redone
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -60,6 +60,16 @@ const BIDI = /[\u202A-\u202E\u2066-\u2069]/g;
 const TAGS = /[\u{E0000}-\u{E007F}]/gu;
 // Zero-width chars hidden inside ASCII text/commands (emoji ZWJ and Persian ZWNJ are left alone).
 const ZW_IN_ASCII = /(?<=[\x20-\x7E])[\u200B\u200C\u2060\u180E\uFEFF](?=[\x20-\x7E])/g;
+// A run of zero-width characters carries no visible text but can encode bits (steganography).
+const ZW_RUN = /[\u200B\u200C\u200D\u2060\u180E\uFEFF]{4,}/g;
+// Decoding an encoded payload and executing it in the same step.
+const OBFUSCATED_EXEC = [
+  /\bbase64\s+(?:-d|--decode|-D)\b[^\n]*\|\s*(?:sudo\s+)?(?:(?:ba|z|da)?sh|eval|python3?|node|perl|ruby)\b/i,
+  /\b(?:eval|exec|Function|execSync|spawnSync|system|popen|Invoke-Expression|iex)\s*\(?\s*[^\n]{0,40}?(?:atob\s*\(|Buffer\.from\s*\([^\n]*['"]base64['"]|b64decode\s*\(|codecs\.decode\s*\(|FromBase64String\s*\()/i,
+  /\b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{16,}/i,
+];
+// Sources of secrets: the whole environment, SSH keys, cloud / package-registry credentials.
+const SECRET_SOURCE = /\bJSON\.stringify\(\s*process\.env\s*\)|\{\s*(?:\.\.\.process\.env|env:\s*process\.env)\b|\bdict\(\s*os\.environ\s*\)|\bjson\.dumps\(\s*(?:dict\()?os\.environ|\$\(\s*(?:env|printenv)\s*\)|\b(?:env|printenv)\s*\|\s*(?:curl|wget|nc|base64)\b|['"/~]\.ssh\b|\bid_(?:rsa|ed25519|ecdsa|dsa)\b|\.aws\/credentials|\.netrc\b|\.npmrc\b|\.config\/gh\/hosts\.yml/;
 const BASE64 = /(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{200,}={0,2}(?![A-Za-z0-9+/=])/g;
 const NET = /\b(?:curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|requests\.(?:get|post|put)|urllib\.request\.urlopen|fetch\(|axios\.(?:get|post)|http\.request|nc\s)/i;
 const SENDS = /(?:\s-d\b|--data|\s-F\b|--form|-X\s*POST|--upload-file|requests\.post|method:\s*['"]POST|axios\.post|-T\s)/i;
@@ -112,6 +122,16 @@ export function scanText(text, { file, role, explainedHosts = new Set(), repo = 
   if (tags.length) add('invisible-unicode', 'high', tags[0].index, `${tags.length} invisible Unicode tag character(s) (can encode hidden text)`);
   const zw = [...text.matchAll(ZW_IN_ASCII)];
   if (zw.length) add('invisible-unicode', 'medium', zw[0].index, `${zw.length} zero-width character(s) inside ASCII text`);
+  const zwRuns = [...text.matchAll(ZW_RUN)];
+  if (zwRuns.length) add('invisible-unicode', 'high', zwRuns[0].index, `${zwRuns.length} run(s) of zero-width characters (can encode hidden text)`);
+  // Encoded payload decoded and run in one step (short payloads slip under the blob rule).
+  for (const re of OBFUSCATED_EXEC) {
+    const m = text.match(re);
+    if (!m) continue;
+    const lineText = text.slice(text.lastIndexOf('\n', m.index) + 1, m.index);
+    add('obfuscated-exec', role === 'readme' || COMMENT_LINE.test(lineText) ? 'medium' : 'high', m.index, 'decodes an encoded payload and executes it');
+    break;
+  }
   // Large encoded blobs (inline images are fine).
   // Inline images/fonts (incl. URL-encoded ones in badge links) are blanked out first, keeping offsets.
   const noDataUris = text.replace(/data:(?:image|font)\/[\w+.%-]+;base64,[A-Za-z0-9+/=%]+/gi, (s) => ' '.repeat(s.length));
@@ -135,6 +155,13 @@ export function scanText(text, { file, role, explainedHosts = new Set(), repo = 
   }
   // Network calls from code that runs on install / inside the agent (not README prose).
   if (role !== 'readme') {
+    // Exfiltration: the same file reads secrets and sends data to a host that isn't a known
+    // registry. Judged per file, since the URL, the payload and the send are often on different lines.
+    const secret = text.match(SECRET_SOURCE);
+    const outHosts = [...new Set(hostsIn(text).filter((h) => !KNOWN_HOSTS.test(h)))];
+    if (secret && outHosts.length && (SENDS.test(text) || NET.test(text))) {
+      add('exfiltration', 'high', secret.index, `reads secrets (environment, SSH keys or credentials) and sends data to ${outHosts.slice(0, 3).join(', ')}`);
+    }
     const lines = role === 'package' ? packageScripts(text) : text.split('\n').map((l, i) => [l, i + 1]);
     for (const [l, ln] of lines) {
       if (!NET.test(l) || COMMENT_LINE.test(l) || new RegExp(PIPE_SHELL.source, "i").test(l)) continue; // comments do not run; pipe-to-shell is reported above

@@ -70,7 +70,9 @@ user's own work.
    install scripts, hooks and MCP configs, and flags: `pipe-to-shell` (`curl … | sh`),
    `prompt-injection` (text trying to override the agent or hide things from the user),
    `hidden-instructions` (HTML/Markdown comments addressing an AI), `invisible-unicode`
-   (bidi controls, tag characters, zero-width characters in ASCII), `base64-blob`, and
+   (bidi controls, tag characters, zero-width characters and runs of them), `base64-blob`,
+   `obfuscated-exec` (decodes an encoded payload and runs it), `exfiltration` (a file that reads
+   env vars, SSH keys or credentials and sends data to an unknown host), and
    `network-call` (calls to hosts the README never mentions; "sends data" is worse). Severity
    `low` usually means a well-known installer or the repo's own script. It is a heuristic,
    not a review: no flags doesn't mean safe.
