@@ -108,6 +108,35 @@ repo's text. Results are cached per repo until it's pushed again.
 This is still a heuristic, **not** a security review: no flags doesn't mean safe. Skills and MCP
 servers run with your permissions. Tool Scout never installs anything on its own.
 
+## Check before you install
+
+Found a skill, plugin or MCP server somewhere else? Check it first. In Claude Code:
+
+```text
+/tool-scout:check owner/repo
+```
+
+or from the repo: `node scripts/scout.mjs check owner/repo` (a github.com URL works too; add
+`--json` for machine output). It runs the same content scan on that one repo, plus its metadata,
+and gives a verdict:
+
+| verdict | meaning |
+|---|---|
+| `safe-looking` | no medium or high flags, maintained, not archived |
+| `review` | medium flags, an archived repo, low metadata trust, or nothing readable: look at the flagged file and line first |
+| `do not install` | at least one high flag (prompt injection, hidden instructions, exfiltration, decode-and-run, a download piped into a shell from a script) |
+
+It also shows the repo's Claude Code install command from its README, if it has one. Only the
+public repo name is sent to GitHub.
+
+To check what you **already** have installed, run `node scripts/scout.mjs audit`. It reads your
+personal skills (`~/.claude/skills`), installed plugin folders (`~/.claude/plugins`) and the MCP
+server commands in `~/.claude.json` and project `.mcp.json` files from disk, with no network at
+all, and lists anything medium or high with file and line (never MCP arguments, which can hold
+tokens).
+
+Both are heuristics: no flags doesn't mean safe.
+
 ## Development
 
 ```bash
