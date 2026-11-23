@@ -8,11 +8,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { RateLimitError } from './github.mjs';
+import { extractInstall } from './install.mjs';
 
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 6; // bump when rules change so cached scans are redone
+export const SCAN_VERSION = 8; // bump when rules change so cached scans are redone
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -166,7 +167,7 @@ async function fetchRaw(client, url) {
   return r.status === 200 && typeof r.data === 'string' ? r.data : null;
 }
 
-export async function scanRepo(client, fullName) {
+export async function scanRepo(client, fullName, meta = {}) {
   const api = `https://api.github.com/repos/${fullName}`;
   const readme = await fetchRaw(client, `${api}/readme`);
   const treeRes = await client.request(`${api}/git/trees/HEAD?recursive=1`);
@@ -181,7 +182,8 @@ export async function scanRepo(client, fullName) {
     flags.push(...scanText(text, { file: f.path, role: f.role, explainedHosts: explained, repo: fullName }));
   }
   const skillFiles = files.filter((f) => f.role === 'skill').length;
-  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated };
+  const install = extractInstall(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind });
+  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install };
 }
 
 function dedupe(flags) {
@@ -227,7 +229,7 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
       stats.skipped++;
     } else {
       try {
-        scan = { ...(await scanRepo(client, rec.name)), v: SCAN_VERSION, pushedAt: repo.pushedAt, at: new Date(now).toISOString() };
+        scan = { ...(await scanRepo(client, rec.name, { kind: rec.kind })), v: SCAN_VERSION, pushedAt: repo.pushedAt, at: new Date(now).toISOString() };
         cache[rec.name] = scan;
         stats.scanned++;
       } catch (e) {
@@ -236,6 +238,9 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
       }
     }
     rec.trust = applyFlags(rec.trust, scan);
+    // Real install command from the README when there is one (display only, never run).
+    if (scan?.install?.length) { rec.install = scan.install.join(' then '); rec.installCommands = scan.install; rec.installSource = 'readme'; }
+    else rec.installSource = 'generic';
   }
   if (dataDir) saveCache(dataDir, cache);
   return stats;

@@ -86,6 +86,10 @@ and sets `trust.flags`:
 | `base64-blob` | 200+ character encoded blobs (inline images excluded) |
 | `network-call` | calls in scripts / skills / hooks to hosts the README never mentions. Uploads are `medium` |
 
+The same README read gives the **install hint**: the repo's real `claude mcp add …`,
+`/plugin marketplace add …` (+ `/plugin install …`), `npx skills add …` or `npx …` command when
+there is one. It's shown, never run, and rejected if it chains commands (`;`, `&&`, `|`, `$(…)`).
+
 A `high` flag drops the repo to the low trust tier. Test fixtures and examples aren't scanned
 (they aren't installed). Flags for injection-type findings carry file and line only, never the
 repo's text. Results are cached per repo until it's pushed again.

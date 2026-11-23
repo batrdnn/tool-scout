@@ -81,7 +81,7 @@ function showRecs(recs) {
       console.log(`   ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
     }
     if (r.trust.scanned === false && r.trust.flags) console.log('   (content not scanned)');
-    console.log(`   Install: ${r.install}`);
+    console.log(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
   });
 }
 

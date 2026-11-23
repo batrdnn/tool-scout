@@ -57,8 +57,10 @@ user's own work.
    **N. owner/repo** (kind, ★ stars, momentum): one sentence on what it does.
    *Why you:* tie it to concrete evidence ("testing came up in 10 of your 20 sessions, and
    you hit trouble with it in 2").
-   *Install:* the `install` hint. For skills and MCP servers, say to check the README for
-   the exact command.
+   *Install:* the `install` value in a code span. When `installSource` is `readme`, it's the
+   real command taken from the repo's README (`installCommands` lists them in order, e.g.
+   marketplace add, then plugin install); say "from the README". When it's `generic`, say to
+   check the README for the exact command. Never run it yourself; the user decides.
    *Check first:* any `trust.notes`, and every `trust.flags` entry as
    "⚑ severity id: detail (file:line)". Example: "⚑ medium pipe-to-shell: downloads and
    executes a script in one step (README:42)". If `trust.scanned` is false, say the content

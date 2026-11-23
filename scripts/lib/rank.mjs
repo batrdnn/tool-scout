@@ -133,5 +133,6 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
       friction: profile.friction?.[t] || 0,
     })),
     install: installHint(c.repo),
+    installSource: 'generic', // replaced by the README command after the content scan
   }));
 }
