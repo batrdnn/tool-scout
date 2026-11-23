@@ -1,6 +1,11 @@
 {
   "name": "tool-scout",
-  "owner": { "name": "Tool Scout contributors" },
+  "owner": {
+    "name": "Tool Scout contributors"
+  },
+  "metadata": {
+    "description": "Tool Scout: personalized, locally computed recommendations for trending Claude Code skills, plugins and MCP servers."
+  },
   "plugins": [
     {
       "name": "tool-scout",
