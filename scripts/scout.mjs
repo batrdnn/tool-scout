@@ -121,6 +121,7 @@ async function main() {
         kinds: typeof opts.kind === 'string' ? opts.kind.split(',') : null,
         includeLow: !!opts['include-low'],
         exclude: dismissed,
+        platform: process.platform, // local OS for platform fit; never leaves the machine
       };
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });

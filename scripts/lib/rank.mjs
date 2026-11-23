@@ -1,6 +1,6 @@
 // Scores catalog repos against the user's profile and explains each pick.
 
-import { topicsIn, repoTopicEvidence, toolAffinity } from './taxonomy.mjs';
+import { topicsIn, repoTopicEvidence, toolAffinity, platformsOnly, osFamily } from './taxonomy.mjs';
 import { momentum, classify } from './crawl.mjs';
 import { normName } from './profile.mjs';
 
@@ -42,8 +42,10 @@ function isInstalled(repo, installed) {
  * @param opts { top, kinds, perTopicCap, includeLow }
  */
 const DIVERSITY = 0.93;
+const OTHER_OS = 0.35; // relevance factor for a repo that only runs on another desktop OS
 
-export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, exclude = null, now = Date.now() } = {}) {
+export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, exclude = null, now = Date.now(), platform = null } = {}) {
+  const userOS = osFamily(platform); // process.platform, passed in by the caller; never sent anywhere
   const sessions = Math.max(1, profile.sessions);
   // Topic weight = share of sessions that touched it; friction boosts it.
   const weights = {};
@@ -77,11 +79,14 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     let relevance = w(matched[0]) + matched.slice(1).reduce((s, t) => s + 0.15 * w(t), 0);
     if (repo.language && topLangs.includes(repo.language)) relevance += 0.1;
     if (coveredTopics.has(matched[0])) relevance *= 0.7;
+    const only = userOS ? platformsOnly(repo) : [];
+    const otherOS = only.length > 0 && !only.includes(userOS);
+    if (otherOS) relevance *= OTHER_OS;
 
     const m = momentum(repo, now);
     const tr = trust(repo, now);
     if (!includeLow && tr.tier === 'low') continue;
-    candidates.push({ repo, kind, matched, relevance, m, tr, ev });
+    candidates.push({ repo, kind, matched, relevance, m, tr, ev, platformOnly: otherOS ? only : undefined });
   }
 
   const maxMom = Math.max(1, ...candidates.map((c) => c.m.perDay));
@@ -125,6 +130,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     trust: c.tr,
     score: Number(c.score.toFixed(3)),
     matchedTopics: c.matched,
+    ...(c.platformOnly ? { platformOnly: c.platformOnly } : {}),
     evidence: c.matched.slice(0, 2).map((t) => ({
       topic: t,
       sessions: profile.topics[t],

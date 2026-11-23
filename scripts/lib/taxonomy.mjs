@@ -265,3 +265,36 @@ export function topicsIn(text) {
   for (const [t, re] of Object.entries(COMPILED)) if (re.test(text)) out.add(t);
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Platform fit. The user's OS comes from process.platform (never leaves the machine). A repo
+// is "only" for an OS when it says it runs there (for / on / native / -only / "<OS> app",
+// "Windows Sandbox", or the OS as a name token), not when it merely mentions it: "manage your
+// Linux servers" runs fine from a Mac. Naming two or more desktop OSes means cross-platform.
+const OS_TERMS = {
+  windows: String.raw`windows|win32|win64|win1[01]`,
+  macos: String.raw`macos|mac\s?os|os\s?x|osx|apple silicon|mac`,
+  linux: String.raw`linux|ubuntu|debian|fedora|wayland|x11`,
+};
+const OS_NAME_TOKENS = { windows: ['win', 'win32', 'win64', 'win10', 'win11'], macos: ['mac', 'macos', 'osx'], linux: ['linux', 'ubuntu', 'wayland'] };
+const NOT_WHERE_IT_RUNS = String.raw`(?![\s-]+(?:servers?|hosts?|vms?|virtual machines?|machines?|containers?|boxes|instances?|kernel|fleet|boxes|images?)\b)`;
+const OS_RUNS_ON = Object.fromEntries(Object.entries(OS_TERMS).map(([os, t]) => [os, new RegExp(
+  String.raw`(?:\b(?:for|on|runs on|native(?:ly)?(?: on)?|only on|exclusively on)\s+(?:the\s+)?(?:${t})\b${NOT_WHERE_IT_RUNS}` +
+  String.raw`|\b(?:${t})[\s-]+only\b` +
+  String.raw`|\b(?:${t})\s+(?:apps?|applications?|desktops?|sandbox|native|ui automation|automation|computer[\s-]use|clipboard|notifications?|menu\s?bar|tray|registry|services? manager))`, 'i')]));
+const OS_ANY = Object.fromEntries(Object.entries(OS_TERMS).map(([os, t]) => [os, new RegExp(String.raw`\b(?:${t})\b`, 'i')]));
+
+/** process.platform -> 'macos' | 'windows' | 'linux' | null */
+export function osFamily(platform) {
+  return { darwin: 'macos', win32: 'windows', linux: 'linux' }[platform] || null;
+}
+
+/** Desktop OSes a repo says it runs on exclusively ([] = any / unknown). */
+export function platformsOnly(repo) {
+  const desc = String(repo.description || '');
+  const tokens = String(repo.name || '').toLowerCase().split(/[-_.\s]+/);
+  if (/\bcross[\s-]?platform\b|\bany (?:os|platform)\b/i.test(desc)) return [];
+  const mentioned = Object.keys(OS_TERMS).filter((os) => OS_ANY[os].test(desc) || OS_NAME_TOKENS[os].some((t) => tokens.includes(t)));
+  if (mentioned.length >= 2) return [];
+  return Object.keys(OS_TERMS).filter((os) => OS_RUNS_ON[os].test(desc) || OS_NAME_TOKENS[os].some((t) => tokens.includes(t)));
+}

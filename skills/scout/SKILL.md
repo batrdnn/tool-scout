@@ -48,6 +48,8 @@ user's own work.
    - consumer apps that aren't developer or agent tools (the script already leaves out repos it
      classifies as `app`, such as chat UIs and online editors; `--kind app` brings them back)
    - anything that duplicates something in `installed`
+   - anything with `platformOnly` (it says it runs only on another OS than the user's; the
+     script already ranked it lower, and the OS check runs locally)
    - offensive-security or other risky tooling unless the profile clearly shows that work
    - anything with a `high` severity entry in `trust.flags` (say you skipped it and why)
 
