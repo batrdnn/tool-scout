@@ -32,7 +32,10 @@ user's own work.
    or log in with `gh` to make it faster). If GitHub can't be reached and the user is behind
    a proxy, retry with `NODE_USE_ENV_PROXY=1` in front of the command.
 
-2. Read the JSON. `profile` shows what the user does (`topics` = sessions touching it,
+2. Read the JSON. `profile` shows what the user does (`topics` = sessions touching it;
+   `topicWeights` = sessions where they *did* it (edited such files, ran such commands, used such
+   tools) plus 0.3 per session where they only *talked* about it, which is what ranking uses;
+   `topicSources` has both counts. Trust actions over talk;
    `friction` = sessions where they hit trouble with it, `repeatedCommands`, `languages`,
    `installed`). `recommendations` is a keyword-ranked shortlist with `evidence`, momentum
    and `trust`. Momentum: `starsLast7d` is the real number of stars in the last 7 days when

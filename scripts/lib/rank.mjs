@@ -75,9 +75,13 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   const sessions = Math.max(1, profile.sessions);
   // Topic weight = share of sessions that touched it; friction boosts it.
   const weights = {};
+  // Actions outweigh talk: topicWeights (actions + 0.3 × mentions) when the profile has them.
+  const tw = profile.topicWeights || profile.topics || {};
   for (const [t, n] of Object.entries(profile.topics || {})) {
     const fr = profile.friction?.[t] || 0;
-    weights[t] = (n / sessions) * (1 + Math.min(1, fr / Math.max(1, n)));
+    const w = tw[t] ?? n;
+    if (!w) continue;
+    weights[t] = (w / sessions) * (1 + Math.min(1, fr / Math.max(1, n)));
   }
   const maxW = Math.max(1e-9, ...Object.values(weights));
   const topLangs = Object.keys(profile.languages || {}).slice(0, 3);
@@ -187,6 +191,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
       topic: t,
       sessions: profile.topics[t],
       ofSessions: profile.sessions,
+      ...(profile.topicSources ? { actions: profile.topicSources.actions?.[t] || 0 } : {}),
       friction: profile.friction?.[t] || 0,
     })),
     install: installHint({ ...c.repo, kind: c.kind }),

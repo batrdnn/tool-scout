@@ -65,6 +65,7 @@ function showProfile(p) {
   const left = [p.excludedCurrentSession && 'this session', p.excludedProjects && `${p.excludedProjects} excluded project${p.excludedProjects > 1 ? 's' : ''}`].filter(Boolean);
   console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)${left.length ? `, not counting ${left.join(' or ')}` : ''}`);
   console.log(`  Topics (sessions):  ${top(p.topics, 8)}`);
+  if (p.topicWeights) console.log(`  Topic weight (did + 0.3 × talked about): ${top(p.topicWeights, 8)}`);
   console.log(`  Friction (sessions): ${top(p.friction)}`);
   console.log(`  Languages (edits):  ${top(p.languages)}`);
   console.log(`  Repeated commands:  ${p.repeatedCommands.slice(0, 6).map((c) => `${c.command} ×${c.count}`).join(', ') || '—'}`);
@@ -131,7 +132,7 @@ async function main() {
       const notes = [];
       if (limitedHistory) notes.push(`Limited history: ${p.sessions} session${p.sessions === 1 ? '' : 's'} in the last ${p.windowDays} days (under ${LIMITED}), so these picks rest on little evidence.`);
       if (recs.thinOmitted) notes.push(`${recs.thinOmitted} match${recs.thinOmitted === 1 ? '' : 'es'} left out: they rest on a topic seen in a single session, with no friction.`);
-      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
+      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, topicWeights: p.topicWeights, topicSources: p.topicSources, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));
       else { if (cmd === 'all') showProfile(p); for (const n of notes) console.log(`\nNote: ${n}`); showRecs(recs); }

@@ -6,6 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { topicsIn, toolKeywordsIn, toolForCommand, EXT_HINTS, FILENAME_HINTS, COMMAND_HINTS } from './taxonomy.mjs';
 
+export const MENTION_WEIGHT = 0.3; // a topic only talked about counts this much of one acted on
+
 const FRICTION_RE = /\b(still (not|doesn'?t|broken|failing)|doesn'?t work|not working|same error|again|keeps? (failing|breaking)|why (is|does) (it|this)|wrong)\b/i;
 
 function readJSON(file) {
@@ -154,7 +156,7 @@ export function projectMatches({ dir, cwd } = {}, name) {
 
 /** Parse one session transcript into per-session signals. */
 export function analyzeSession(file) {
-  const s = { topics: new Set(), friction: new Set(), toolKeywords: new Set(), langs: {}, tools: {}, commands: {}, mcpServers: new Set(), prompts: 0 };
+  const s = { topics: new Set(), actionTopics: new Set(), mentionTopics: new Set(), friction: new Set(), toolKeywords: new Set(), langs: {}, tools: {}, commands: {}, mcpServers: new Set(), prompts: 0 };
   let raw;
   try { raw = fs.readFileSync(file, 'utf8'); } catch { return s; }
   for (const line of raw.split('\n')) {
@@ -167,7 +169,7 @@ export function analyzeSession(file) {
       if (!text || text.startsWith('<') || text.startsWith('Caveat:')) continue;
       s.prompts++;
       const ts = topicsIn(text);
-      ts.forEach((t) => s.topics.add(t));
+      ts.forEach((t) => { s.topics.add(t); s.mentionTopics.add(t); }); // talk
       toolKeywordsIn(text).forEach((k) => s.toolKeywords.add(k));
       if (FRICTION_RE.test(text)) ts.forEach((t) => s.friction.add(t));
     } else if (e.type === 'assistant' && Array.isArray(msg?.content)) {
@@ -177,12 +179,15 @@ export function analyzeSession(file) {
         const m = name.match(/^mcp__([^_]+(?:_[^_]+)*?)__/);
         const toolKey = m ? `mcp:${m[1]}` : name;
         s.tools[toolKey] = (s.tools[toolKey] || 0) + 1;
-        if (m) s.mcpServers.add(m[1]);
+        if (m) {
+          s.mcpServers.add(m[1]);
+          topicsIn(m[1].replace(/[-_]/g, ' ')).forEach((t) => { s.topics.add(t); s.actionTopics.add(t); }); // a tool the user had Claude use
+        }
         const input = b.input || {};
         if (name === 'Bash' && input.command) {
           for (const h of commandHeads(input.command)) {
             s.commands[h] = (s.commands[h] || 0) + 1;
-            (COMMAND_HINTS[h.split(' ')[0]] || []).forEach((t) => s.topics.add(t));
+            (COMMAND_HINTS[h.split(' ')[0]] || []).forEach((t) => { s.topics.add(t); s.actionTopics.add(t); });
             const kw = toolForCommand(h);
             if (kw) s.toolKeywords.add(kw);
           }
@@ -190,7 +195,7 @@ export function analyzeSession(file) {
         const p = input.file_path || input.notebook_path || input.path;
         if (p) {
           const { topics, lang } = hintsForPath(p);
-          topics.forEach((t) => s.topics.add(t));
+          topics.forEach((t) => { s.topics.add(t); s.actionTopics.add(t); });
           if (lang) s.langs[lang] = (s.langs[lang] || 0) + 1;
         }
       }
@@ -273,6 +278,7 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     return false;
   }) : afterSessions;
   const excludedProjectSessions = afterSessions.length - files.length;
+  const actionSessions = {}, mentionSessions = {};
   const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
   const projects = new Set();
@@ -283,6 +289,8 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     if (!s.prompts && !Object.keys(s.tools).length) continue;
     sessions++; prompts += s.prompts; projects.add(project);
     s.topics.forEach((t) => (topicSessions[t] = (topicSessions[t] || 0) + 1));
+    s.actionTopics.forEach((t) => (actionSessions[t] = (actionSessions[t] || 0) + 1));
+    s.mentionTopics.forEach((t) => (mentionSessions[t] = (mentionSessions[t] || 0) + 1));
     s.friction.forEach((t) => (frictionSessions[t] = (frictionSessions[t] || 0) + 1));
     s.toolKeywords.forEach((k) => (toolKw[k] = (toolKw[k] || 0) + 1));
     for (const [k, v] of Object.entries(s.langs)) langs[k] = (langs[k] || 0) + v;
@@ -311,7 +319,11 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     sessions, prompts, projects: projects.size, excludedCurrentSession: excludedCurrent > 0,
     // Counts only: which projects were left out stays in settings, not in the profile.
     excludedProjects: dropped.size, excludedProjectSessions,
-    topics: sortObj(topicSessions),
+    topics: sortObj(topicSessions), // sessions touching each topic, by any source (for evidence lines)
+    // Actions (edited file types, commands, MCP tools used) outweigh talk (prompt text):
+    // weight = action sessions + MENTION_WEIGHT × mention sessions. Ranking uses topicWeights.
+    topicSources: { actions: sortObj(actionSessions), mentions: sortObj(mentionSessions) },
+    topicWeights: sortObj(Object.fromEntries(Object.keys(topicSessions).map((t) => [t, Number(((actionSessions[t] || 0) + MENTION_WEIGHT * (mentionSessions[t] || 0)).toFixed(3))]))),
     friction: sortObj(frictionSessions),
     // Sessions mentioning each fixed-vocabulary tool name (pytest, prisma, kubernetes, ...).
     toolKeywords: sortObj(toolKw),
