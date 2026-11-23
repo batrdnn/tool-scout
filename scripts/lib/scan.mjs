@@ -64,7 +64,7 @@ const ZW_IN_ASCII = /(?<=[\x20-\x7E])[\u200B\u200C\u2060\u180E\uFEFF](?=[\x20-\x
 const ZW_RUN = /[\u200B\u200C\u200D\u2060\u180E\uFEFF]{4,}/g;
 // Decoding an encoded payload and executing it in the same step.
 const OBFUSCATED_EXEC = [
-  /\bbase64\s+(?:-d|--decode|-D)\b[^\n]*\|\s*(?:sudo\s+)?(?:(?:ba|z|da)?sh|eval|python3?|node|perl|ruby)\b/i,
+  /\bbase64\s+(?:-d|--decode|-D)\b[^\n]*(?<!\\)\|\s*(?:sudo\s+)?(?:(?:ba|z|da)?sh|eval|python3?|node|perl|ruby)\b/i,
   /\b(?:eval|exec|Function|execSync|spawnSync|system|popen|Invoke-Expression|iex)\s*\(?\s*[^\n]{0,40}?(?:atob\s*\(|Buffer\.from\s*\([^\n]*['"]base64['"]|b64decode\s*\(|codecs\.decode\s*\(|FromBase64String\s*\()/i,
   /\b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{16,}/i,
 ];
@@ -129,7 +129,10 @@ export function scanText(text, { file, role, explainedHosts = new Set(), repo = 
     const m = text.match(re);
     if (!m) continue;
     const lineText = text.slice(text.lastIndexOf('\n', m.index) + 1, m.index);
-    add('obfuscated-exec', role === 'readme' || COMMENT_LINE.test(lineText) ? 'medium' : 'high', m.index, 'decodes an encoded payload and executes it');
+    const fullLine = text.slice(text.lastIndexOf('\n', m.index) + 1, (text.indexOf('\n', m.index) + 1 || text.length + 1) - 1);
+    const placeholder = role === 'readme' && /…|\.\.\./.test(fullLine) && !/[A-Za-z0-9+/]{16,}={0,2}/.test(fullLine); // a placeholder names the pattern
+    const severity = placeholder ? 'low' : role === 'readme' || COMMENT_LINE.test(lineText) ? 'medium' : 'high';
+    add('obfuscated-exec', severity, m.index, `decodes an encoded payload and executes it${placeholder ? ' (pattern mention, no payload)' : ''}`);
     break;
   }
   // Large encoded blobs (inline images are fine).
