@@ -8,12 +8,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { RateLimitError } from './github.mjs';
-import { extractInstall } from './install.mjs';
+import { extractInstallHint } from './install.mjs';
 
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 9; // bump when rules change so cached scans are redone
+export const SCAN_VERSION = 10; // bump when rules change so cached scans are redone
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -212,8 +212,8 @@ export async function scanRepo(client, fullName, meta = {}) {
     flags.push(...scanText(text, { file: f.path, role: f.role, explainedHosts: explained, repo: fullName }));
   }
   const skillFiles = files.filter((f) => f.role === 'skill').length;
-  const install = extractInstall(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind });
-  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install };
+  const hint = extractInstallHint(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind });
+  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note };
 }
 
 function dedupe(flags) {
@@ -269,8 +269,11 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
     }
     rec.trust = applyFlags(rec.trust, scan);
     // Real install command from the README when there is one (display only, never run).
-    if (scan?.install?.length) { rec.install = scan.install.join(' then '); rec.installCommands = scan.install; rec.installSource = 'readme'; }
-    else rec.installSource = 'generic';
+    if (scan?.install?.length) {
+      rec.install = [scan.install.join(' then '), scan.installNote].filter(Boolean).join(', ');
+      rec.installCommands = scan.install; rec.installSource = 'readme';
+      if (scan.installNote) rec.installNote = scan.installNote;
+    } else rec.installSource = 'readme-link';
   }
   if (dataDir) saveCache(dataDir, cache);
   return stats;

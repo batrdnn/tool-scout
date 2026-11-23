@@ -89,9 +89,12 @@ and sets `trust.flags`:
 | `exfiltration` | one file reads env vars, SSH keys or credentials and sends data to a host that isn't a known registry. Always `high` |
 | `network-call` | calls in scripts / skills / hooks to hosts the README never mentions. Uploads are `medium` |
 
-The same README read gives the **install hint**: the repo's real `claude mcp add …`,
-`/plugin marketplace add …` (+ `/plugin install …`), `npx skills add …` or `npx …` command when
-there is one. It's shown, never run, and rejected if it chains commands (`;`, `&&`, `|`, `$(…)`).
+The same README read gives the **install hint**: the repo's real Claude Code command when there
+is one (`claude mcp add …`, `/plugin marketplace add …` + `/plugin install …`, or a copy/clone into
+`~/.claude/skills`). For a marketplace with several plugins it's the `marketplace add` plus
+"then choose a plugin with /plugin". Lines aimed at another agent (Codex, Cursor, Gemini, …) are
+rejected, and so is anything that chains commands (`;`, `&&`, `|`, `$(…)`). With no such command
+the hint is a link to the README, never a guess. It's shown, never run.
 
 A `high` flag drops the repo to the low trust tier. Test fixtures and examples aren't scanned
 (they aren't installed). Flags for injection-type findings carry file and line only, never the

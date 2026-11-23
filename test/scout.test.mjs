@@ -94,7 +94,7 @@ test('recommend ranks relevant, excludes installed and lists, explains why', () 
   assert.ok(!names.includes('o/playwright-mcp'), 'already installed');
   assert.ok(!names.includes('o/awesome-claude'), 'lists are not tools');
   assert.equal(recs[0].evidence[0].topic, 'testing');
-  assert.ok(recs[0].install.includes('~/.claude/skills'));
+  assert.match(recs[0].install, /^See the README for install steps: https:\/\/github\.com\/o\/pytest-skill#readme$/);
 });
 
 test('detectInstalled reads marketplaces and plugins', () => {

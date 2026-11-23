@@ -24,13 +24,9 @@ export function trust(repo, now = Date.now()) {
   return { score, tier, notes };
 }
 
+/** Fallback until the README gives a real Claude Code command: link to it, never guess one. */
 export function installHint(repo) {
-  switch (repo.kind) {
-    case 'plugin': return `/plugin marketplace add ${repo.full_name}`;
-    case 'skill': return `Copy the skill folder into ~/.claude/skills/ (see ${repo.url})`;
-    case 'mcp-server': return `claude mcp add … (command in README: ${repo.url})`;
-    default: return `See ${repo.url}`;
-  }
+  return `See the README for install steps: ${repo.url || `https://github.com/${repo.full_name}`}#readme`;
 }
 
 function isInstalled(repo, installed) {
@@ -133,6 +129,6 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
       friction: profile.friction?.[t] || 0,
     })),
     install: installHint(c.repo),
-    installSource: 'generic', // replaced by the README command after the content scan
+    installSource: 'readme-link', // replaced by the README's Claude Code command after the content scan
   }));
 }
