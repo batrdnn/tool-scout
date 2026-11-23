@@ -70,7 +70,7 @@ export function classify(repo) {
   return 'tool';
 }
 
-function slim(r) {
+export function slim(r) {
   return {
     full_name: r.full_name,
     name: r.name,

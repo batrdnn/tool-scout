@@ -13,6 +13,7 @@
 //   scout.mjs exclude-project <name|path>     leave a project's sessions out of the profile (no arg: list)
 //   scout.mjs include-project <name|path> | --all
 //   profile/recommend/all also take --exclude-project a,b for one run
+//   scout.mjs check <owner/repo | URL>        trust check of one repo before installing (--json)
 //   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
@@ -29,6 +30,7 @@ import { runPipeline } from './lib/pipeline.mjs';
 import { dismiss, undismiss, loadDismissed, dismissedSet } from './lib/feedback.mjs';
 import { loadSettings, excludeProject, includeProject } from './lib/settings.mjs';
 import { rate, ratingStats, shareText } from './lib/ratings.mjs';
+import { checkRepo, formatCheck } from './lib/check.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -168,6 +170,13 @@ async function main() {
       }
       break;
     }
+    case 'check': {
+      if (!opts._.length) throw new Error('usage: check <owner/repo | GitHub URL> [--json]');
+      const client = createClient({ token: githubToken(), log });
+      const r = await checkRepo(client, opts._[0]);
+      console.log(opts.json ? JSON.stringify(r, null, 2) : formatCheck(r));
+      break;
+    }
     case 'rate': {
       const [repo, value] = opts._;
       if (!repo || !value) throw new Error('usage: rate <owner/repo> useful|not|clear');
@@ -209,7 +218,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|rate|stats> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|rate|stats> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

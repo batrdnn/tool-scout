@@ -88,7 +88,7 @@ test("Tool Scout's own README, SKILL.md and scripts raise nothing above low (REA
   const fs = await import('node:fs');
   const read = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
   const explained = explainedHostsOf(read('README.md'));
-  const files = [['README.md', 'readme'], ['skills/scout/SKILL.md', 'skill'], ['scripts/scout.mjs', 'script'], ['package.json', 'package'],
+  const files = [['README.md', 'readme'], ['skills/scout/SKILL.md', 'skill'], ['skills/check/SKILL.md', 'skill'], ['scripts/scout.mjs', 'script'], ['package.json', 'package'],
     ...fs.readdirSync(new URL('../scripts/lib/', import.meta.url)).map((f) => [`scripts/lib/${f}`, 'script'])];
   for (const [f, role] of files) assert.deepEqual(scanText(read(f), { file: f, role, explainedHosts: explained }).filter((x) => x.severity !== 'low'), [], f);
 });
