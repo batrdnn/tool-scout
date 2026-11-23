@@ -56,8 +56,11 @@ user's own work.
    - offensive-security or other risky tooling unless the profile clearly shows that work
    - anything with a `high` severity entry in `trust.flags` (say you skipped it and why)
 
-4. **Pick at most 5, or at most 3 when `limitedHistory` is true.** Favor, in this order: friction topics, repeated manual commands an
-   extension would automate, the user's top topics. Prefer variety over five picks on one theme.
+4. **Pick at most 5, or at most 3 when `limitedHistory` is true.** Favor, in this order: picks
+   with `stackNote` (the repo is built around a library the user's projects actually declare, e.g.
+   "you use pytest in 2 projects"), friction topics, repeated manual commands an extension would
+   automate, the user's top topics. A generic tool that only matches a broad topic ranks below a
+   stack-specific one. Prefer variety over five picks on one theme.
    Never pick two that do the same job: `similar` lists a pick's near-duplicates (e.g. several
    Playwright/browser MCP servers), most original first. The script already keeps one per job in
    its top 5 and prefers the official or original repo; you may mention one alternative.
@@ -65,8 +68,9 @@ user's own work.
 5. **Present** each pick as:
 
    **N. owner/repo** (kind, ★ stars, momentum): one sentence on what it does.
-   *Why you:* tie it to concrete evidence ("testing came up in 10 of your 20 sessions, and
-   you hit trouble with it in 2").
+   *Why you:* tie it to concrete evidence: the `stackNote` when there is one ("you use pytest in
+   2 projects"), otherwise the topic counts ("testing came up in 10 of your 20 sessions, and you
+   hit trouble with it in 2").
    *Install:* the `install` value in a code span. When `installSource` is `readme`, it's the
    real Claude Code command taken from the repo's README (`installCommands` lists them in order,
    e.g. marketplace add, then plugin install; `installNote` "then choose a plugin with /plugin"

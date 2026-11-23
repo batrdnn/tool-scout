@@ -11,8 +11,6 @@ export const PERSONAS = JSON.parse(fs.readFileSync(path.join(here, 'personas.jso
 delete PERSONAS._comment;
 
 const line = (o) => JSON.stringify(o);
-const user = (text) => line({ type: 'user', message: { role: 'user', content: text } });
-const tool = (name, input) => line({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name, input }] } });
 
 /** Materialize one persona; returns the fake home directory. */
 export function materialize(name, base = os.tmpdir()) {
@@ -21,6 +19,12 @@ export function materialize(name, base = os.tmpdir()) {
   const home = fs.mkdtempSync(path.join(base, `scout-eval-${name}-`));
   const proj = path.join(home, '.claude', 'projects', `-home-${name}`);
   fs.mkdirSync(proj, { recursive: true });
+  // The persona's project folder, with its dependency files; sessions record it as their cwd.
+  const cwd = path.join(home, 'work', name);
+  fs.mkdirSync(cwd, { recursive: true });
+  for (const [f, body] of Object.entries(p.manifests || {})) fs.writeFileSync(path.join(cwd, f), body);
+  const user = (text) => line({ type: 'user', cwd, message: { role: 'user', content: text } });
+  const tool = (n, input) => line({ type: 'assistant', cwd, message: { role: 'assistant', content: [{ type: 'tool_use', name: n, input }] } });
   p.sessions.forEach((s, i) => {
     const lines = [
       ...s.prompts.map(user),

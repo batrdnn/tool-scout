@@ -70,6 +70,8 @@ function showProfile(p) {
   console.log(`  Languages (edits):  ${top(p.languages)}`);
   console.log(`  Repeated commands:  ${p.repeatedCommands.slice(0, 6).map((c) => `${c.command} ×${c.count}`).join(', ') || '—'}`);
   console.log(`  Already installed:  ${p.installed.names.slice(0, 12).join(', ') || '—'}`);
+  const st = Object.entries(p.stack || {});
+  console.log(`  Stack (projects):   ${st.slice(0, 10).map(([k, v]) => `${k} (${v})`).join(', ') || '—'}${st.length > 10 ? ` … ${st.length} libraries` : ''}`);
   console.log(`Stored counts only (no prompt text) in ${path.join(dataDir, 'profile.json')}`);
 }
 
@@ -85,7 +87,7 @@ function showRecs(recs) {
       : `${r.momentumSource === 'measured' ? '+' : '~'}${r.starsPerDay}★/day`;
     console.log(`\n${i + 1}. ${r.name}  [${r.kind}]  ${r.stars}★  ${mom}  trust: ${r.trust.tier}`);
     if (r.description) console.log(`   ${r.description}`);
-    console.log(`   Why: ${ev}`);
+    console.log(`   Why: ${[r.stackNote, ev].filter(Boolean).join('; ')}`);
     if (r.trust.notes.length) console.log(`   Watch out: ${r.trust.notes.join(', ')}`);
     for (const f of r.trust.flags || []) {
       console.log(`   ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
@@ -133,7 +135,9 @@ async function main() {
       if (limitedHistory) notes.push(`Limited history: ${p.sessions} session${p.sessions === 1 ? '' : 's'} in the last ${p.windowDays} days (under ${LIMITED}), so these picks rest on little evidence.`);
       if (recs.thinOmitted) notes.push(`${recs.thinOmitted} match${recs.thinOmitted === 1 ? '' : 'es'} left out: they rest on a topic seen in a single session, with no friction.`);
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, topicWeights: p.topicWeights, topicSources: p.topicSources, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
-      writeJSON('last-recommendations.json', out);
+      // Library names stay in profile.json only: the saved copy says "one of your libraries".
+      const redact = (r) => { const { stackEvidence, stackNote, ...rest } = r; return stackEvidence ? { ...rest, stackMatch: stackEvidence.length } : rest; };
+      writeJSON('last-recommendations.json', { ...out, recommendations: recs.map(redact) });
       if (opts.json) console.log(JSON.stringify(out, null, 2));
       else { if (cmd === 'all') showProfile(p); for (const n of notes) console.log(`\nNote: ${n}`); showRecs(recs); }
       break;

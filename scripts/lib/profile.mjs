@@ -4,6 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { librariesIn } from './stack.mjs';
 import { topicsIn, toolKeywordsIn, toolForCommand, EXT_HINTS, FILENAME_HINTS, COMMAND_HINTS } from './taxonomy.mjs';
 
 export const MENTION_WEIGHT = 0.3; // a topic only talked about counts this much of one acted on
@@ -278,6 +279,10 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     return false;
   }) : afterSessions;
   const excludedProjectSessions = afterSessions.length - files.length;
+  // Stack: libraries declared in the project folders these sessions ran in (local reads only).
+  const projectDirs = new Set(files.map(({ file }) => sessionCwd(file)).filter(Boolean));
+  const stackCount = {};
+  for (const dir of projectDirs) for (const lib of librariesIn(dir)) stackCount[lib] = (stackCount[lib] || 0) + 1;
   const actionSessions = {}, mentionSessions = {};
   const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
@@ -331,5 +336,7 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     tools: sortObj(tools),
     repeatedCommands,
     installed,
+    // Library name -> number of the user's projects declaring it. Stays in profile.json only.
+    stack: sortObj(stackCount),
   };
 }

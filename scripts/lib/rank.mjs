@@ -3,6 +3,7 @@
 import { topicsIn, repoTopicEvidence, toolAffinity, platformsOnly, osFamily, jobAnchors } from './taxonomy.mjs';
 import { momentum, classify } from './crawl.mjs';
 import { normName } from './profile.mjs';
+import { stackMatches, stackNote } from './stack.mjs';
 
 /** Basic, metadata-only trust signals. Not a security review. */
 export function trust(repo, now = Date.now()) {
@@ -42,6 +43,8 @@ function isInstalled(repo, installed) {
  * @param opts { top, kinds, perTopicCap, includeLow }
  */
 const DIVERSITY = 0.93;
+// A repo built around one of the user's own libraries outranks broad topic matches.
+const STACK_BONUS = 0.5;
 const DEDUPE_TOP = 5; // at most one repo per job in this many picks
 
 /**
@@ -103,12 +106,13 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     const ev = repoTopicEvidence(repo);
     const w = (t) => (weights[t] / maxW) * ev[t].strength * toolAffinity(t, ev[t].keywords, profile.toolKeywords);
     const matched = Object.keys(ev).filter((t) => weights[t]).sort((a, b) => w(b) - w(a));
-    if (!matched.length) continue;
+    const stackEv = stackMatches(repo, profile.stack);
+    if (!matched.length && !stackEv.length) continue;
 
     // Best topic counts fully, extra topics add a little (avoids rewarding keyword-stuffed READMEs).
-    let relevance = w(matched[0]) + matched.slice(1).reduce((s, t) => s + 0.15 * w(t), 0);
+    let relevance = matched.length ? w(matched[0]) + matched.slice(1).reduce((s, t) => s + 0.15 * w(t), 0) : 0;
     if (repo.language && topLangs.includes(repo.language)) relevance += 0.1;
-    if (coveredTopics.has(matched[0])) relevance *= 0.7;
+    if (matched.length && coveredTopics.has(matched[0])) relevance *= 0.7;
     const only = userOS ? platformsOnly(repo) : [];
     const otherOS = only.length > 0 && !only.includes(userOS);
     if (otherOS) relevance *= OTHER_OS;
@@ -116,14 +120,14 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     const m = momentum(repo, now);
     const tr = trust(repo, now);
     if (!includeLow && tr.tier === 'low') continue;
-    candidates.push({ repo, kind, matched, relevance, m, tr, ev, platformOnly: otherOS ? only : undefined });
+    candidates.push({ repo, kind, matched, relevance, m, tr, ev, stackEv, platformOnly: otherOS ? only : undefined });
   }
 
   const maxMom = Math.max(1, ...candidates.map((c) => c.m.perDay));
   const maxRel = Math.max(1e-9, ...candidates.map((c) => c.relevance));
   for (const c of candidates) {
     const mom = Math.log1p(c.m.perDay) / Math.log1p(maxMom);
-    c.score = 0.6 * (c.relevance / maxRel) + 0.25 * mom + 0.15 * (c.tr.score / 100);
+    c.score = 0.6 * (c.relevance / maxRel) + 0.25 * mom + 0.15 * (c.tr.score / 100) + (c.stackEv.length ? STACK_BONUS : 0);
   }
   candidates.sort((a, b) => b.score - a.score);
 
@@ -140,14 +144,15 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   const picks = [];
   const pool = [...candidates];
   // Thin evidence: a topic seen in a single session, without friction, can't carry a top-5 pick.
-  const supported = (c) => c.matched.some((t) => (profile.topics?.[t] || 0) >= 2 || (profile.friction?.[t] || 0) >= 1);
+  const primary = (c) => c.matched[0] || `stack:${c.stackEv[0]?.library}`; // diversity key
+  const supported = (c) => c.stackEv.length > 0 || c.matched.some((t) => (profile.topics?.[t] || 0) >= 2 || (profile.friction?.[t] || 0) >= 1);
   let thinOmitted = 0;
   while (picks.length < top && pool.length) {
     const dedupe = picks.length < DEDUPE_TOP;
     const needSupport = picks.length < DEDUPE_TOP;
     let bi = -1, best = -Infinity;
     for (let i = 0; i < pool.length; i++) {
-      const t = pool[i].matched[0];
+      const t = primary(pool[i]);
       if ((perTopic[t] || 0) >= perTopicCap) continue;
       if (dedupe && usedGroups.has(group.get(pool[i]))) continue;
       if (needSupport && !supported(pool[i])) continue;
@@ -167,7 +172,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     }
     usedGroups.add(g);
     const [c] = pool.splice(bi, 1);
-    perTopic[c.matched[0]] = (perTopic[c.matched[0]] || 0) + 1;
+    perTopic[primary(c)] = (perTopic[primary(c)] || 0) + 1;
     picks.push(c);
   }
 
@@ -197,6 +202,8 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     install: installHint({ ...c.repo, kind: c.kind }),
     installSource: 'readme-link', // replaced by the README's Claude Code command after the content scan
     ...(supported(c) ? {} : { thinEvidence: true }), // rests on a topic from a single session
+    // One of the user's own libraries is what this repo is about (names stay local; see scout.mjs).
+    ...(c.stackEv.length ? { stackEvidence: c.stackEv, stackNote: stackNote(c.stackEv) } : {}),
   }));
   out.thinOmitted = thinOmitted;
   return out;
