@@ -54,7 +54,11 @@ node scripts/scout.mjs profile --show          # see exactly what it learned abo
 node scripts/scout.mjs crawl                   # refresh the GitHub catalog
 node scripts/scout.mjs recommend --top 10      # ranked list in the terminal
 node scripts/scout.mjs all --json              # everything, as JSON
+node scripts/scout.mjs dismiss owner/repo      # never recommend this repo again
+node scripts/scout.mjs undismiss owner/repo    # bring it back (--all to clear; `dismiss` alone lists)
 ```
+
+In Claude Code, just say "not interested in owner/repo" after a scout run.
 
 Options: `--days 30`, `--kind skill,plugin,mcp-server`, `--include-low` (show low-trust repos),
 `--offline` (no network after the crawl: no momentum or trust scan), `--data DIR`. Behind a proxy,
@@ -100,4 +104,4 @@ npm test     # node --test, no dependencies
 - Deeper trust checks: follow scripts that installers download; scan MCP server source, not just configs
 - One-click install with a confirmation prompt
 - Weekly digest via a Claude Code hook ("3 new tools match your work")
-- Learn from feedback: remember picks you dismissed
+- Learn from feedback: down-weight topics whose picks keep getting dismissed

@@ -7,6 +7,8 @@
 //   scout.mjs recommend [--top 8] [--kind skill,plugin,mcp-server] [--include-low] [--json]
 //   scout.mjs all       [--refresh] [...]     profile + crawl (if stale) + recommend
 //   recommend/all also measure 7-day star momentum for the top 25 (cached 20h); --offline skips it
+//   scout.mjs dismiss   <owner/repo>          never recommend this repo again (no arg: list)
+//   scout.mjs undismiss <owner/repo> | --all  bring it back
 //
 // Common: --data DIR (default $SCOUT_DATA or ~/.tool-scout), --home DIR (default ~)
 
@@ -19,15 +21,16 @@ import { recommend } from './lib/rank.mjs';
 import { createClient, githubToken } from './lib/github.mjs';
 import { measureShortlist } from './lib/momentum.mjs';
 import { scanRecommendations } from './lib/scan.mjs';
+import { dismiss, undismiss, loadDismissed, dismissedSet } from './lib/feedback.mjs';
 
 const SHORTLIST = 25; // network work (momentum, trust scan) is limited to this many candidates
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
-  const opts = {};
+  const opts = { _: [] };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
-    if (!a.startsWith('--')) continue;
+    if (!a.startsWith('--')) { opts._.push(a); continue; }
     const key = a.slice(2);
     const next = rest[i + 1];
     if (next === undefined || next.startsWith('--')) opts[key] = true;
@@ -104,9 +107,11 @@ async function main() {
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
       else if (!cat.updatedAt) { log('catalog is empty; run `crawl` first'); }
       const top = Number(opts.top || 8);
+      const dismissed = dismissedSet(dataDir);
       const rankOpts = {
         kinds: typeof opts.kind === 'string' ? opts.kind.split(',') : null,
         includeLow: !!opts['include-low'],
+        exclude: dismissed,
       };
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });
@@ -126,14 +131,36 @@ async function main() {
           log(`trust scan: ${st.scanned} scanned, ${st.cached} cached, ${st.skipped} skipped, ${st.failed} failed`);
         } catch (e) { log(`trust scan skipped: ${e.message}`); }
       }
-      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
+      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));
       else { if (cmd === 'all') showProfile(p); showRecs(recs); }
       break;
     }
+    case 'dismiss': {
+      if (!opts._.length) {
+        const d = Object.entries(loadDismissed(dataDir).repos);
+        if (opts.json) console.log(JSON.stringify(Object.fromEntries(d), null, 2));
+        else console.log(d.length ? d.map(([n, v]) => `${n}  (dismissed ${v.at.slice(0, 10)})`).join('\n') : 'Nothing dismissed.');
+        break;
+      }
+      for (const a of opts._) {
+        const r = dismiss(dataDir, a);
+        console.log(r.added ? `Dismissed ${r.name}. It won't be recommended again (undo: undismiss ${r.name}).` : `${r.name} was already dismissed.`);
+      }
+      break;
+    }
+    case 'undismiss': {
+      if (!opts._.length && !opts.all) throw new Error('usage: undismiss <owner/repo> | --all');
+      const names = opts.all ? [null] : opts._;
+      for (const a of names) {
+        const removed = undismiss(dataDir, a);
+        console.log(removed.length ? `Undismissed ${removed.join(', ')}.` : `${a} wasn't dismissed.`);
+      }
+      break;
+    }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all> [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss> [owner/repo] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--data DIR]');
   }
 }
 

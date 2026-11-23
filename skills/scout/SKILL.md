@@ -84,5 +84,22 @@ user's own work.
    Skim the repo (especially `SKILL.md`, install scripts and any network calls) before
    installing. Never install anything yourself unless the user explicitly asks.
 
+## Feedback: "not interested"
+
+When the user says they don't want a pick ("not interested in X", "skip X", "never show X",
+"dismiss X"), dismiss it so it never comes back:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+- Resolve X to the exact `owner/repo` from the results you just showed (X may be a number like
+  "#3", a repo name, or a description). If it's ambiguous, ask which one.
+- If X is a category ("not interested in trading tools"), dismissal is per repo: dismiss the
+  shown picks in that category, list them, and say the profile itself is unchanged.
+- Confirm in one line, mention undo, and offer the next-best pick from the shortlist.
+- Undo: `… undismiss <owner/repo>` (or `undismiss --all`). List: `… dismiss` with no repo.
+- `dismissedCount` in the JSON says how many repos are hidden.
+
 If `profile.sessions` is 0 or very small, say the recommendations are based on very little
 history, and show the top trending picks for their languages instead.

@@ -47,7 +47,7 @@ function isInstalled(repo, installed) {
  */
 const DIVERSITY = 0.93;
 
-export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, now = Date.now() } = {}) {
+export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, exclude = null, now = Date.now() } = {}) {
   const sessions = Math.max(1, profile.sessions);
   // Topic weight = share of sessions that touched it; friction boosts it.
   const weights = {};
@@ -65,6 +65,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     if (repo.kind === 'list' || repo.archived) continue;
     if (kinds && !kinds.includes(repo.kind)) continue;
     if (isInstalled(repo, profile.installed || {})) continue;
+    if (exclude?.has(repo.full_name.toLowerCase())) continue; // dismissed by the user
 
     // Evidence is strongest when the name / first clause says it (what the repo *is*),
     // weaker for later incidental mentions and for search tags. See repoTopicEvidence.
