@@ -56,7 +56,14 @@ user's own work.
    - offensive-security or other risky tooling unless the profile clearly shows that work
    - anything with a `high` severity entry in `trust.flags` (say you skipped it and why)
 
-4. **Pick at most 5, or at most 3 when `limitedHistory` is true.** Favor, in this order: picks
+4. **Decide how many to show.** A candidate has *solid evidence* when it survived step 3 and has
+   a `stackNote`, or its topic shows real activity in the profile (`topicSources.actions`, or
+   friction), and it isn't marked `thinEvidence`. When 3 or more candidates have solid evidence,
+   show 3; show up to 5 when there's enough history (`limitedHistory` is false) and 4 or 5 of them
+   are that strong. Show fewer than 3 only when the evidence is genuinely missing, and then say so
+   in one line (e.g. "Only 2 picks: nothing else in the shortlist fits what you actually do.").
+
+   **Choosing.** Favor, in this order: picks
    with `stackNote` (the repo is built around a library the user's projects actually declare, e.g.
    "you use pytest in 2 projects"), friction topics, repeated manual commands an extension would
    automate, the user's top topics. A generic tool that only matches a broad topic ranks below a

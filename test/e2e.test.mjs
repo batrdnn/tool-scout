@@ -11,9 +11,17 @@ const SKILL = fs.readFileSync(new URL('../skills/scout/SKILL.md', import.meta.ur
 test("the judge gets SKILL.md's reading and filtering steps, not the presentation step", () => {
   const ins = judgeInstructions(SKILL);
   assert.match(ins, /Filter the shortlist/);
-  assert.match(ins, /Pick at most 5/);
+  assert.match(ins, /Decide how many to show/);
   assert.doesNotMatch(ins, /\*\*Present\*\*/);
   assert.doesNotMatch(ins, /scout\.mjs" all/, 'no instruction to run the script');
+});
+
+test('SKILL.md tells the judge how many picks to show, and when fewer is allowed', () => {
+  const ins = judgeInstructions(SKILL);
+  assert.match(ins, /3 or more[^.]*solid evidence[^.]*show 3/i);
+  assert.match(ins, /up to 5/i);
+  assert.match(ins, /fewer than 3 only when[^.]*genuinely missing/i);
+  assert.match(ins, /say so\s+in one line/i);
 });
 
 test('the judge never sees the labels', () => {
