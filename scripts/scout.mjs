@@ -13,6 +13,9 @@
 //   scout.mjs exclude-project <name|path>     leave a project's sessions out of the profile (no arg: list)
 //   scout.mjs include-project <name|path> | --all
 //   profile/recommend/all also take --exclude-project a,b for one run
+//   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
+//   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
+//                                              the only text a tester is asked to share
 //
 // Common: --data DIR (default $SCOUT_DATA or ~/.tool-scout), --home DIR (default ~)
 
@@ -25,6 +28,7 @@ import { createClient, githubToken } from './lib/github.mjs';
 import { runPipeline } from './lib/pipeline.mjs';
 import { dismiss, undismiss, loadDismissed, dismissedSet } from './lib/feedback.mjs';
 import { loadSettings, excludeProject, includeProject } from './lib/settings.mjs';
+import { rate, ratingStats, shareText } from './lib/ratings.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -164,6 +168,26 @@ async function main() {
       }
       break;
     }
+    case 'rate': {
+      const [repo, value] = opts._;
+      if (!repo || !value) throw new Error('usage: rate <owner/repo> useful|not|clear');
+      const r = rate(dataDir, repo, value);
+      console.log(r.rating ? `${r.name}: ${r.rating === 'useful' ? 'useful' : 'not useful'}${r.changed ? '' : ' (unchanged)'}. Thanks.` : `Cleared the rating for ${r.name}.`);
+      break;
+    }
+    case 'stats': {
+      if (opts.share) {
+        const version = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+        console.log('This is everything that would be shared: aggregate counts and the rated repo names.');
+        console.log('No profile, topics, libraries, projects or prompts. Nothing is sent: copy it yourself if you agree.\n');
+        console.log(shareText(dataDir, { version }));
+        break;
+      }
+      const s = ratingStats(dataDir);
+      if (opts.json) { console.log(JSON.stringify(s, null, 2)); break; }
+      console.log(s.rated ? `${s.rated} rated picks: ${s.useful} useful (${Math.round(s.usefulShare * 100)}%), ${s.not} not useful.` : 'No ratings yet. Rate a pick with: rate <owner/repo> useful|not');
+      break;
+    }
     case 'exclude-project': {
       if (!opts._.length) {
         const ex = loadSettings(dataDir).excludeProjects;
@@ -185,7 +209,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|rate|stats> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

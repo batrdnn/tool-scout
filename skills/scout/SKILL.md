@@ -104,6 +104,25 @@ user's own work.
    Skim the repo (especially `SKILL.md`, install scripts and any network calls) before
    installing. Never install anything yourself unless the user explicitly asks.
 
+7. **Ask for a rating, in one line.** For example: "Was each pick useful? Reply like
+   `1 useful, 2 not, 3 useful`, or skip." This is how the scout learns whether it helps.
+
+## Ratings
+
+When the user rates picks (by number, name, 👍/👎, "useful"/"not", "yes"/"no"), record each one:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+- Resolve numbers and names to the exact `owner/repo` you showed. Skip any pick they didn't rate.
+- Confirm in one short line. Don't ask follow-up questions about the ratings.
+- A `not` rating is not a dismissal. If they also say "never show it again", dismiss it too.
+- `… stats` prints the share of rated picks that were useful. `… stats --share` prints the
+  only text a tester is asked to share (counts and rated repo names): show it to the user, and
+  never send it anywhere yourself.
+- To correct a rating: `… rate <owner/repo> clear`, then rate again.
+
 ## Feedback: "not interested"
 
 When the user says they don't want a pick ("not interested in X", "skip X", "never show X",
