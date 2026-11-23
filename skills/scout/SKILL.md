@@ -108,5 +108,18 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --data "${CL
 - Undo: `… undismiss <owner/repo>` (or `undismiss --all`). List: `… dismiss` with no repo.
 - `dismissedCount` in the JSON says how many repos are hidden.
 
+## Leaving a project out
+
+If the user wants a project left out of their profile ("ignore my tool-scout sessions", "don't
+count project X", typical while developing this plugin), persist it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" exclude-project <folder name or path> --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+Then re-run the scout. Undo: `… include-project <name>` (or `--all`); list: `… exclude-project`.
+For a single run only, add `--exclude-project <name>` to the scout command instead.
+`profile.excludedProjects` in the JSON says how many projects were left out.
+
 If `profile.sessions` is 0 or very small, say the recommendations are based on very little
 history, and show the top trending picks for their languages instead.

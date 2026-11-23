@@ -9,6 +9,9 @@
 //   recommend/all also measure 7-day star momentum for the shortlist and every final pick (cached 20h); --offline skips it
 //   scout.mjs dismiss   <owner/repo>          never recommend this repo again (no arg: list)
 //   scout.mjs undismiss <owner/repo> | --all  bring it back
+//   scout.mjs exclude-project <name|path>     leave a project's sessions out of the profile (no arg: list)
+//   scout.mjs include-project <name|path> | --all
+//   profile/recommend/all also take --exclude-project a,b for one run
 //
 // Common: --data DIR (default $SCOUT_DATA or ~/.tool-scout), --home DIR (default ~)
 
@@ -20,6 +23,7 @@ import { crawl, loadCatalog } from './lib/crawl.mjs';
 import { createClient, githubToken } from './lib/github.mjs';
 import { runPipeline } from './lib/pipeline.mjs';
 import { dismiss, undismiss, loadDismissed, dismissedSet } from './lib/feedback.mjs';
+import { loadSettings, excludeProject, includeProject } from './lib/settings.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -40,7 +44,12 @@ const home = opts.home || os.homedir();
 const dataDir = opts.data || process.env.SCOUT_DATA || path.join(home, '.tool-scout');
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
 // By default the session running this command is not part of the profile (see buildProfile).
-const profileOpts = opts['include-current'] ? { excludeSessions: [] } : {};
+// Projects left out: the persistent setting plus any --exclude-project for this run.
+const oneOff = typeof opts['exclude-project'] === 'string' ? opts['exclude-project'].split(',').map((x) => x.trim()).filter(Boolean) : [];
+const profileOpts = {
+  ...(opts['include-current'] ? { excludeSessions: [] } : {}),
+  excludeProjects: [...new Set([...loadSettings(dataDir).excludeProjects, ...oneOff])],
+};
 
 function writeJSON(name, obj) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -52,7 +61,8 @@ function readJSON(name) {
 
 function showProfile(p) {
   const top = (o, n = 6) => Object.entries(o).slice(0, n).map(([k, v]) => `${k} (${v})`).join(', ') || '—';
-  console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)${p.excludedCurrentSession ? ', not counting this session' : ''}`);
+  const left = [p.excludedCurrentSession && 'this session', p.excludedProjects && `${p.excludedProjects} excluded project${p.excludedProjects > 1 ? 's' : ''}`].filter(Boolean);
+  console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)${left.length ? `, not counting ${left.join(' or ')}` : ''}`);
   console.log(`  Topics (sessions):  ${top(p.topics, 8)}`);
   console.log(`  Friction (sessions): ${top(p.friction)}`);
   console.log(`  Languages (edits):  ${top(p.languages)}`);
@@ -99,7 +109,7 @@ async function main() {
     case 'recommend':
     case 'all': {
       let p = readJSON('profile.json');
-      if (cmd === 'all' || !p) { p = buildProfile({ home, days, ...profileOpts }); writeJSON('profile.json', p); }
+      if (cmd === 'all' || !p || oneOff.length) { p = buildProfile({ home, days, ...profileOpts }); writeJSON('profile.json', p); }
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
@@ -114,7 +124,7 @@ async function main() {
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });
       const { recs } = await runPipeline(p, cat, { top, rankOpts, client, dataDir, log });
-      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
+      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));
       else { if (cmd === 'all') showProfile(p); showRecs(recs); }
@@ -142,8 +152,28 @@ async function main() {
       }
       break;
     }
+    case 'exclude-project': {
+      if (!opts._.length) {
+        const ex = loadSettings(dataDir).excludeProjects;
+        console.log(ex.length ? `Left out of the profile: ${ex.join(', ')}` : 'No projects excluded.');
+        break;
+      }
+      for (const a of opts._) {
+        const r = excludeProject(dataDir, a);
+        console.log(r.added ? `Excluded project ${r.name}: its sessions are left out of the profile (undo: include-project ${r.name}).` : `${r.name} was already excluded.`);
+      }
+      break;
+    }
+    case 'include-project': {
+      if (!opts._.length && !opts.all) throw new Error('usage: include-project <name|path> | --all');
+      for (const a of opts.all ? [null] : opts._) {
+        const removed = includeProject(dataDir, a);
+        console.log(removed.length ? `Included ${removed.join(', ')} again.` : `${a} wasn't excluded.`);
+      }
+      break;
+    }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss> [owner/repo] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

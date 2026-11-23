@@ -66,6 +66,37 @@ function hintsForPath(p) {
   return { topics, lang };
 }
 
+/** The working directory a project's sessions ran in (from the transcripts' `cwd`), or null. */
+function projectCwd(files) {
+  for (const file of files.slice(0, 3)) {
+    let head = '';
+    try { const fd = fs.openSync(file, 'r'); const b = Buffer.alloc(65536); head = b.toString('utf8', 0, fs.readSync(fd, b, 0, b.length, 0)); fs.closeSync(fd); } catch { continue; }
+    const m = head.match(/"cwd"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (m) { try { return JSON.parse(`"${m[1]}"`); } catch { /* malformed */ } }
+  }
+  return null;
+}
+
+/**
+ * Does project { dir (encoded folder under ~/.claude/projects), cwd } match a user-given name?
+ * Accepts a folder name ("tool-scout"), a trailing part of the path ("Downloads/tool-scout"),
+ * the full path, or the encoded folder name. Without a cwd, falls back to the encoded name.
+ */
+export function projectMatches({ dir, cwd } = {}, name) {
+  const n = String(name || '').trim().replace(/[\\/]+$/, '');
+  if (!n) return false;
+  if (n === dir) return true;
+  if (cwd) {
+    const c = cwd.replace(/[\\/]+$/, '').replace(/\\/g, '/');
+    const want = n.replace(/\\/g, '/');
+    if (want.startsWith('/') || /^[a-z]:\//i.test(want)) return c.toLowerCase() === want.toLowerCase();
+    if (want.startsWith('~/')) return c.endsWith(want.slice(1));
+    return c === want || c.endsWith(`/${want}`);
+  }
+  const enc = n.replace(/[^A-Za-z0-9]/g, '-').replace(/^-+/, '');
+  return !!enc && (dir === `-${enc}` || dir.endsWith(`-${enc}`));
+}
+
 /** Parse one session transcript into per-session signals. */
 export function analyzeSession(file) {
   const s = { topics: new Set(), friction: new Set(), toolKeywords: new Set(), langs: {}, tools: {}, commands: {}, mcpServers: new Set(), prompts: 0 };
@@ -170,12 +201,25 @@ export function detectInstalled(home, cwd = process.cwd()) {
  * The session we're running inside (CLAUDE_CODE_SESSION_ID) is skipped by default: it's the
  * scout request itself, not the user's work, and during development it can dominate.
  */
-export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.env.CLAUDE_CODE_SESSION_ID].filter(Boolean) } = {}) {
+export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.env.CLAUDE_CODE_SESSION_ID].filter(Boolean), excludeProjects = [] } = {}) {
   const since = Date.now() - days * 86400e3;
   const skip = new Set(excludeSessions.map((id) => `${id}.jsonl`));
   const all = listSessionFiles(path.join(home, '.claude', 'projects'), since);
-  const files = all.filter(({ file }) => !skip.has(path.basename(file)));
-  const excludedCurrent = all.length - files.length;
+  const afterSessions = all.filter(({ file }) => !skip.has(path.basename(file)));
+  const excludedCurrent = all.length - afterSessions.length;
+  // Projects the user asked to leave out (e.g. while developing this plugin).
+  const names = excludeProjects.filter(Boolean);
+  const dropDir = new Set();
+  if (names.length) {
+    const byDir = {};
+    for (const f of afterSessions) (byDir[f.project] ||= []).push(f.file);
+    for (const [dir, fs_] of Object.entries(byDir)) {
+      const proj = { dir, cwd: projectCwd(fs_) };
+      if (names.some((n) => projectMatches(proj, n))) dropDir.add(dir);
+    }
+  }
+  const files = afterSessions.filter(({ project }) => !dropDir.has(project));
+  const excludedProjectSessions = afterSessions.length - files.length;
   const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
   const projects = new Set();
@@ -212,6 +256,8 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
     generatedAt: new Date().toISOString(),
     windowDays: days,
     sessions, prompts, projects: projects.size, excludedCurrentSession: excludedCurrent > 0,
+    // Counts only: which projects were left out stays in settings, not in the profile.
+    excludedProjects: dropDir.size, excludedProjectSessions,
     topics: sortObj(topicSessions),
     friction: sortObj(frictionSessions),
     // Sessions mentioning each fixed-vocabulary tool name (pytest, prisma, kubernetes, ...).

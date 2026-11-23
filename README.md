@@ -57,6 +57,9 @@ node scripts/scout.mjs recommend --top 10      # ranked list in the terminal
 node scripts/scout.mjs all --json              # everything, as JSON
 node scripts/scout.mjs dismiss owner/repo      # never recommend this repo again
 node scripts/scout.mjs undismiss owner/repo    # bring it back (--all to clear; `dismiss` alone lists)
+node scripts/scout.mjs exclude-project tool-scout   # leave a project's sessions out of the profile (persisted)
+node scripts/scout.mjs include-project tool-scout   # undo (--all to clear; `exclude-project` alone lists)
+node scripts/scout.mjs all --exclude-project tool-scout   # one run only
 ```
 
 In Claude Code, just say "not interested in owner/repo" after a scout run.
