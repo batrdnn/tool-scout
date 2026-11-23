@@ -1,6 +1,6 @@
 // Scores catalog repos against the user's profile and explains each pick.
 
-import { topicsIn, repoTopicEvidence, toolAffinity, platformsOnly, osFamily } from './taxonomy.mjs';
+import { topicsIn, repoTopicEvidence, toolAffinity, platformsOnly, osFamily, jobAnchors } from './taxonomy.mjs';
 import { momentum, classify } from './crawl.mjs';
 import { normName } from './profile.mjs';
 
@@ -42,6 +42,32 @@ function isInstalled(repo, installed) {
  * @param opts { top, kinds, perTopicCap, includeLow }
  */
 const DIVERSITY = 0.93;
+const DEDUPE_TOP = 5; // at most one repo per job in this many picks
+
+/**
+ * Group candidates that do the same job: same kind, plus the same normalized name
+ * ("playwright_mcp" ~ "playwright-mcp") or a shared job anchor and a shared topic.
+ * Returns Map(candidate -> group id).
+ */
+function jobGroups(cands) {
+  const parent = cands.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const info = cands.map((c) => ({ kind: c.kind, name: normName(c.repo.name), anchors: jobAnchors(c.repo), topics: new Set(c.matched) }));
+  for (let i = 0; i < cands.length; i++) {
+    for (let j = i + 1; j < cands.length; j++) {
+      const a = info[i], b = info[j];
+      if (a.kind !== b.kind) continue;
+      const sameName = a.name.length >= 4 && a.name === b.name;
+      const sameJob = [...a.anchors].some((x) => b.anchors.has(x)) && [...a.topics].some((t) => b.topics.has(t));
+      if (sameName || sameJob) parent[find(i)] = find(j);
+    }
+  }
+  return new Map(cands.map((c, i) => [c, find(i)]));
+}
+
+/** Official / original first: org-owned, then more stars, then older. */
+const originality = (c) => [c.repo.ownerType === 'Organization' ? 1 : 0, c.repo.stars || 0, -Date.parse(c.repo.createdAt || 0)];
+const moreOriginal = (a, b) => { const x = originality(a), y = originality(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
 const OTHER_OS = 0.35; // relevance factor for a repo that only runs on another desktop OS
 
 export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, exclude = null, now = Date.now(), platform = null } = {}) {
@@ -100,18 +126,33 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   // Keep the list varied without starving users whose work is mostly one topic: each
   // further pick on the same primary topic is discounted (greedy re-rank), and only past
   // `perTopicCap` picks is a topic capped outright.
+  // Near-duplicates: at most one per job in the first DEDUPE_TOP picks, and that one is the
+  // official / original repo of its group (not the lookalike that happens to score higher).
+  const group = jobGroups(candidates);
+  const members = {};
+  for (const c of candidates) (members[group.get(c)] ||= []).push(c);
+  const usedGroups = new Set();
   const perTopic = {};
   const picks = [];
   const pool = [...candidates];
   while (picks.length < top && pool.length) {
+    const dedupe = picks.length < DEDUPE_TOP;
     let bi = -1, best = -Infinity;
     for (let i = 0; i < pool.length; i++) {
       const t = pool[i].matched[0];
       if ((perTopic[t] || 0) >= perTopicCap) continue;
+      if (dedupe && usedGroups.has(group.get(pool[i]))) continue;
       const s = pool[i].score * DIVERSITY ** (perTopic[t] || 0);
       if (s > best) { best = s; bi = i; }
     }
     if (bi < 0) break;
+    const g = group.get(pool[bi]);
+    if (!usedGroups.has(g)) {
+      // The group's first pick is its most original member still in the pool.
+      const orig = pool.filter((c) => group.get(c) === g).reduce((a, b) => (moreOriginal(b, a) ? b : a));
+      bi = pool.indexOf(orig);
+    }
+    usedGroups.add(g);
     const [c] = pool.splice(bi, 1);
     perTopic[c.matched[0]] = (perTopic[c.matched[0]] || 0) + 1;
     picks.push(c);
@@ -130,6 +171,8 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     trust: c.tr,
     score: Number(c.score.toFixed(3)),
     matchedTopics: c.matched,
+    // Other candidates that do the same job (near-duplicates), most original first.
+    ...((members[group.get(c)] || []).length > 1 ? { similar: members[group.get(c)].filter((x) => x !== c).sort((a, b) => (moreOriginal(a, b) ? -1 : 1)).map((x) => x.repo.full_name) } : {}),
     ...(c.platformOnly ? { platformOnly: c.platformOnly } : {}),
     evidence: c.matched.slice(0, 2).map((t) => ({
       topic: t,

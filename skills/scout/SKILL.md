@@ -55,6 +55,9 @@ user's own work.
 
 4. **Pick at most 5.** Favor, in this order: friction topics, repeated manual commands an
    extension would automate, the user's top topics. Prefer variety over five picks on one theme.
+   Never pick two that do the same job: `similar` lists a pick's near-duplicates (e.g. several
+   Playwright/browser MCP servers), most original first. The script already keeps one per job in
+   its top 5 and prefers the official or original repo; you may mention one alternative.
 
 5. **Present** each pick as:
 

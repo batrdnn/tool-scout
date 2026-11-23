@@ -298,3 +298,20 @@ export function platformsOnly(repo) {
   if (mentioned.length >= 2) return [];
   return Object.keys(OS_TERMS).filter((os) => OS_RUNS_ON[os].test(desc) || OS_NAME_TOKENS[os].some((t) => tokens.includes(t)));
 }
+
+// ---------------------------------------------------------------------------
+// Same job. Two repos do the same job when they say up front that they are built around the
+// same specific tool. Browser drivers are interchangeable for an agent, so they are one family.
+const JOB_FAMILY = { playwright: 'browser-automation', puppeteer: 'browser-automation', selenium: 'browser-automation',
+  'browser automation': 'browser-automation', 'web automation': 'browser-automation', headless: 'browser-automation', 'chrome devtools': 'browser-automation' };
+const ANCHOR_WORDS = [...new Set([
+  ...Object.keys(JOB_FAMILY),
+  ...[...AFFINITY_TOPICS].flatMap((t) => TOPICS[t]).filter((k) => !GENERIC.has(k) && !PROMPT_ONLY.has(k)),
+])];
+const ANCHOR_RE = new RegExp(`(?<![a-z0-9])(${ANCHOR_WORDS.sort((a, b) => b.length - a.length).map(escape).join('|')})(?![a-z0-9])`, 'gi');
+
+/** Job anchors a repo names in its name or first clause (tool names, browser-automation family). */
+export function jobAnchors(repo) {
+  const text = `${String(repo.name || '').replace(/[-_]/g, ' ')} | ${splitHead(repo.description).head}`;
+  return new Set([...text.matchAll(ANCHOR_RE)].map((m) => JOB_FAMILY[m[1].toLowerCase()] || m[1].toLowerCase()));
+}
