@@ -1,0 +1,13 @@
+{
+ "set": "main",
+ "persona": "webdev",
+ "model": "claude-opus-5-5",
+ "hash": "110e0ab67a3818d8067adc79",
+ "at": "2026-11-23T14:00:03.989Z",
+ "picks": [
+  "microsoft/playwright-mcp",
+  "bytebase/dbhub",
+  "21st-dev/magic-mcp",
+  "openqodex/openqodex"
+ ]
+}

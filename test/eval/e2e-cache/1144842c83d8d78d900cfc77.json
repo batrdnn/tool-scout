@@ -1,0 +1,12 @@
+{
+ "set": "holdout",
+ "persona": "platform",
+ "model": "claude-opus-5-5",
+ "hash": "1144842c83d8d78d900cfc77",
+ "at": "2026-11-23T14:00:47.347Z",
+ "picks": [
+  "kubesphere/kubesphere",
+  "tirth8205/code-review-graph",
+  "chaenmasahiro0425/claude-security-scan"
+ ]
+}

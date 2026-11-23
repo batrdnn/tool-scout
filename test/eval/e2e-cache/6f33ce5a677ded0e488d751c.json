@@ -1,0 +1,13 @@
+{
+ "set": "holdout",
+ "persona": "webdev",
+ "model": "claude-opus-5-5",
+ "hash": "6f33ce5a677ded0e488d751c",
+ "at": "2026-11-23T14:00:31.907Z",
+ "picks": [
+  "ChromeDevTools/chrome-devtools-mcp",
+  "timescale/pg-aiguide",
+  "ngocanhnckh/renderlint",
+  "Raja0sama/vibex"
+ ]
+}

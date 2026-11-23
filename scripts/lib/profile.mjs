@@ -4,7 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { librariesIn } from './stack.mjs';
+import { librariesIn, libraryTopicsIn } from './stack.mjs';
 import { topicsIn, toolKeywordsIn, toolForCommand, EXT_HINTS, FILENAME_HINTS, COMMAND_HINTS } from './taxonomy.mjs';
 
 export const MENTION_WEIGHT = 0.3; // a topic only talked about counts this much of one acted on
@@ -289,8 +289,15 @@ export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.
   const projects = new Set();
   let prompts = 0, sessions = 0;
 
+  const dirTopics = new Map(); // project dir -> topics its libraries stand for (read once per dir)
   for (const { file, project } of files) {
     const s = analyzeSession(file);
+    // Domain from libraries: a well-known library in this session's project is action evidence.
+    const dir = sessionCwd(file);
+    if (dir) {
+      if (!dirTopics.has(dir)) dirTopics.set(dir, libraryTopicsIn(dir));
+      dirTopics.get(dir).forEach((t) => { s.topics.add(t); s.actionTopics.add(t); });
+    }
     if (!s.prompts && !Object.keys(s.tools).length) continue;
     sessions++; prompts += s.prompts; projects.add(project);
     s.topics.forEach((t) => (topicSessions[t] = (topicSessions[t] || 0) + 1));

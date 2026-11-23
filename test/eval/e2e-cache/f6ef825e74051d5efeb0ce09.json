@@ -1,0 +1,12 @@
+{
+ "set": "main",
+ "persona": "quant-ios",
+ "model": "claude-opus-5-5",
+ "hash": "f6ef825e74051d5efeb0ce09",
+ "at": "2026-11-23T13:59:53.635Z",
+ "picks": [
+  "getsentry/MobileBuildMCP",
+  "mobile-next/mobile-mcp",
+  "atilaahmettaner/tradingview-mcp"
+ ]
+}

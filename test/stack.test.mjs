@@ -142,3 +142,24 @@ test('the stack bonus still applies with action-backed topic evidence, or when t
   const two = recommend(vendorProfile(2), cat, { top: 5 });
   assert.match(two.find((r) => r.name === 'acme/acmeai-mcp')?.stackNote || '', /2 projects/, '2+ projects: bonus without topic evidence');
 });
+
+test('a well-known library in a session\'s project counts as action evidence for its topic', async () => {
+  const { LIBRARY_TOPICS } = await import('../scripts/lib/stack.mjs');
+  assert.deepEqual(LIBRARY_TOPICS.yfinance, ['finance']);
+  assert.deepEqual(LIBRARY_TOPICS.alamofire, ['ios']);
+  assert.deepEqual(LIBRARY_TOPICS.polars, ['data']);
+  assert.deepEqual(LIBRARY_TOPICS.sqlalchemy, ['database']);
+  const quant = project({ 'requirements.txt': 'yfinance\nbacktrader\nsomething-unknown\n' });
+  const other = project({ 'package.json': '{"dependencies":{"left-pad":"1"}}' });
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-libtopic-'));
+  const proj = path.join(home, '.claude', 'projects', '-p');
+  fs.mkdirSync(proj, { recursive: true });
+  // Three sessions in the quant project that never *say* finance; one elsewhere.
+  [quant, quant, quant, other].forEach((cwd, i) => fs.writeFileSync(path.join(proj, `s${i}.jsonl`),
+    JSON.stringify({ type: 'user', cwd, message: { role: 'user', content: 'fix the failing script' } })));
+  const p = buildProfile({ home, days: 30, cwd: os.tmpdir(), excludeSessions: [] });
+  assert.equal(p.topicSources.actions.finance, 3);
+  assert.equal(p.topicWeights.finance, 3);
+  assert.equal(p.topics.finance, 3);
+  assert.equal(p.topicSources.mentions.finance, undefined);
+});

@@ -96,6 +96,31 @@ export function librariesIn(dir) {
   return libs;
 }
 
+// --- domain from libraries ------------------------------------------------------------------
+// Well-known libraries whose presence says what the project is about. A library in a session's
+// project counts as action evidence for these topics. Kept short on purpose: only libraries
+// with one clear domain (vendor SDKs like AI or payment clients are deliberately absent).
+const DOMAINS = {
+  finance: 'yfinance backtrader ccxt vectorbt zipline zipline-reloaded ta-lib pandas-ta quantstats pyfolio empyrical mplfinance alpaca-py alpaca-trade-api ib_insync ib-insync quantlib freqtrade backtesting',
+  ios: 'swiftui alamofire snapkit kingfisher swift-composable-architecture rxswift realmswift',
+  data: 'pandas polars numpy scipy pyarrow duckdb dask matplotlib seaborn plotly jupyter jupyterlab',
+  database: 'prisma @prisma/client sqlalchemy alembic psycopg psycopg2 psycopg2-binary asyncpg pg mysql2 mongoose pymongo drizzle-orm typeorm sequelize knex gorm sqlx diesel',
+  testing: 'pytest pytest-cov hypothesis jest vitest mocha @playwright/test cypress testify rspec rspec-rails',
+  frontend: 'react react-dom next vue svelte @sveltejs/kit tailwindcss vite @angular/core',
+  backend: 'express fastapi django flask @nestjs/core gin koa rails',
+  devops: 'client-go boto3 aws-sdk-go-v2 @pulumi/pulumi pulumi',
+  browser: 'puppeteer selenium beautifulsoup4 scrapy',
+};
+export const LIBRARY_TOPICS = {};
+for (const [topic, libs] of Object.entries(DOMAINS)) for (const l of libs.split(' ')) (LIBRARY_TOPICS[l] ||= []).push(topic);
+
+/** Topics the libraries in `dir` stand for (see LIBRARY_TOPICS). */
+export function libraryTopicsIn(dir) {
+  const out = new Set();
+  for (const lib of librariesIn(dir)) (LIBRARY_TOPICS[lib] || []).forEach((t) => out.add(t));
+  return out;
+}
+
 // --- matching -----------------------------------------------------------------------------
 // The name a repo would use for a library. Generic: drop an npm scope (keeping it when the
 // package part is a generic word like client/test/core), a -js/.js suffix and a Go /vN.
