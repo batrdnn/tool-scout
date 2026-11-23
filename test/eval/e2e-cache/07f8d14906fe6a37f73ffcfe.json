@@ -1,0 +1,13 @@
+{
+ "set": "holdout",
+ "persona": "platform",
+ "model": "claude-opus-5-5",
+ "sample": 2,
+ "hash": "07f8d14906fe6a37f73ffcfe",
+ "at": "2026-11-23T14:16:04.145Z",
+ "picks": [
+  "tirth8205/code-review-graph",
+  "kubesphere/kubesphere",
+  "kyy-logs/code-review-gate-skill"
+ ]
+}

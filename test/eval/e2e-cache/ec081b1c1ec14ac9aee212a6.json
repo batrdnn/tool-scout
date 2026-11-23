@@ -1,0 +1,13 @@
+{
+ "set": "main",
+ "persona": "quant-ios",
+ "model": "claude-opus-5-5",
+ "sample": 3,
+ "hash": "ec081b1c1ec14ac9aee212a6",
+ "at": "2026-11-23T14:14:32.269Z",
+ "picks": [
+  "getsentry/MobileBuildMCP",
+  "mobile-next/mobile-mcp",
+  "openqodex/openqodex"
+ ]
+}

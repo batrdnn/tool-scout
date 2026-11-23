@@ -6,6 +6,7 @@
 //   npm run eval:e2e -- --model claude-sonnet-5-5   judge model (default claude-opus-5-5)
 //   npm run eval:e2e -- --cache-only           never call the judge; fail on a cache miss
 //   npm run eval:e2e -- --refresh              ignore the cache
+//   npm run eval:e2e -- --samples 3            judge each prompt N times (cached separately): mean [min-max]
 //   npm run eval:e2e -- --json
 //
 // The judge sees only SKILL.md's reading/filtering steps and the script's JSON for a synthetic
@@ -114,35 +115,50 @@ function cleanupJudgeProject(cwd) {
   }
 }
 
-export async function runE2E({ set = 'holdout', model = DEFAULT_MODEL, cacheDir = DEFAULT_CACHE, judge = null, refresh = false, cacheOnly = false, log = () => {} } = {}) {
+export async function runE2E({ set = 'holdout', model = DEFAULT_MODEL, cacheDir = DEFAULT_CACHE, judge = null, refresh = false, cacheOnly = false, samples = 1, log = () => {} } = {}) {
   const skill = fs.readFileSync(SKILL_PATH, 'utf8');
   const doJudge = judge || claudeJudge(model);
   const rows = [];
+  const METRICS = ['e2eP3', 'e2eP5', 'e2eFP3', 'e2eFP5', 'picksCount'];
   for (const row of runEval(set)) {
     const shortlist = row.names;
     const prompt = buildPrompt(skill, row.profile, row.recs);
-    const hash = createHash('sha256').update(JSON.stringify({ model, prompt })).digest('hex').slice(0, 24);
-    const file = path.join(cacheDir, `${hash}.json`);
-    let hit = null;
-    if (!refresh) { try { hit = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* miss */ } }
-    if (!hit) {
-      if (cacheOnly) throw new Error(`no cached judgment for ${set}/${row.persona} (${hash}); rerun without --cache-only`);
-      log(`judging ${set}/${row.persona} with ${model}…`);
-      const picks = await doJudge(prompt, shortlist);
-      hit = { set, persona: row.persona, model, hash, at: new Date().toISOString(), picks };
-      fs.mkdirSync(cacheDir, { recursive: true });
-      fs.writeFileSync(file, `${JSON.stringify(hit, null, 1)}\n`);
+    const judged = [];
+    for (let i = 0; i < samples; i++) {
+      // Sample 1 keeps the original key, so a plain run and sample 1 share one cache entry.
+      const key = i === 0 ? { model, prompt } : { model, prompt, sample: i + 1 };
+      const hash = createHash('sha256').update(JSON.stringify(key)).digest('hex').slice(0, 24);
+      const file = path.join(cacheDir, `${hash}.json`);
+      let hit = null;
+      if (!refresh) { try { hit = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* miss */ } }
+      if (!hit) {
+        if (cacheOnly) throw new Error(`no cached judgment for ${set}/${row.persona} sample ${i + 1} (${hash}); rerun without --cache-only`);
+        log(`judging ${set}/${row.persona} with ${model} (sample ${i + 1}/${samples})…`);
+        const picks = await doJudge(prompt, shortlist);
+        hit = { set, persona: row.persona, model, sample: i + 1, hash, at: new Date().toISOString(), picks };
+        fs.mkdirSync(cacheDir, { recursive: true });
+        fs.writeFileSync(file, `${JSON.stringify(hit, null, 1)}\n`);
+      }
+      judged.push(hit.picks);
     }
     // Labels are read only here, after the judge has answered.
     const { labels } = loadSet(set);
-    rows.push({
-      set, persona: row.persona, model, cached: !!hit && !refresh, shortlist: shortlist.length, picks: hit.picks,
-      scriptP3: precisionAt(shortlist, row.persona, 3, labels), scriptP5: precisionAt(shortlist, row.persona, 5, labels),
-      e2eP3: precisionAt(hit.picks, row.persona, 3, labels), e2eP5: precisionAt(hit.picks, row.persona, 5, labels),
+    const score = (picks) => ({
+      picks, picksCount: picks.length,
+      e2eP3: precisionAt(picks, row.persona, 3, labels), e2eP5: precisionAt(picks, row.persona, 5, labels),
       // Fixed denominator: always / k, so a judge returning fewer picks can't score higher.
+      e2eFP3: precisionFixedAt(picks, row.persona, 3, labels), e2eFP5: precisionFixedAt(picks, row.persona, 5, labels),
+      relevantPicks: picks.filter((n) => labels[n]?.[row.persona] === 1),
+    });
+    const per = judged.map(score);
+    const mean = (k) => per.reduce((a, x) => a + x[k], 0) / per.length;
+    rows.push({
+      set, persona: row.persona, model, shortlist: shortlist.length,
+      picks: per[0].picks, relevantPicks: per[0].relevantPicks, samples: per,
+      scriptP3: precisionAt(shortlist, row.persona, 3, labels), scriptP5: precisionAt(shortlist, row.persona, 5, labels),
       scriptFP3: precisionFixedAt(shortlist, row.persona, 3, labels), scriptFP5: precisionFixedAt(shortlist, row.persona, 5, labels),
-      e2eFP3: precisionFixedAt(hit.picks, row.persona, 3, labels), e2eFP5: precisionFixedAt(hit.picks, row.persona, 5, labels),
-      relevantPicks: hit.picks.filter((n) => labels[n]?.[row.persona] === 1),
+      ...Object.fromEntries(METRICS.map((k) => [k, mean(k)])),
+      range: Object.fromEntries(METRICS.map((k) => [k, [Math.min(...per.map((x) => x[k])), Math.max(...per.map((x) => x[k]))]])),
     });
   }
   return rows;
@@ -154,21 +170,26 @@ if (isMain) {
   const val = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const which = val('--set', 'both');
   const sets = which === 'both' ? ['main', 'holdout'] : [which];
-  const opts = { model: val('--model', DEFAULT_MODEL), refresh: args.includes('--refresh'), cacheOnly: args.includes('--cache-only'), log: (m) => process.stderr.write(`[e2e] ${m}\n`) };
+  const samples = Math.max(1, Number(val('--samples', 1)) || 1);
+  const opts = { model: val('--model', DEFAULT_MODEL), samples, refresh: args.includes('--refresh'), cacheOnly: args.includes('--cache-only'), log: (m) => process.stderr.write(`[e2e] ${m}\n`) };
   const all = [];
   for (const set of sets) all.push(...(await runE2E({ set, ...opts })));
   if (args.includes('--json')) console.log(JSON.stringify(all, null, 2));
   else {
     const f = (x) => x.toFixed(2);
-    console.log(`End-to-end eval (judge: ${opts.model}). p@k = relevant / min(k, returned); fixed fp@k = relevant / k.\n`);
-    console.log('set      persona      script p@3  p@5   fp@3  fp@5   e2e p@3  p@5   fp@3  fp@5   picks');
+    // mean [min-max] over samples (only the mean when there is one sample)
+    const mm = (mean, [lo, hi], d = 2) => (samples > 1 ? `${mean.toFixed(d)} [${lo.toFixed(d)}-${hi.toFixed(d)}]` : mean.toFixed(d)).padEnd(samples > 1 ? 17 : 6);
+    console.log(`End-to-end eval (judge: ${opts.model}, ${samples} sample${samples > 1 ? 's, mean [min-max]' : ''}). p@k = relevant / min(k, returned); fixed fp@k = relevant / k.\n`);
+    console.log(`set      persona      script p@3 p@5  fp@3 fp@5   ${['e2e p@3', 'e2e p@5', 'e2e fp@3', 'e2e fp@5', 'picks'].map((h) => h.padEnd(samples > 1 ? 17 : 6)).join(' ')}`);
     for (const set of sets) {
       const rs = all.filter((r) => r.set === set);
-      for (const r of rs) console.log(`${set.padEnd(8)} ${r.persona.padEnd(12)} ${f(r.scriptP3)}        ${f(r.scriptP5)}  ${f(r.scriptFP3)}  ${f(r.scriptFP5)}   ${f(r.e2eP3)}     ${f(r.e2eP5)}  ${f(r.e2eFP3)}  ${f(r.e2eFP5)}   ${r.picks.length}`);
-      const m = (k) => f(rs.reduce((s, r) => s + r[k], 0) / rs.length);
-      const mp = (rs.reduce((s, r) => s + r.picks.length, 0) / rs.length).toFixed(1);
-      console.log(`${set.padEnd(8)} ${'MEAN'.padEnd(12)} ${m('scriptP3')}        ${m('scriptP5')}  ${m('scriptFP3')}  ${m('scriptFP5')}   ${m('e2eP3')}     ${m('e2eP5')}  ${m('e2eFP3')}  ${m('e2eFP5')}   ${mp}`);
+      for (const r of rs) console.log(`${set.padEnd(8)} ${r.persona.padEnd(12)} ${f(r.scriptP3)}       ${f(r.scriptP5)} ${f(r.scriptFP3)} ${f(r.scriptFP5)}   ${['e2eP3', 'e2eP5', 'e2eFP3', 'e2eFP5'].map((k) => mm(r[k], r.range[k])).join(' ')} ${mm(r.picksCount, r.range.picksCount, 1)}`);
+      // Set level: the mean over personas, per sample; then mean and min/max across samples.
+      const perSample = (k) => Array.from({ length: samples }, (_, i) => rs.reduce((a, r) => a + r.samples[i][k], 0) / rs.length);
+      const agg = (k) => { const v = perSample(k); return mm(v.reduce((a, b) => a + b, 0) / v.length, [Math.min(...v), Math.max(...v)], k === 'picksCount' ? 1 : 2); };
+      const sm = (k) => f(rs.reduce((a, r) => a + r[k], 0) / rs.length);
+      console.log(`${set.padEnd(8)} ${'MEAN'.padEnd(12)} ${sm('scriptP3')}       ${sm('scriptP5')} ${sm('scriptFP3')} ${sm('scriptFP5')}   ${['e2eP3', 'e2eP5', 'e2eFP3', 'e2eFP5', 'picksCount'].map(agg).join(' ')}`);
     }
-    if (args.includes('--verbose')) for (const r of all) console.log(`\n${r.set}/${r.persona}: ${r.picks.join(', ')}  (relevant: ${r.relevantPicks.join(', ') || '—'})`);
+    if (args.includes('--verbose')) for (const r of all) r.samples.forEach((x, i) => console.log(`\n${r.set}/${r.persona} #${i + 1}: ${x.picks.join(', ')}  (relevant: ${x.relevantPicks.join(', ') || '—'})`));
   }
 }

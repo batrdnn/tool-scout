@@ -1,0 +1,13 @@
+{
+ "set": "holdout",
+ "persona": "quant-ios",
+ "model": "claude-opus-5-5",
+ "sample": 2,
+ "hash": "4e19be5b9803411665f0cdf5",
+ "at": "2026-11-23T14:15:22.298Z",
+ "picks": [
+  "pierridotite/mobile-agent-testers",
+  "antvis/mcp-server-chart",
+  "tirth8205/code-review-graph"
+ ]
+}

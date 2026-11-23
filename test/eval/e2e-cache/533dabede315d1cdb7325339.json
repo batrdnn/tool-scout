@@ -1,0 +1,13 @@
+{
+ "set": "holdout",
+ "persona": "quant-ios",
+ "model": "claude-opus-5-5",
+ "sample": 3,
+ "hash": "533dabede315d1cdb7325339",
+ "at": "2026-11-23T14:15:28.507Z",
+ "picks": [
+  "pierridotite/mobile-agent-testers",
+  "microsoft/flint-chart",
+  "tirth8205/code-review-graph"
+ ]
+}

@@ -1,0 +1,13 @@
+{
+ "set": "main",
+ "persona": "platform",
+ "model": "claude-opus-5-5",
+ "sample": 2,
+ "hash": "39dd0c4430ebd11954c3827e",
+ "at": "2026-11-23T14:15:04.562Z",
+ "picks": [
+  "skyhook-io/radar",
+  "awslabs/mcp",
+  "antonbabenko/terraform-skill"
+ ]
+}

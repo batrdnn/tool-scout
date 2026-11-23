@@ -70,3 +70,26 @@ test('a judge that returns fewer picks scores lower on the fixed-denominator ver
     assert.ok(r.e2eFP5 <= 0.2 && r.e2eFP5 <= r.e2eP5, `${r.persona}: ${r.e2eFP5} vs ${r.e2eP5}`);
   }
 });
+
+test('--samples N: each sample is judged and cached separately; rows report mean and min/max', async () => {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-e2e-'));
+  let calls = 0;
+  // A judge that varies by call: keeps 1, 2 or 3 of the shortlist.
+  const judge = async (prompt, shortlist) => shortlist.slice(0, (calls++ % 3) + 1);
+  const rows = await runE2E({ set: 'holdout', model: 'm', cacheDir, judge, samples: 3 });
+  assert.equal(calls, 9);
+  assert.equal(fs.readdirSync(cacheDir).length, 9, 'one cache file per persona per sample');
+  for (const r of rows) {
+    assert.equal(r.samples.length, 3);
+    for (const k of ['e2eP3', 'e2eP5', 'e2eFP3', 'e2eFP5', 'picksCount']) {
+      const vals = r.samples.map((s) => s[k]);
+      assert.ok(Math.abs(r[k] - vals.reduce((a, b) => a + b, 0) / 3) < 1e-9, `${k} is the mean`);
+      assert.deepEqual(r.range[k], [Math.min(...vals), Math.max(...vals)]);
+    }
+  }
+  await runE2E({ set: 'holdout', model: 'm', cacheDir, judge, samples: 3 });
+  assert.equal(calls, 9, 'all samples served from cache');
+  const one = await runE2E({ set: 'holdout', model: 'm', cacheDir, judge, samples: 1 });
+  assert.equal(calls, 9, 'sample 1 is the same cache entry as a plain run');
+  assert.deepEqual(one.map((r) => r.picks), rows.map((r) => r.samples[0].picks));
+});
