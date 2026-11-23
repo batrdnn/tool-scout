@@ -1,0 +1,69 @@
+{
+  "_comment": "Synthetic personas for the eval harness. Each session becomes one .jsonl transcript in a temporary fake home. 'prompts' are user messages, 'bash' are commands Claude ran, 'files' are paths Claude edited. Keep these realistic and do not tune them to the labeled repos.",
+  "quant-ios": {
+    "description": "Solo developer: Python backtesting engine for trading strategies, plus a SwiftUI companion iPhone app.",
+    "installed": { "skills": ["pdf-tools"], "mcpServers": {} },
+    "sessions": [
+      { "prompts": ["Add a walk-forward backtest to the engine and report Sharpe ratio"], "bash": ["pytest -q tests/", "python run_backtest.py --strategy momentum"], "files": ["engine/backtest.py", "tests/test_backtest.py"] },
+      { "prompts": ["the backtest test is still failing, same error about the index"], "bash": ["pytest -x tests/test_backtest.py"], "files": ["engine/backtest.py"] },
+      { "prompts": ["load OHLC candles from the csv with pandas and resample to 1h"], "bash": ["python scripts/load.py"], "files": ["engine/data.py", "data/btc.csv"] },
+      { "prompts": ["plot the equity curve and drawdown with matplotlib"], "bash": ["python plot.py"], "files": ["engine/plot.py"] },
+      { "prompts": ["write pytest unit tests for the position sizing module"], "bash": ["pytest -q", "pytest --cov=engine"], "files": ["tests/test_sizing.py"] },
+      { "prompts": ["why does the stock portfolio rebalancing produce negative weights? debug it"], "bash": ["pytest -x", "python -m pdb run_backtest.py"], "files": ["engine/portfolio.py"] },
+      { "prompts": ["store trades in sqlite instead of the csv"], "bash": ["sqlite3 trades.db .schema", "pytest -q"], "files": ["engine/store.py"] },
+      { "prompts": ["add a SwiftUI screen that shows the portfolio from the API"], "bash": ["xcodebuild -scheme Quant build"], "files": ["app/Quant/PortfolioView.swift"] },
+      { "prompts": ["the SwiftUI preview crashes again, still not working"], "bash": ["xcodebuild -scheme Quant build", "xcrun simctl list"], "files": ["app/Quant/PortfolioView.swift", "app/Quant/Model.swift"] },
+      { "prompts": ["add XCTest unit tests for the Swift portfolio model"], "bash": ["xcodebuild test -scheme Quant"], "files": ["app/QuantTests/ModelTests.swift"] },
+      { "prompts": ["make the iPhone app fetch live crypto prices"], "bash": ["xcodebuild -scheme Quant build"], "files": ["app/Quant/PriceService.swift"] },
+      { "prompts": ["optimize the backtest loop with numpy vectorization"], "bash": ["python -m cProfile run_backtest.py", "pytest -q"], "files": ["engine/backtest.py"] },
+      { "prompts": ["commit the changes and open a PR"], "bash": ["git add -A", "git commit -m wip", "git push"], "files": [] },
+      { "prompts": ["add a mean reversion strategy for forex pairs"], "bash": ["pytest -q", "python run_backtest.py --strategy meanrev"], "files": ["strategies/meanrev.py"] },
+      { "prompts": ["tests keep failing on CI but pass locally, why is it flaky"], "bash": ["pytest -x -p no:randomly", "git log -3"], "files": ["tests/conftest.py"] },
+      { "prompts": ["analyze the trade log in a jupyter notebook"], "bash": ["jupyter nbconvert --execute analysis.ipynb"], "files": ["analysis.ipynb"] }
+    ]
+  },
+  "webdev": {
+    "description": "Full-stack TypeScript: Next.js + Tailwind frontend, Postgres via Prisma, Playwright e2e tests, deploys on Vercel, works through GitHub PRs.",
+    "installed": { "skills": [], "mcpServers": { "github": { "command": "npx", "args": ["@modelcontextprotocol/server-github"] } } },
+    "sessions": [
+      { "prompts": ["build a pricing page component in React with Tailwind"], "bash": ["npm run dev", "npx tsc --noEmit"], "files": ["app/pricing/page.tsx", "components/PriceCard.tsx"] },
+      { "prompts": ["the Next.js build fails with a hydration error, still not working"], "bash": ["npm run build", "npm run lint"], "files": ["app/layout.tsx"] },
+      { "prompts": ["add a Prisma migration for the subscriptions table in postgres"], "bash": ["npx prisma migrate dev", "npx prisma generate"], "files": ["prisma/schema.prisma"] },
+      { "prompts": ["write Playwright e2e tests for the signup flow"], "bash": ["npx playwright test", "npx playwright test --headed"], "files": ["e2e/signup.spec.ts"] },
+      { "prompts": ["the playwright test is flaky and keeps failing in CI"], "bash": ["npx playwright test --repeat-each 5", "gh run view"], "files": ["e2e/signup.spec.ts", ".github/workflows/ci.yml"] },
+      { "prompts": ["review this pull request and fix the comments"], "bash": ["gh pr view 42", "gh pr diff 42", "git rebase main"], "files": ["lib/auth.ts"] },
+      { "prompts": ["the dashboard is slow, the SQL query does a sequential scan"], "bash": ["psql $DATABASE_URL -c 'explain analyze select 1'"], "files": ["lib/queries.ts"] },
+      { "prompts": ["deploy the preview to vercel and check the logs"], "bash": ["vercel deploy", "vercel logs"], "files": [] },
+      { "prompts": ["make the navbar responsive and match the figma mockup"], "bash": ["npm run dev"], "files": ["components/Navbar.tsx", "app/globals.css"] },
+      { "prompts": ["add a REST API endpoint for webhooks from stripe"], "bash": ["npm run test", "npx vitest run"], "files": ["app/api/webhooks/route.ts"] },
+      { "prompts": ["write vitest unit tests for the pricing utils"], "bash": ["npx vitest run"], "files": ["lib/pricing.test.ts"] },
+      { "prompts": ["fix the merge conflict and commit"], "bash": ["git status", "git merge main", "git commit -m merge"], "files": ["app/page.tsx"] },
+      { "prompts": ["add shadcn dialog component for delete confirmation"], "bash": ["npx shadcn add dialog", "npm run dev"], "files": ["components/ui/dialog.tsx"] },
+      { "prompts": ["the supabase auth redirect is wrong again after deploy"], "bash": ["vercel logs", "npm run build"], "files": ["lib/supabase.ts"] },
+      { "prompts": ["open a PR with the changes"], "bash": ["git push -u origin feat", "gh pr create --fill"], "files": [] },
+      { "prompts": ["the e2e tests break when the database seed changes"], "bash": ["npx prisma db seed", "npx playwright test"], "files": ["prisma/seed.ts", "e2e/fixtures.ts"] }
+    ]
+  },
+  "platform": {
+    "description": "Platform/DevOps engineer: Go services on Kubernetes, Terraform on AWS, GitHub Actions pipelines, cares about security and secrets.",
+    "installed": { "skills": [], "mcpServers": {} },
+    "sessions": [
+      { "prompts": ["write a helm chart for the payments service"], "bash": ["helm template ./charts/payments", "helm lint ./charts/payments"], "files": ["charts/payments/values.yaml"] },
+      { "prompts": ["the pod is in CrashLoopBackOff, still failing after the fix"], "bash": ["kubectl get pods -n payments", "kubectl logs deploy/payments", "kubectl describe pod payments-0"], "files": ["deploy/payments.yaml"] },
+      { "prompts": ["terraform plan shows a diff on the aws security group every time"], "bash": ["terraform plan", "terraform fmt"], "files": ["infra/sg.tf"] },
+      { "prompts": ["add an s3 bucket with encryption via terraform"], "bash": ["terraform plan", "terraform apply"], "files": ["infra/s3.tf"] },
+      { "prompts": ["the github actions deploy workflow keeps failing on the docker build"], "bash": ["gh run view --log", "docker build -t api ."], "files": [".github/workflows/deploy.yml", "Dockerfile"] },
+      { "prompts": ["add a Go handler for the health endpoint with tests"], "bash": ["go test ./...", "go build ./..."], "files": ["internal/health/handler.go", "internal/health/handler_test.go"] },
+      { "prompts": ["debug this Go panic stack trace in the worker"], "bash": ["go test -run TestWorker ./internal/worker", "go vet ./..."], "files": ["internal/worker/worker.go"] },
+      { "prompts": ["rotate the database secrets and move them to aws secrets manager"], "bash": ["aws secretsmanager list-secrets", "kubectl get secrets -n payments"], "files": ["deploy/secrets.yaml"] },
+      { "prompts": ["scan the docker image for vulnerabilities"], "bash": ["docker build -t api .", "trivy image api"], "files": ["Dockerfile"] },
+      { "prompts": ["set up prometheus alerts for high error rate"], "bash": ["kubectl apply -f monitoring/alerts.yaml"], "files": ["monitoring/alerts.yaml"] },
+      { "prompts": ["why does the ingress return 502 again"], "bash": ["kubectl get ingress -A", "kubectl logs -n ingress-nginx deploy/ingress-nginx-controller"], "files": ["deploy/ingress.yaml"] },
+      { "prompts": ["refactor the terraform into modules"], "bash": ["terraform init", "terraform plan", "terraform validate"], "files": ["infra/modules/vpc/main.tf"] },
+      { "prompts": ["the postgres migration job fails in the cluster"], "bash": ["kubectl logs job/migrate", "psql -h localhost -c '\\dt'"], "files": ["deploy/migrate-job.yaml", "migrations/0003_add_index.sql"] },
+      { "prompts": ["commit and push the infra changes"], "bash": ["git add -A", "git commit -m infra", "git push"], "files": [] },
+      { "prompts": ["write a runbook in markdown for the on-call rotation"], "bash": [], "files": ["docs/runbook.md"] },
+      { "prompts": ["add golangci lint to the pipeline"], "bash": ["golangci-lint run", "gh run view"], "files": [".github/workflows/ci.yml"] }
+    ]
+  }
+}
