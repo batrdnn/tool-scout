@@ -60,6 +60,31 @@ test('classify', () => {
   assert.equal(classify({ name: 'pg', topics: ['mcp-server'] }), 'mcp-server');
 });
 
+test('classify: the name and description decide the kind before tags do', () => {
+  const live = (name, description, topics) => classify({ name, description, topics });
+  assert.equal(live('mobile-mcp', 'Mobile MCP: let AI agents drive your iOS and Android apps. MCP server for simulators, emulators and real devices. Works with Claude Code, Codex, Cursor and any MCP client.',
+    ['agent', 'android', 'claude-code', 'codex', 'ios', 'mcp', 'mcp-server', 'mobile', 'skills']), 'mcp-server');
+  assert.equal(live('LibreChat', 'Enhanced ChatGPT Clone: Features Agents, MCP, Skills, DeepSeek, Anthropic, AWS, OpenAI, Responses API, Azure, Groq, o1, GPT-5, Mistral, OpenRouter, Vertex AI, Gemini, Artifacts, AI model switching, message search',
+    ['ai', 'anthropic', 'chatgpt', 'chatgpt-clone', 'claude', 'mcp', 'openai', 'webui']), 'app');
+  assert.equal(live('drawdb', 'Free, simple, and intuitive online database diagram editor and SQL generator.', ['database', 'diagram-editor', 'mcp', 'postgresql', 'sql']), 'app');
+  assert.equal(live('git-skill', 'Claude Code skill for clean commits', ['mcp-server']), 'skill');
+  assert.equal(live('kit', 'A Claude Code plugin marketplace with MCP servers and skills', ['mcp']), 'plugin');
+  assert.equal(live('notes-mcp', 'MCP server for a note-taking web app', ['mcp']), 'mcp-server', 'an MCP server for an app is not the app');
+  assert.equal(live('x', 'Helpers for agents', ['mcp-server']), 'mcp-server', 'tags still decide when the text says nothing');
+});
+
+test('apps are not recommended unless asked for with --kind app', () => {
+  const cat = { repos: {} };
+  mergeRepos(cat, [
+    repo({ name: 'test-ui', description: 'Self-hosted web UI for running your pytest test suites', topics: ['mcp'] }),
+    repo({ name: 'pytest-mcp', description: 'MCP server that runs pytest test suites', topics: ['mcp-server'] }),
+  ]);
+  assert.equal(cat.repos['o/test-ui'].kind, 'app');
+  const p = { sessions: 4, topics: { testing: 4 }, friction: {}, languages: {}, installed: { names: [], repos: [] } };
+  assert.deepEqual(recommend(p, cat, { top: 5 }).map((r) => r.name), ['o/pytest-mcp']);
+  assert.deepEqual(recommend(p, cat, { top: 5, kinds: ['app'] }).map((r) => r.name), ['o/test-ui']);
+});
+
 test('momentum is measured from snapshots', () => {
   const cat = { repos: {} };
   mergeRepos(cat, [repo({ name: 'a', stars: 100 })], '2026-11-01');

@@ -1,7 +1,7 @@
 // Scores catalog repos against the user's profile and explains each pick.
 
 import { topicsIn, repoTopicEvidence, toolAffinity } from './taxonomy.mjs';
-import { momentum } from './crawl.mjs';
+import { momentum, classify } from './crawl.mjs';
 import { normName } from './profile.mjs';
 
 /** Basic, metadata-only trust signals. Not a security review. */
@@ -58,8 +58,11 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
 
   const candidates = [];
   for (const repo of Object.values(catalog.repos || {})) {
-    if (repo.kind === 'list' || repo.archived) continue;
-    if (kinds && !kinds.includes(repo.kind)) continue;
+    // Classified now, not at crawl time, so a cached catalog follows the current rules.
+    const kind = classify(repo);
+    if (kind === 'list' || repo.archived) continue;
+    // Standalone apps (chat UIs, editors) aren't agent extensions: only when asked for by kind.
+    if (kinds ? !kinds.includes(kind) : kind === 'app') continue;
     if (isInstalled(repo, profile.installed || {})) continue;
     if (exclude?.has(repo.full_name.toLowerCase())) continue; // dismissed by the user
 
@@ -78,7 +81,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     const m = momentum(repo, now);
     const tr = trust(repo, now);
     if (!includeLow && tr.tier === 'low') continue;
-    candidates.push({ repo, matched, relevance, m, tr, ev });
+    candidates.push({ repo, kind, matched, relevance, m, tr, ev });
   }
 
   const maxMom = Math.max(1, ...candidates.map((c) => c.m.perDay));
@@ -112,7 +115,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   return picks.map((c) => ({
     name: c.repo.full_name,
     url: c.repo.url,
-    kind: c.repo.kind,
+    kind: c.kind,
     description: c.repo.description,
     stars: c.repo.stars,
     starsPerDay: Number(c.m.perDay.toFixed(1)),
@@ -128,7 +131,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
       ofSessions: profile.sessions,
       friction: profile.friction?.[t] || 0,
     })),
-    install: installHint(c.repo),
+    install: installHint({ ...c.repo, kind: c.kind }),
     installSource: 'readme-link', // replaced by the README's Claude Code command after the content scan
   }));
 }

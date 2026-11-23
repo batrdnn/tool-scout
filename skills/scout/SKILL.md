@@ -45,7 +45,8 @@ user's own work.
    actually help with what the profile shows? Drop:
    - keyword coincidences (e.g. a game-modding kit matched "testing" because it mentions
      "in-game testing"; a social-media scraper matched "git" because it lists GitHub as a source)
-   - consumer apps that aren't developer or agent tools
+   - consumer apps that aren't developer or agent tools (the script already leaves out repos it
+     classifies as `app`, such as chat UIs and online editors; `--kind app` brings them back)
    - anything that duplicates something in `installed`
    - offensive-security or other risky tooling unless the profile clearly shows that work
    - anything with a `high` severity entry in `trust.flags` (say you skipped it and why)

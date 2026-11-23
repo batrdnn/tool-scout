@@ -4,7 +4,8 @@
 //
 //   scout.mjs profile   [--days 30] [--show]
 //   scout.mjs crawl     [--max-pages 1]
-//   scout.mjs recommend [--top 8] [--kind skill,plugin,mcp-server] [--include-low] [--json]
+//   scout.mjs recommend [--top 8] [--kind skill,plugin,mcp-server,tool,app] [--include-low] [--json]
+//                       standalone apps (kind app: chat UIs, editors) are left out unless --kind includes app
 //   scout.mjs all       [--refresh] [...]     profile + crawl (if stale) + recommend
 //   recommend/all also measure 7-day star momentum for the shortlist and every final pick (cached 20h); --offline skips it
 //   scout.mjs dismiss   <owner/repo>          never recommend this repo again (no arg: list)

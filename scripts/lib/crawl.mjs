@@ -17,13 +17,56 @@ const TOPIC_QUERIES = [
 const day = (d = new Date()) => d.toISOString().slice(0, 10);
 const daysAgo = (n) => day(new Date(Date.now() - n * 86400e3));
 
+// Kind signals in text. Each finds where the repo calls itself that kind of thing.
+const KIND_TEXT = [
+  ['plugin', /\bplugin marketplace\b|\bclaude[ -]code plugins?\b|\bplugins? for claude[ -]code\b|\bclaude plugins?\b/i],
+  ['mcp-server', /\bmcp[ -]servers?\b|\bmodel context protocol(?: \(mcp\))? servers?\b|\bmcp\b(?! (?:clients?|hosts?|support|integration|tools? support))/i],
+  ['skill', /\bskills?\b|\bskill\.md\b/i], // only in an agent context, see classify
+];
+const AGENT_CONTEXT = /\b(?:claude|agents?|agentic|codex|skill\.md|llms?|ai)\b/i;
+// A standalone application rather than something you add to an agent. Strong phrases count
+// anywhere in the description; weak ones only where the repo says what it is (the head).
+const APP_STRONG = /\b(?:chatgpt[ -]clone|web ?ui for|webui|desktop app(?:lication)?|(?:open[- ]source |self-hosted |free )?alternative to|diagram editor|ai (?:chat )?interface)\b/i;
+const APP_HEAD = /\b(?:(?:a|an|the) (?:\w+ ){0,2}web app(?:lication)?|(?:online|visual|browser-based) [\w ]{0,30}?(?:editor|designer|builder)|chat (?:ui|client|app)|note-taking app)\b/i;
+const FOR_AGENT = /\bfor claude[ -]code\b|\bclaude[ -]code (?:plugin|extension|hook|statusline|add-?on)\b/i;
+
+/** First clause of a description, cut at the first ":", ".", "|" or dash: what the repo says it is. */
+const headOf = (d) => String(d || '').split(/:\s|[.!?](?:\s|$)|\s[—–-]{1,2}\s|\s\|\s/)[0];
+
+/** Kind named earliest in `text`, or null. */
+function kindIn(text, agentContext) {
+  let best = null, at = Infinity;
+  for (const [kind, re] of KIND_TEXT) {
+    if (kind === 'skill' && !agentContext) continue; // "skills" alone is a résumé word
+    const m = re.exec(text);
+    if (m && m.index < at) { best = kind; at = m.index; }
+  }
+  return best;
+}
+
+/**
+ * skill | plugin | mcp-server | tool | app | list. The repo's own words decide first (the
+ * head of the description, then the name, then the rest); search tags only break a silence,
+ * since repos tag themselves with every ecosystem they touch.
+ */
 export function classify(repo) {
   const t = new Set(repo.topics || []);
-  const n = `${repo.name} ${repo.description || ''}`.toLowerCase();
-  if (/^awesome|awesome-/.test(repo.name.toLowerCase()) || t.has('awesome') || t.has('awesome-list')) return 'list';
-  if (t.has('claude-code-plugin') || /\bplugin marketplace\b|\bclaude code plugin/.test(n)) return 'plugin';
-  if ([...t].some((x) => /skill/.test(x)) || /\bskills?\b/.test(n) && /claude|agent/.test(n)) return 'skill';
-  if (t.has('mcp') || t.has('mcp-server') || t.has('model-context-protocol') || /\bmcp\b/.test(n)) return 'mcp-server';
+  const name = String(repo.name || '');
+  const desc = String(repo.description || '');
+  if (/^awesome|awesome-/.test(name.toLowerCase()) || t.has('awesome') || t.has('awesome-list')) return 'list';
+  const head = headOf(desc);
+  const nameText = name.replace(/[-_.]+/g, ' ');
+  const ctx = AGENT_CONTEXT.test(`${nameText} ${desc}`);
+  const own = kindIn(head, ctx) || kindIn(nameText, ctx);
+  if (own) return own;
+  const forAgent = FOR_AGENT.test(`${nameText} ${desc}`);
+  if (!forAgent && (APP_STRONG.test(head) || APP_HEAD.test(head))) return 'app'; // "ChatGPT clone: features MCP, skills, …" is still the app
+  const later = kindIn(desc, ctx);
+  if (later) return later;
+  if (!forAgent && APP_STRONG.test(`${nameText} ${desc}`)) return 'app';
+  if (t.has('claude-code-plugin')) return 'plugin';
+  if ([...t].some((x) => /skill/.test(x))) return 'skill';
+  if (t.has('mcp') || t.has('mcp-server') || t.has('model-context-protocol')) return 'mcp-server';
   return 'tool';
 }
 
