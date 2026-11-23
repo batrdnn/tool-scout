@@ -1,0 +1,13 @@
+{
+ "set": "holdout",
+ "persona": "webdev",
+ "model": "claude-opus-5-5",
+ "hash": "740b92f4af7157d2d921b5d8",
+ "at": "2026-11-23T12:59:07.835Z",
+ "picks": [
+  "ChromeDevTools/chrome-devtools-mcp",
+  "ngocanhnckh/renderlint",
+  "TabularisDB/tabularis",
+  "tirth8205/code-review-graph"
+ ]
+}

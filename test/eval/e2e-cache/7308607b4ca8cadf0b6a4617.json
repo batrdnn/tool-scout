@@ -1,0 +1,14 @@
+{
+ "set": "main",
+ "persona": "platform",
+ "model": "claude-opus-5-5",
+ "hash": "7308607b4ca8cadf0b6a4617",
+ "at": "2026-11-23T12:58:42.267Z",
+ "picks": [
+  "skyhook-io/radar",
+  "antonbabenko/terraform-skill",
+  "openqodex/openqodex",
+  "trailofbits/skills",
+  "bytebase/dbhub"
+ ]
+}

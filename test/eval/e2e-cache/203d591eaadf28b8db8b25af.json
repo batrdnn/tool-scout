@@ -1,0 +1,13 @@
+{
+ "set": "main",
+ "persona": "quant-ios",
+ "model": "claude-opus-5-5",
+ "hash": "203d591eaadf28b8db8b25af",
+ "at": "2026-11-23T12:58:26.871Z",
+ "picks": [
+  "getsentry/MobileBuildMCP",
+  "HKUDS/Vibe-Trading",
+  "mobile-next/mobile-mcp",
+  "atilaahmettaner/tradingview-mcp"
+ ]
+}
