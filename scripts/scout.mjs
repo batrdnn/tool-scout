@@ -17,13 +17,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { buildProfile } from './lib/profile.mjs';
 import { crawl, loadCatalog } from './lib/crawl.mjs';
-import { recommend } from './lib/rank.mjs';
 import { createClient, githubToken } from './lib/github.mjs';
-import { measureShortlist } from './lib/momentum.mjs';
-import { scanRecommendations } from './lib/scan.mjs';
+import { runPipeline } from './lib/pipeline.mjs';
 import { dismiss, undismiss, loadDismissed, dismissedSet } from './lib/feedback.mjs';
-
-const SHORTLIST = 25; // network work (momentum, trust scan) is limited to this many candidates
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -117,22 +113,7 @@ async function main() {
       };
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });
-      if (client && cat.updatedAt) {
-        // Measure real 7-day momentum for the shortlist only, then re-rank with it.
-        const first = recommend(p, cat, { ...rankOpts, top: Math.max(top, SHORTLIST) });
-        try {
-          const st = await measureShortlist(first.slice(0, SHORTLIST).map((r) => r.name), cat, { client, dataDir, log });
-          log(`momentum: ${st.measured} measured, ${st.cached} cached, ${st.unavailable} unavailable, ${st.skipped} skipped`);
-        } catch (e) { log(`momentum measurement skipped: ${e.message}`); }
-      }
-      const recs = recommend(p, cat, { ...rankOpts, top });
-      if (client && recs.length) {
-        // Read the final candidates' content (README, SKILL.md, install scripts, hooks).
-        try {
-          const st = await scanRecommendations(recs.slice(0, SHORTLIST), cat, { client, dataDir, log });
-          log(`trust scan: ${st.scanned} scanned, ${st.cached} cached, ${st.skipped} skipped, ${st.failed} failed`);
-        } catch (e) { log(`trust scan skipped: ${e.message}`); }
-      }
+      const { recs } = await runPipeline(p, cat, { top, rankOpts, client, dataDir, log });
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, profile: { sessions: p.sessions, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));
