@@ -30,9 +30,20 @@ and check `--live` output before trusting a gain.
 
 ## Results
 
-| persona | v0.1 p@5 | v0.1 p@25 | v0.1 recall@25 |
-|---|---|---|---|
-| quant-ios | 0.40 | 0.36 | 0.82 |
-| webdev    | 0.20 | 0.32 | 0.80 |
-| platform  | 0.20 | 0.20 | 0.63 |
-| **mean**  | **0.27** | **0.29** | **0.75** |
+| persona | v0.1 p@5 | v0.1 p@25 | v0.1 recall@25 | v0.2 p@5 | v0.2 p@25 | v0.2 recall@25 |
+|---|---|---|---|---|---|---|
+| quant-ios | 0.40 | 0.36 | 0.82 | 0.80 | 0.52 | 1.00 |
+| webdev    | 0.20 | 0.32 | 0.80 | 0.80 | 0.50 | 1.00 |
+| platform  | 0.20 | 0.20 | 0.63 | 0.80 | 0.50 | 1.00 |
+| **mean**  | **0.27** | **0.29** | **0.75** | **0.80** | **0.51** | **1.00** |
+
+p@25 is capped by the fixture: once false positives are filtered, the shortlist is shorter
+than 25 (15–21 items), and every persona's remaining errors are on-topic but debatable
+(a Windows test sandbox, an options-trading terminal, a stealth Playwright fork).
+
+What changed in v0.2 (all general rules in `scripts/lib/taxonomy.mjs`, none name a repo):
+positional evidence (name + first clause ≫ later mentions; tags need corroboration),
+weak vs. specific keywords, sense rules (in-game/A-B testing, crypto in CTF context, SQL
+injection, ReAct), comma-list detection inside the head, developer context for iOS/Android,
+a separate `offensive-security` topic, tool affinity (pytest user ≠ Playwright pick), and a
+soft diversity penalty instead of a hard per-topic cap.

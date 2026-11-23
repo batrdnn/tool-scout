@@ -4,7 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { topicsIn, EXT_HINTS, FILENAME_HINTS, COMMAND_HINTS } from './taxonomy.mjs';
+import { topicsIn, toolKeywordsIn, toolForCommand, EXT_HINTS, FILENAME_HINTS, COMMAND_HINTS } from './taxonomy.mjs';
 
 const FRICTION_RE = /\b(still (not|doesn'?t|broken|failing)|doesn'?t work|not working|same error|again|keeps? (failing|breaking)|why (is|does) (it|this)|wrong)\b/i;
 
@@ -68,7 +68,7 @@ function hintsForPath(p) {
 
 /** Parse one session transcript into per-session signals. */
 export function analyzeSession(file) {
-  const s = { topics: new Set(), friction: new Set(), langs: {}, tools: {}, commands: {}, mcpServers: new Set(), prompts: 0 };
+  const s = { topics: new Set(), friction: new Set(), toolKeywords: new Set(), langs: {}, tools: {}, commands: {}, mcpServers: new Set(), prompts: 0 };
   let raw;
   try { raw = fs.readFileSync(file, 'utf8'); } catch { return s; }
   for (const line of raw.split('\n')) {
@@ -82,6 +82,7 @@ export function analyzeSession(file) {
       s.prompts++;
       const ts = topicsIn(text);
       ts.forEach((t) => s.topics.add(t));
+      toolKeywordsIn(text).forEach((k) => s.toolKeywords.add(k));
       if (FRICTION_RE.test(text)) ts.forEach((t) => s.friction.add(t));
     } else if (e.type === 'assistant' && Array.isArray(msg?.content)) {
       for (const b of msg.content) {
@@ -96,6 +97,8 @@ export function analyzeSession(file) {
           for (const h of commandHeads(input.command)) {
             s.commands[h] = (s.commands[h] || 0) + 1;
             (COMMAND_HINTS[h.split(' ')[0]] || []).forEach((t) => s.topics.add(t));
+            const kw = toolForCommand(h);
+            if (kw) s.toolKeywords.add(kw);
           }
         }
         const p = input.file_path || input.notebook_path || input.path;
@@ -166,7 +169,7 @@ export function detectInstalled(home, cwd = process.cwd()) {
 export function buildProfile({ home, days = 30, cwd } = {}) {
   const since = Date.now() - days * 86400e3;
   const files = listSessionFiles(path.join(home, '.claude', 'projects'), since);
-  const topicSessions = {}, frictionSessions = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
+  const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
   const projects = new Set();
   let prompts = 0, sessions = 0;
@@ -177,6 +180,7 @@ export function buildProfile({ home, days = 30, cwd } = {}) {
     sessions++; prompts += s.prompts; projects.add(project);
     s.topics.forEach((t) => (topicSessions[t] = (topicSessions[t] || 0) + 1));
     s.friction.forEach((t) => (frictionSessions[t] = (frictionSessions[t] || 0) + 1));
+    s.toolKeywords.forEach((k) => (toolKw[k] = (toolKw[k] || 0) + 1));
     for (const [k, v] of Object.entries(s.langs)) langs[k] = (langs[k] || 0) + v;
     for (const [k, v] of Object.entries(s.tools)) tools[k] = (tools[k] || 0) + v;
     for (const [k, v] of Object.entries(s.commands)) {
@@ -203,6 +207,8 @@ export function buildProfile({ home, days = 30, cwd } = {}) {
     sessions, prompts, projects: projects.size,
     topics: sortObj(topicSessions),
     friction: sortObj(frictionSessions),
+    // Sessions mentioning each fixed-vocabulary tool name (pytest, prisma, kubernetes, ...).
+    toolKeywords: sortObj(toolKw),
     languages: sortObj(langs),
     tools: sortObj(tools),
     repeatedCommands,

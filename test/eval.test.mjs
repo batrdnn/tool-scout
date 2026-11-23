@@ -24,3 +24,12 @@ test('eval runs end to end and yields metrics in [0,1]', () => {
   assert.equal(rows.length, 3);
   for (const r of rows) for (const k of ['p5', 'p25', 'r25']) assert.ok(r[k] >= 0 && r[k] <= 1, `${r.persona} ${k}`);
 });
+
+test('shortlist precision does not regress below the v0.2 floor', () => {
+  const rows = runEval();
+  const mean = (k) => rows.reduce((s, r) => s + r[k], 0) / rows.length;
+  // v0.1 baseline: p@5 0.27, p@25 0.29, recall@25 0.75. Floors leave ~one item of slack.
+  assert.ok(mean('p5') >= 0.7, `mean p@5 ${mean('p5')}`);
+  assert.ok(mean('p25') >= 0.45, `mean p@25 ${mean('p25')}`);
+  assert.ok(mean('r25') >= 0.9, `mean recall@25 ${mean('r25')}`);
+});

@@ -1,6 +1,6 @@
 // Scores catalog repos against the user's profile and explains each pick.
 
-import { topicsIn, repoTopicsIn } from './taxonomy.mjs';
+import { topicsIn, repoTopicEvidence, toolAffinity } from './taxonomy.mjs';
 import { momentum } from './crawl.mjs';
 import { normName } from './profile.mjs';
 
@@ -45,7 +45,9 @@ function isInstalled(repo, installed) {
  * @param catalog from loadCatalog
  * @param opts { top, kinds, perTopicCap, includeLow }
  */
-export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(2, Math.ceil(top / 3)), includeLow = false, now = Date.now() } = {}) {
+const DIVERSITY = 0.93;
+
+export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap = Math.max(3, Math.ceil(top * 0.6)), includeLow = false, now = Date.now() } = {}) {
   const sessions = Math.max(1, profile.sessions);
   // Topic weight = share of sessions that touched it; friction boosts it.
   const weights = {};
@@ -64,11 +66,11 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     if (kinds && !kinds.includes(repo.kind)) continue;
     if (isInstalled(repo, profile.installed || {})) continue;
 
-    // Name/description say what a repo is; tags are often stuffed for search, so they count half.
-    const described = repoTopicsIn(`${repo.name.replace(/[-_]/g, ' ')} ${repo.description}`);
-    const tagged = repoTopicsIn((repo.topics || []).join(' ').replace(/-/g, ' '));
-    const w = (t) => (weights[t] / maxW) * (described.has(t) ? 1 : 0.5);
-    const matched = [...new Set([...described, ...tagged])].filter((t) => weights[t]).sort((a, b) => w(b) - w(a));
+    // Evidence is strongest when the name / first clause says it (what the repo *is*),
+    // weaker for later incidental mentions and for search tags. See repoTopicEvidence.
+    const ev = repoTopicEvidence(repo);
+    const w = (t) => (weights[t] / maxW) * ev[t].strength * toolAffinity(t, ev[t].keywords, profile.toolKeywords);
+    const matched = Object.keys(ev).filter((t) => weights[t]).sort((a, b) => w(b) - w(a));
     if (!matched.length) continue;
 
     // Best topic counts fully, extra topics add a little (avoids rewarding keyword-stuffed READMEs).
@@ -79,7 +81,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     const m = momentum(repo, now);
     const tr = trust(repo, now);
     if (!includeLow && tr.tier === 'low') continue;
-    candidates.push({ repo, matched, relevance, m, tr });
+    candidates.push({ repo, matched, relevance, m, tr, ev });
   }
 
   const maxMom = Math.max(1, ...candidates.map((c) => c.m.perDay));
@@ -90,15 +92,24 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   }
   candidates.sort((a, b) => b.score - a.score);
 
-  // Keep the list varied: at most `perTopicCap` picks per primary topic.
+  // Keep the list varied without starving users whose work is mostly one topic: each
+  // further pick on the same primary topic is discounted (greedy re-rank), and only past
+  // `perTopicCap` picks is a topic capped outright.
   const perTopic = {};
   const picks = [];
-  for (const c of candidates) {
-    const t = c.matched[0];
-    if ((perTopic[t] || 0) >= perTopicCap) continue;
-    perTopic[t] = (perTopic[t] || 0) + 1;
+  const pool = [...candidates];
+  while (picks.length < top && pool.length) {
+    let bi = -1, best = -Infinity;
+    for (let i = 0; i < pool.length; i++) {
+      const t = pool[i].matched[0];
+      if ((perTopic[t] || 0) >= perTopicCap) continue;
+      const s = pool[i].score * DIVERSITY ** (perTopic[t] || 0);
+      if (s > best) { best = s; bi = i; }
+    }
+    if (bi < 0) break;
+    const [c] = pool.splice(bi, 1);
+    perTopic[c.matched[0]] = (perTopic[c.matched[0]] || 0) + 1;
     picks.push(c);
-    if (picks.length >= top) break;
   }
 
   return picks.map((c) => ({
