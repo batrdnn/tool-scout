@@ -135,17 +135,26 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
   const perTopic = {};
   const picks = [];
   const pool = [...candidates];
+  // Thin evidence: a topic seen in a single session, without friction, can't carry a top-5 pick.
+  const supported = (c) => c.matched.some((t) => (profile.topics?.[t] || 0) >= 2 || (profile.friction?.[t] || 0) >= 1);
+  let thinOmitted = 0;
   while (picks.length < top && pool.length) {
     const dedupe = picks.length < DEDUPE_TOP;
+    const needSupport = picks.length < DEDUPE_TOP;
     let bi = -1, best = -Infinity;
     for (let i = 0; i < pool.length; i++) {
       const t = pool[i].matched[0];
       if ((perTopic[t] || 0) >= perTopicCap) continue;
       if (dedupe && usedGroups.has(group.get(pool[i]))) continue;
+      if (needSupport && !supported(pool[i])) continue;
       const s = pool[i].score * DIVERSITY ** (perTopic[t] || 0);
       if (s > best) { best = s; bi = i; }
     }
-    if (bi < 0) break;
+    if (bi < 0) {
+      // Fewer than 5 well-supported picks: leave the thin ones out rather than promote them.
+      if (needSupport) thinOmitted = Math.min(top - picks.length, pool.filter((c) => !supported(c)).length);
+      break;
+    }
     const g = group.get(pool[bi]);
     if (!usedGroups.has(g)) {
       // The group's first pick is its most original member still in the pool.
@@ -158,7 +167,7 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     picks.push(c);
   }
 
-  return picks.map((c) => ({
+  const out = picks.map((c) => ({
     name: c.repo.full_name,
     url: c.repo.url,
     kind: c.kind,
@@ -182,5 +191,8 @@ export function recommend(profile, catalog, { top = 8, kinds = null, perTopicCap
     })),
     install: installHint({ ...c.repo, kind: c.kind }),
     installSource: 'readme-link', // replaced by the README's Claude Code command after the content scan
+    ...(supported(c) ? {} : { thinEvidence: true }), // rests on a topic from a single session
   }));
+  out.thinOmitted = thinOmitted;
+  return out;
 }

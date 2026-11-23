@@ -53,7 +53,7 @@ user's own work.
    - offensive-security or other risky tooling unless the profile clearly shows that work
    - anything with a `high` severity entry in `trust.flags` (say you skipped it and why)
 
-4. **Pick at most 5.** Favor, in this order: friction topics, repeated manual commands an
+4. **Pick at most 5, or at most 3 when `limitedHistory` is true.** Favor, in this order: friction topics, repeated manual commands an
    extension would automate, the user's top topics. Prefer variety over five picks on one theme.
    Never pick two that do the same job: `similar` lists a pick's near-duplicates (e.g. several
    Playwright/browser MCP servers), most original first. The script already keeps one per job in
@@ -127,5 +127,11 @@ Then re-run the scout. Undo: `â€¦ include-project <name>` (or `--all`); list: `â
 For a single run only, add `--exclude-project <name>` to the scout command instead.
 `profile.excludedProjects` in the JSON says how many projects were left out.
 
-If `profile.sessions` is 0 or very small, say the recommendations are based on very little
-history, and show the top trending picks for their languages instead.
+## Limited history
+
+When `limitedHistory` is true (fewer than 10 sessions in the window), start by saying so in one
+line, e.g. "Limited history: only 4 sessions in the last 30 days, so treat these as early
+guesses", and show **at most 3** picks. Relay every entry in `notes`. Picks marked
+`thinEvidence` rest on a topic from a single session: don't present them as a fit; mention them
+only if the user asks for more. If `profile.sessions` is 0, say there's no history yet and
+suggest running the scout again after a few sessions.

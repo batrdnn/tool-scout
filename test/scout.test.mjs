@@ -114,7 +114,8 @@ test('recommend ranks relevant, excludes installed and lists, explains why', () 
   const recs = recommend(p, cat, { top: 5 });
   const names = recs.map((r) => r.name);
   assert.equal(names[0], 'o/pytest-skill');
-  assert.ok(names.includes('o/backtest-mcp'));
+  assert.ok(!names.includes('o/backtest-mcp'), 'finance came up in one session only, without friction');
+  assert.equal(recs.thinOmitted, 1);
   assert.ok(!names.includes('o/k8s-mcp'), 'irrelevant to this user despite stars');
   assert.ok(!names.includes('o/playwright-mcp'), 'already installed');
   assert.ok(!names.includes('o/awesome-claude'), 'lists are not tools');

@@ -70,6 +70,8 @@ export async function runPipeline(profile, catalog, { top = 8, rankOpts = {}, cl
   const m = stats.momentum;
   log(`momentum: ${m.measured} measured, ${m.fromCache} from cache, ${m.unavailable} unavailable, ${m.skipped} skipped (${m.rounds} re-rank rounds)`);
   stats.unmeasured = recs.filter((r) => !MEASURED.has(r.momentumSource)).length;
+  // Thin matches left out of a short list (see recommend); the pool asked for more than `top`.
+  recs.thinOmitted = Math.max(0, Math.min(pool.thinOmitted || 0, top - recs.length));
   return { recs, stats };
 }
 

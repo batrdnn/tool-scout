@@ -126,10 +126,15 @@ async function main() {
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });
       const { recs } = await runPipeline(p, cat, { top, rankOpts, client, dataDir, log });
-      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
+      const LIMITED = 10;
+      const limitedHistory = p.sessions < LIMITED;
+      const notes = [];
+      if (limitedHistory) notes.push(`Limited history: ${p.sessions} session${p.sessions === 1 ? '' : 's'} in the last ${p.windowDays} days (under ${LIMITED}), so these picks rest on little evidence.`);
+      if (recs.thinOmitted) notes.push(`${recs.thinOmitted} match${recs.thinOmitted === 1 ? '' : 'es'} left out: they rest on a topic seen in a single session, with no friction.`);
+      const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
       writeJSON('last-recommendations.json', out);
       if (opts.json) console.log(JSON.stringify(out, null, 2));
-      else { if (cmd === 'all') showProfile(p); showRecs(recs); }
+      else { if (cmd === 'all') showProfile(p); for (const n of notes) console.log(`\nNote: ${n}`); showRecs(recs); }
       break;
     }
     case 'dismiss': {
