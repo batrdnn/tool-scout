@@ -43,6 +43,8 @@ const { cmd, opts } = parseArgs(process.argv.slice(2));
 const home = opts.home || os.homedir();
 const dataDir = opts.data || process.env.SCOUT_DATA || path.join(home, '.tool-scout');
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
+// By default the session running this command is not part of the profile (see buildProfile).
+const profileOpts = opts['include-current'] ? { excludeSessions: [] } : {};
 
 function writeJSON(name, obj) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -54,7 +56,7 @@ function readJSON(name) {
 
 function showProfile(p) {
   const top = (o, n = 6) => Object.entries(o).slice(0, n).map(([k, v]) => `${k} (${v})`).join(', ') || '—';
-  console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)`);
+  console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)${p.excludedCurrentSession ? ', not counting this session' : ''}`);
   console.log(`  Topics (sessions):  ${top(p.topics, 8)}`);
   console.log(`  Friction (sessions): ${top(p.friction)}`);
   console.log(`  Languages (edits):  ${top(p.languages)}`);
@@ -89,7 +91,7 @@ async function main() {
   const days = Number(opts.days || 30);
   switch (cmd) {
     case 'profile': {
-      const p = buildProfile({ home, days });
+      const p = buildProfile({ home, days, ...profileOpts });
       writeJSON('profile.json', p);
       if (opts.json) console.log(JSON.stringify(p, null, 2)); else showProfile(p);
       break;
@@ -101,7 +103,7 @@ async function main() {
     case 'recommend':
     case 'all': {
       let p = readJSON('profile.json');
-      if (cmd === 'all' || !p) { p = buildProfile({ home, days }); writeJSON('profile.json', p); }
+      if (cmd === 'all' || !p) { p = buildProfile({ home, days, ...profileOpts }); writeJSON('profile.json', p); }
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });

@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them.
+description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them. Also use when the user says they're not interested in a recommended tool or repo ("not interested in X", "dismiss X", "stop showing X"), or wants to undo that.
 argument-hint: "[focus, e.g. testing | mcp | refresh]"
 ---
 

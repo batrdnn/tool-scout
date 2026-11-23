@@ -107,3 +107,14 @@ test('detectInstalled reads marketplaces and plugins', () => {
   assert.ok(inst.names.includes('superpowers'));
   assert.ok(inst.repos.includes('obra/superpowers-marketplace'));
 });
+
+test('the session running the scout is left out of the profile by default', () => {
+  const home = fakeHome();
+  const proj = path.join(home, '.claude', 'projects', '-home-u-backtester');
+  fs.writeFileSync(path.join(proj, 'current-session.jsonl'), JSON.stringify(user('pentest the kubernetes cluster')));
+  const p = buildProfile({ home, days: 30, cwd: home, excludeSessions: ['current-session'] });
+  assert.equal(p.sessions, 4);
+  assert.equal(p.excludedCurrentSession, true);
+  assert.equal(p.topics['offensive-security'], undefined);
+  assert.equal(buildProfile({ home, days: 30, cwd: home, excludeSessions: [] }).sessions, 5);
+});

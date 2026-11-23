@@ -165,10 +165,17 @@ export function detectInstalled(home, cwd = process.cwd()) {
   return { names: [...names].sort(), repos: [...repos].sort() };
 }
 
-/** Build the full profile. Only aggregate counts are kept. */
-export function buildProfile({ home, days = 30, cwd } = {}) {
+/**
+ * Build the full profile. Only aggregate counts are kept.
+ * The session we're running inside (CLAUDE_CODE_SESSION_ID) is skipped by default: it's the
+ * scout request itself, not the user's work, and during development it can dominate.
+ */
+export function buildProfile({ home, days = 30, cwd, excludeSessions = [process.env.CLAUDE_CODE_SESSION_ID].filter(Boolean) } = {}) {
   const since = Date.now() - days * 86400e3;
-  const files = listSessionFiles(path.join(home, '.claude', 'projects'), since);
+  const skip = new Set(excludeSessions.map((id) => `${id}.jsonl`));
+  const all = listSessionFiles(path.join(home, '.claude', 'projects'), since);
+  const files = all.filter(({ file }) => !skip.has(path.basename(file)));
+  const excludedCurrent = all.length - files.length;
   const topicSessions = {}, frictionSessions = {}, toolKw = {}, langs = {}, tools = {}, cmdCount = {}, cmdSessions = {};
   const usedMcp = new Set();
   const projects = new Set();
@@ -204,7 +211,7 @@ export function buildProfile({ home, days = 30, cwd } = {}) {
   return {
     generatedAt: new Date().toISOString(),
     windowDays: days,
-    sessions, prompts, projects: projects.size,
+    sessions, prompts, projects: projects.size, excludedCurrentSession: excludedCurrent > 0,
     topics: sortObj(topicSessions),
     friction: sortObj(frictionSessions),
     // Sessions mentioning each fixed-vocabulary tool name (pytest, prisma, kubernetes, ...).

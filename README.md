@@ -30,7 +30,8 @@ languages you edit, and which shell commands you run by hand over and over.
 
 - Your session history is analyzed **locally**. The profile keeps **counts only**: no prompt
   text, file paths or command arguments.
-- GitHub is queried with **fixed topic searches**. Nothing about you is sent.
+- The session you run the scout from is left out (it's the request, not your work; `--include-current` keeps it).
+- GitHub is queried with **fixed topic searches** and, for the shortlist, **public repo names**. Nothing about you is sent.
 - Data lives in the plugin's data folder (`~/.claude/plugins/data/tool-scout…/`) and is deleted
   when you uninstall.
 
