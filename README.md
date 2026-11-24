@@ -9,7 +9,7 @@ Picks trending Claude Code skills, plugins and MCP servers that fit how you actu
 In Claude Code:
 
 ```text
-/plugin marketplace add <your-github-user>/tool-scout
+/plugin marketplace add batrdnn/tool-scout
 /plugin install tool-scout@tool-scout
 ```
 
