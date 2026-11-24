@@ -20,7 +20,9 @@ Nothing leaves the machine.
 2. Show the output exactly as printed, in a `text` code block, so the ASCII art keeps its shape.
    Don't change the animal, the evidence lines or the counts, and don't add a different animal.
    You may add one short sentence afterwards in your own words about what the evidence says.
-3. If it is the Egg (under 10 sessions), say they can come back after 10 sessions.
+3. Keep the last line ("Tools that fit a … : run /tool-scout:scout") as it is. Don't run the
+   scout yourself or suggest specific tools here; the animal doesn't change recommendations.
+4. If it is the Egg (under 10 sessions), say they can come back after 10 sessions.
 
 ## If the script fails
 

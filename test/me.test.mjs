@@ -124,3 +124,18 @@ test('CLI: me reads the saved profile (--json too); with no profile it builds on
   assert.equal(run(), run());
   assert.match(run(), /BEE · The Tester/);
 });
+
+test('one line links to recommendations, as text only ("Tools that fit a/an <animal>: run /tool-scout:scout")', () => {
+  const article = { Beaver: 'a', Owl: 'an', Bee: 'a', Octopus: 'an', Ant: 'an', Fox: 'a', Turtle: 'a', Egg: 'an' };
+  for (const animal of [...ORDER, 'Egg']) {
+    const r = whoAmI(prof(), { as: animal });
+    const line = `Tools that fit ${article[animal]} ${animal}: run /tool-scout:scout`;
+    assert.equal(r.next, line);
+    const text = formatMe(r).split('\n');
+    assert.equal(text.at(-1), line, 'last line');
+    assert.equal(text.filter((l) => /tool-scout:scout/.test(l)).length, 1);
+  }
+  // Text only: nothing in me.mjs touches ranking.
+  const src = fs.readFileSync(new URL('../scripts/lib/me.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /from '\.\/(rank|pipeline|crawl|momentum)\.mjs'/);
+});

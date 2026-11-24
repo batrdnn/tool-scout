@@ -80,6 +80,10 @@ export const ANIMALS = {
   },
 };
 
+const VOWEL = /^[AEIOU]/;
+/** The one line that links to recommendations. Text only: ranking is untouched. */
+export const nextLine = (animal) => `Tools that fit ${VOWEL.test(animal) ? 'an' : 'a'} ${animal}: run /tool-scout:scout`;
+
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
 const r3 = (x) => Math.round(x * 1000) / 1000;
@@ -191,6 +195,7 @@ export function whoAmI(p, { as } = {}) {
     superpower: a.superpower, blindSpot: a.blindSpot,
     second: close ? { animal: runnerUp, title: ANIMALS[runnerUp].title } : null,
     scores: sc,
+    next: nextLine(animal),
   };
 }
 
@@ -203,5 +208,6 @@ export function formatMe(r) {
   out.push('', '  Evidence', ...r.evidence.map((e) => `  - ${e}`), '',
     `  Superpower: ${r.superpower}`, `  Blind spot: ${r.blindSpot}`);
   if (r.second) out.push(`  Close second: ${r.second.animal} (${r.second.title})`);
+  out.push('', r.next);
   return out.join('\n');
 }
