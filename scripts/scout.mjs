@@ -35,6 +35,7 @@ import { rate, ratingStats, shareText } from './lib/ratings.mjs';
 import { checkRepo, formatCheck } from './lib/check.mjs';
 import { auditLocal, formatAudit } from './lib/audit.mjs';
 import { resolveDataDir, SOURCE_LABELS } from './lib/datadir.mjs';
+import { withProjectInstalls } from './lib/installed.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -113,7 +114,7 @@ async function main() {
   const days = Number(opts.days || 30);
   switch (cmd) {
     case 'profile': {
-      const p = buildProfile({ home, days, ...profileOpts });
+      const p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days });
       writeJSON('profile.json', p);
       if (opts.json) console.log(JSON.stringify(p, null, 2)); else showProfile(p);
       break;
@@ -125,7 +126,7 @@ async function main() {
     case 'recommend':
     case 'all': {
       let p = readJSON('profile.json');
-      if (cmd === 'all' || !p || oneOff.length) { p = buildProfile({ home, days, ...profileOpts }); writeJSON('profile.json', p); }
+      if (cmd === 'all' || !p || oneOff.length) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
