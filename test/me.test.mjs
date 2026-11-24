@@ -158,3 +158,21 @@ test('evidence lines support the animal: no zero values, nothing that contradict
   const bee = whoAmI(prof({ repeatedCommands: [{ command: 'pytest', count: 100, sessions: 11 }] }));
   assert.match(bee.evidence[0], /100 test runs/, 'runs per session (5) beats sessions with tests (0.55)');
 });
+
+test('Egg teaser: "Hatching into… <animal>?" right under the title when the top score behind the Egg is ≥ 1', () => {
+  const egg = whoAmI({ ...CASES.Owl, sessions: 9 });
+  assert.equal(egg.animal, 'Egg');
+  assert.equal(egg.hatching, 'Owl');
+  const lines = formatMe(egg).split('\n');
+  const t = lines.findIndex((l) => /EGG · Not hatched yet/.test(l));
+  assert.equal(lines[t + 1], '  Hatching into… Owl?');
+  assert.match(formatMe(egg), /Come back after 10 sessions/);
+  // Below 1 there is no teaser; hatched animals never get one.
+  const weak = whoAmI(prof({ sessions: 9 }));
+  assert.ok(Math.max(...Object.values(weak.scores)) < 1);
+  assert.equal(weak.hatching, null);
+  assert.doesNotMatch(formatMe(weak), /Hatching/);
+  assert.equal(whoAmI(CASES.Owl).hatching, null);
+  // Exactly 1 counts.
+  assert.equal(whoAmI(prof({ sessions: 9, tools: { Edit: 40, Read: 60 } })).hatching, 'Beaver');
+});

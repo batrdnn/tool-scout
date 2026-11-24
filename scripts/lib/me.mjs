@@ -11,6 +11,7 @@ import { TOPICS, EXT_HINTS } from './taxonomy.mjs'; // read-only: the fixed topi
 export const EGG_SESSIONS = 10; // under this many sessions: Egg, not hatched yet
 export const CLOSE = 0.85; // a second animal is shown when its score is at least this share of the winner's
 export const MAX_SCORE = 2; // scores are signal ÷ threshold, capped here
+export const HATCHING = 1; // behind the Egg, a top score at least this high shows "Hatching into… <animal>?"
 export const ORDER = ['Beaver', 'Owl', 'Bee', 'Octopus', 'Ant', 'Fox', 'Turtle']; // also breaks ties
 
 // A score of 1 means the signal reaches its threshold.
@@ -217,6 +218,7 @@ export function whoAmI(p, { as } = {}) {
   const a = ANIMALS[animal];
   return {
     animal, title: a.title, hatched, art: a.art,
+    hatching: animal === 'Egg' && sc[byScore[0]] >= HATCHING ? byScore[0] : null,
     window: { days: windowDays(p), sessions: sig.sessions, projects: sig.projects },
     evidence: evidence(animal, sig),
     superpower: a.superpower, blindSpot: a.blindSpot,
@@ -230,6 +232,7 @@ export function formatMe(r) {
   const w = r.window;
   const out = [...r.art.map((l) => `  ${l}`), '',
     `  ${r.animal.toUpperCase()} · ${r.title}`,
+    ...(r.hatching ? [`  Hatching into… ${r.hatching}?`] : []),
     `  Your last ${w.days} days: ${plural(w.sessions, 'session')} across ${plural(w.projects, 'project')}`];
   if (!r.hatched) out.push(`  Come back after ${EGG_SESSIONS} sessions to see your animal.`);
   out.push('', '  Evidence', ...r.evidence.map((e) => `  - ${e}`), '',
@@ -279,6 +282,7 @@ export function meCard(r, p) {
     `  <text x="296" y="62" font-size="12" font-weight="700" letter-spacing="2" fill="${accent}" ${sans}>MY CLAUDE CODE ANIMAL</text>`,
     `  <text x="296" y="112" font-size="44" font-weight="800" fill="#1f2328" ${sans}>${esc(r.animal)}</text>`,
     `  <text x="296" y="142" font-size="20" fill="${accent}" ${sans}>${esc(r.title)}</text>`,
+    ...(r.hatching ? [`  <text x="144" y="272" font-size="14" font-weight="700" text-anchor="middle" fill="${accent}" ${sans}>${esc(`Hatching into… ${r.hatching}?`)}</text>`] : []),
     `  <line x1="296" y1="162" x2="576" y2="162" stroke="${accent}" stroke-opacity="0.3"/>`,
     ...rows,
     `  <text x="296" y="281" font-size="11" fill="#57606a" ${sans}>${esc(footer)}</text>`,

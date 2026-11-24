@@ -120,7 +120,8 @@ recommendations: the only link is one text line, "Tools that fit a Beaver: run
 (so 1 means the threshold is reached). The highest score wins; a tie goes to the earlier animal in
 this order: Beaver, Owl, Bee, Octopus, Ant, Fox, Turtle. A second animal ("Close second") is shown
 when its score is at least 0.85 of the winner's. Under 10 sessions in the window, it is always the
-Egg.
+Egg; if the top score behind it is at least 1, the Egg also shows "Hatching into… <animal>?" (in the
+text and on the card), next to "come back after 10 sessions".
 
 | animal | title | signal (from the profile) | threshold (score 1) |
 |---|---|---|---|

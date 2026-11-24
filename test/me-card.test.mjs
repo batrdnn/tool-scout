@@ -127,3 +127,11 @@ test('CLI: me --card out.svg writes the card and says where', () => {
   const j = JSON.parse(run('--json', '--card', out));
   assert.equal(j.card, out);
 });
+
+test('the Egg card shows the teaser too, and still says to come back after 10 sessions', () => {
+  const p = prof({ sessions: 9, topics: { debugging: 5 }, friction: { testing: 4 } });
+  const svg = card(p);
+  assert.match(svg, />Hatching into… Owl\?</);
+  assert.match(svg, /come back after 10 sessions/i);
+  assert.doesNotMatch(card(prof({ sessions: 9 })), /Hatching/);
+});

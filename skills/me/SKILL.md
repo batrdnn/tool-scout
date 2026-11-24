@@ -22,7 +22,8 @@ Nothing leaves the machine.
    You may add one short sentence afterwards in your own words about what the evidence says.
 3. Keep the last line ("Tools that fit a … : run /tool-scout:scout") as it is. Don't run the
    scout yourself or suggest specific tools here; the animal doesn't change recommendations.
-4. If it is the Egg (under 10 sessions), say they can come back after 10 sessions.
+4. If it is the Egg (under 10 sessions), say they can come back after 10 sessions. If it shows
+   "Hatching into… <animal>?", present that as an early hint, not their animal yet.
 
 ## Shareable card
 
