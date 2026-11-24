@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "eval": "node test/eval/eval.mjs",
-    "eval:e2e": "node test/eval/e2e.mjs"
+    "eval:e2e": "node test/eval/e2e.mjs",
+    "gallery": "node test/gallery.mjs"
   },
   "engines": {
     "node": ">=18"

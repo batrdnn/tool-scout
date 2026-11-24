@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="315" viewBox="0 0 600 315" role="img" aria-label="My Claude Code animal: Turtle, The Deep Diver">
+  <rect width="600" height="315" rx="20" fill="#dff2e4"/>
+  <rect x="24" y="24" width="240" height="267" rx="14" fill="#ffffff" fill-opacity="0.7"/>
+  <g font-size="18" fill="#2f7a45" font-family="ui-monospace, Menlo, Consolas, monospace">
+    <text x="46.8" y="115" xml:space="preserve">       _____</text>
+    <text x="46.8" y="139" xml:space="preserve">     /\_/ \_/\</text>
+    <text x="46.8" y="163" xml:space="preserve">  __/ /   \   \__</text>
+    <text x="46.8" y="187" xml:space="preserve"> (o_|  \_/ \_/  |&gt;</text>
+    <text x="46.8" y="211" xml:space="preserve">     `--'  `--'</text>
+  </g>
+  <text x="296" y="62" font-size="12" font-weight="700" letter-spacing="2" fill="#2f7a45" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">MY CLAUDE CODE ANIMAL</text>
+  <text x="296" y="112" font-size="44" font-weight="800" fill="#1f2328" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">Turtle</text>
+  <text x="296" y="142" font-size="20" fill="#2f7a45" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">The Deep Diver</text>
+  <line x1="296" y1="162" x2="576" y2="162" stroke="#2f7a45" stroke-opacity="0.3"/>
+  <text x="296" y="190" font-size="15" fill="#57606a" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">Sessions</text>
+  <text x="576" y="190" font-size="15" font-weight="700" text-anchor="end" fill="#1f2328" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">14</text>
+  <text x="296" y="220" font-size="15" fill="#57606a" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">Top language</text>
+  <text x="576" y="220" font-size="15" font-weight="700" text-anchor="end" fill="#1f2328" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">C++</text>
+  <text x="296" y="250" font-size="15" fill="#57606a" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">Top topic</text>
+  <text x="576" y="250" font-size="15" font-weight="700" text-anchor="end" fill="#1f2328" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">refactoring</text>
+  <text x="296" y="281" font-size="11" fill="#57606a" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">My last 30 days in Claude Code · tool-scout</text>
+</svg>

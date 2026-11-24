@@ -65,6 +65,32 @@ Or just ask, in plain language:
 | "show my scout profile" | `profile --show` |
 | "what's my Claude Code animal?" | `me` |
 
+## Your Claude Code animal
+
+Run `/tool-scout:me` to see which animal your last 30 days look like: Beaver (builder), Owl
+(debugger), Bee (tester), Octopus (orchestrator), Ant (grinder), Fox (explorer) or Turtle (deep
+diver). Under 10 sessions you're still an Egg. It shows the evidence from your own counts, and
+"make me a card" saves a shareable SVG with just the animal, its title, your session count, top
+language and top topic. It's for fun: it doesn't change your picks. How it's worked out:
+[docs/USAGE.md](docs/USAGE.md#your-claude-code-animal).
+
+<table>
+  <tr>
+    <td><img src="docs/assets/animals/beaver.svg" width="200" alt="Beaver card"></td>
+    <td><img src="docs/assets/animals/owl.svg" width="200" alt="Owl card"></td>
+    <td><img src="docs/assets/animals/bee.svg" width="200" alt="Bee card"></td>
+    <td><img src="docs/assets/animals/octopus.svg" width="200" alt="Octopus card"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/animals/ant.svg" width="200" alt="Ant card"></td>
+    <td><img src="docs/assets/animals/fox.svg" width="200" alt="Fox card"></td>
+    <td><img src="docs/assets/animals/turtle.svg" width="200" alt="Turtle card"></td>
+    <td><img src="docs/assets/animals/egg.svg" width="200" alt="Egg card"></td>
+  </tr>
+</table>
+
+Example cards, made from synthetic profiles (`npm run gallery`).
+
 ## Privacy
 
 - Your session history is read **locally** and kept as **counts only**: no prompt text, file
