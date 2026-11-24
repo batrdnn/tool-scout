@@ -44,6 +44,15 @@ scripts, .mcp.json) and its metadata. Your job is to explain the result plainly.
    a security review. Skills and MCP servers run with your permissions, so skim the code
    yourself.
 
+## If the script fails
+
+If running the script fails because Node.js is missing (`node: command not found`) or too old
+(the script prints "Tool Scout needs Node.js 18 or newer"), tell the user in plain words: Tool
+Scout needs Node.js 18 or newer; they can check with `node --version` and install it from
+nodejs.org or with `brew install node`, then try again. If it says it could not reach GitHub,
+say it needs internet access to api.github.com, and behind a proxy to run it with
+`NODE_USE_ENV_PROXY=1` in front. Don't try to install Node yourself.
+
 ## Audit: what's already installed
 
 When the user asks to audit what they already have ("audit what I have installed", "are my

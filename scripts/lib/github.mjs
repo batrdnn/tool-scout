@@ -30,7 +30,7 @@ export function createClient({ token = null, fetchImpl = globalThis.fetch, log =
       if (state.token) headers.Authorization = `Bearer ${state.token}`;
       let res;
       try { res = await fetchImpl(url, { headers }); } catch (e) {
-        throw new Error(`could not reach GitHub (${e.cause?.code || e.message}). Behind a proxy? Try NODE_USE_ENV_PROXY=1`);
+        throw new Error(`could not reach GitHub (${e.cause?.code || e.message}). Tool Scout needs internet access to api.github.com; behind a proxy, run it with NODE_USE_ENV_PROXY=1`);
       }
       state.requests++;
       const rem = res.headers?.get?.('x-ratelimit-remaining');

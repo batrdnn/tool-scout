@@ -15,7 +15,17 @@ In Claude Code:
 
 It works in local Claude Code: the terminal or the desktop app. It doesn't work in cloud
 sessions, because it reads your local session history. To drive it from a browser, run
-`/remote-control` in a local session. Needs Node 18+ (already there with Claude Code).
+`/remote-control` in a local session.
+
+## Requirements
+
+- **Claude Code, running locally** (terminal or desktop app), not a cloud session.
+- **Node.js 18 or newer.** Check with `node --version`. If it's missing or older, install it
+  from [nodejs.org](https://nodejs.org) or with `brew install node`. No other dependencies.
+- **Internet access to `api.github.com`** for the crawl, momentum and trust checks (`audit`
+  needs none). Behind a proxy, set `NODE_USE_ENV_PROXY=1`.
+- **Optional: a GitHub token** (`GITHUB_TOKEN`, or `gh auth login`) makes the first crawl faster
+  than the usual 1 to 3 minutes.
 
 ## Quick start
 

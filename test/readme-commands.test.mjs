@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const README = read('README.md');
-const CLI = read('scripts/scout.mjs');
+const CLI = read('scripts/lib/cli.mjs');
 const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
 const section = (name) => README.split(/^## /m).find((s) => s.startsWith(name)) || '';
 const skills = Object.fromEntries(fs.readdirSync(new URL('../skills', import.meta.url))
@@ -78,4 +78,19 @@ test('the README command-line examples run (read-only ones, in a temp home)', ()
   assert.match(run('stats'), /No ratings yet/);
   assert.match(run('stats', '--share'), /everything that would be shared/);
   assert.match(run('audit'), /./);
+});
+
+test("the README's Node version matches the startup check, package.json engines and both skills", async () => {
+  const { MIN_NODE } = await import('../scripts/lib/node-check.mjs');
+  const req = section('Requirements');
+  assert.ok(req, 'README needs a Requirements section');
+  assert.ok(README.indexOf('## Requirements') > README.indexOf('## Install') && README.indexOf('## Requirements') < README.indexOf('## Quick start'), 'Requirements goes right after Install');
+  const mentioned = [...README.matchAll(/Node(?:\.js)? (\d+)(?:\+| or newer)/g)].map((m) => Number(m[1]));
+  assert.ok(mentioned.length >= 1, 'README names no Node version');
+  assert.deepEqual([...new Set(mentioned)], [MIN_NODE]);
+  assert.match(req, new RegExp(`Node\\.js ${MIN_NODE} or newer`));
+  assert.match(req, /api\.github\.com/);
+  assert.match(req, /NODE_USE_ENV_PROXY=1/);
+  assert.equal(JSON.parse(read('package.json')).engines.node, `>=${MIN_NODE}`);
+  for (const [name, s] of Object.entries(skills)) assert.match(s, new RegExp(`Node\\.js ${MIN_NODE} or newer`), `skills/${name} doesn't say what to do about Node`);
 });
