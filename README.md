@@ -19,9 +19,15 @@ sessions, because it reads your local session history. To drive it from a browse
 
 ## Requirements
 
-- **Claude Code, running locally** (terminal or desktop app), not a cloud session.
+- **Claude Code, running locally** (terminal or desktop app). Cloud sessions (claude.ai/code)
+  and claude.ai chat aren't supported. To use it from a browser or phone, run Claude Code
+  locally and use `/remote-control`.
+- **Some history: about 20+ Claude Code sessions in the last 30 days** is recommended. With
+  fewer, you get a "limited history" note and fewer picks.
+- **macOS or Linux.** Tested on both. Windows is untested (WSL should work).
 - **Node.js 18 or newer.** Check with `node --version`. If it's missing or older, install it
-  from [nodejs.org](https://nodejs.org) or with `brew install node`. No other dependencies.
+  from [nodejs.org](https://nodejs.org) or with `brew install node`. No other dependencies,
+  accounts or API keys are needed.
 - **Internet access to `api.github.com`** for the crawl, momentum and trust checks (`audit`
   needs none). Behind a proxy, set `NODE_USE_ENV_PROXY=1`.
 - **Optional: a GitHub token** (`GITHUB_TOKEN`, or `gh auth login`) makes the first crawl faster
