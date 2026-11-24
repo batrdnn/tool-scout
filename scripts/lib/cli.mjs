@@ -18,8 +18,8 @@
 //   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
-//   scout.mjs me [--json] [--card out.svg]     your Claude Code animal, from the saved profile (counts only);
-//                                              --card writes a shareable SVG (animal, title, 3 general stats)
+//   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
+//                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
 //
 // Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
 //         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
@@ -218,7 +218,7 @@ async function main() {
       let p = readJSON('profile.json');
       if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
       const r = whoAmI(p);
-      const card = typeof opts.card === 'string' ? path.resolve(opts.card) : null;
+      const card = typeof opts.card === 'string' ? path.resolve(opts.card) : opts.card ? path.resolve('tool-scout-me.svg') : null; // no path: ./tool-scout-me.svg
       if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); }
       if (opts.json) console.log(JSON.stringify(card ? { ...r, card } : r, null, 2));
       else console.log(`${formatMe(r)}${card ? `\n\nCard saved to ${card} (animal, title, sessions, top language and top topic only).` : ''}`);

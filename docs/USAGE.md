@@ -20,7 +20,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
 | `include-project <name\|path> \| --all` | undo |
 | `rate <owner/repo> useful\|not\|clear` | was a shown pick useful? (local `ratings.json`) |
-| `me [--json] [--card out.svg]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG; see [Your Claude Code animal](#your-claude-code-animal) |
+| `me [--json] [--card [out.svg]]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG; see [Your Claude Code animal](#your-claude-code-animal) |
 | `stats [--share] [--json]` | share of rated picks that were useful, and the data folder; `--share` prints the only text a tester is asked to share |
 
 Options:
@@ -143,7 +143,8 @@ With thin history that can be fewer than 3. The text uses counts,
 topic names and language names only: never commands, MCP servers, libraries, installed tools,
 projects or paths. `--json` gives the same plus every animal's score.
 
-**The card.** `me --card out.svg` also writes a self-contained SVG (no scripts, fonts or links)
+**The card.** `me --card out.svg` also writes a self-contained SVG (plain `--card` saves `./tool-scout-me.svg`
+and prints the full path) (no scripts, fonts or links)
 with the animal, its title and 3 general stats: sessions, top language and top topic. The language
 and topic are shown only when they are names from Tool Scout's fixed vocabulary, so a hand-edited
 profile can't put other text on it. A test fails if any other profile string appears on the card.

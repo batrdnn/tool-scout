@@ -135,3 +135,26 @@ test('the Egg card shows the teaser too, and still says to come back after 10 se
   assert.match(svg, /come back after 10 sessions/i);
   assert.doesNotMatch(card(prof({ sessions: 9 })), /Hatching/);
 });
+
+test('CLI: --card with no path saves ./tool-scout-me.svg in the current folder and prints the full path', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-card-cwd-'));
+  const data = path.join(home, 'd');
+  fs.mkdirSync(data);
+  fs.writeFileSync(path.join(data, 'profile.json'), JSON.stringify(prof()));
+  const cwd = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'scout-cwd-')));
+  const run = (...a) => execFileSync(process.execPath, [SCOUT, 'me', ...a, '--home', home, '--data', data], { encoding: 'utf8', cwd });
+  const want = path.join(cwd, 'tool-scout-me.svg');
+  const text = run('--card'); // last flag, no value
+  assert.ok(text.includes(`Card saved to ${want}`), text);
+  assert.match(fs.readFileSync(want, 'utf8'), /^<svg /);
+  fs.rmSync(want);
+  assert.equal(JSON.parse(run('--card', '--json')).card, want); // followed by another flag
+  assert.ok(fs.existsSync(want));
+});
+
+test('the me skill makes the card with plain --card and tells the user the printed path', () => {
+  const skill = fs.readFileSync(new URL('../skills/me/SKILL.md', import.meta.url), 'utf8');
+  assert.match(skill, /scout\.mjs" me --card --data/);
+  assert.match(skill, /tool-scout-me\.svg/);
+  assert.match(skill, /full path/i);
+});

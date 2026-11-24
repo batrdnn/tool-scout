@@ -27,13 +27,14 @@ Nothing leaves the machine.
 
 ## Shareable card
 
-When the user asks for a card, image or something to share, add `--card <file>.svg` (the path
-they name, else `claude-code-animal.svg` in the current folder):
+When the user asks for a card, image or something to share, add `--card`. With no path it saves
+`tool-scout-me.svg` in the current folder; if the user names a path, put it right after `--card`.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card claude-code-animal.svg --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card --data "${CLAUDE_PLUGIN_DATA}"
 ```
 
+The script prints "Card saved to <full path>": give the user that full path, so they can find it.
 Tell them where it was saved and what is on it: the animal, its title, the session count, the
 top language and the top topic. Nothing else: no project, library or repo names, paths or
 prompt text. Don't add anything to the file yourself.
