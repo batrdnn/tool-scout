@@ -20,6 +20,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
 | `include-project <name\|path> \| --all` | undo |
 | `rate <owner/repo> useful\|not\|clear` | was a shown pick useful? (local `ratings.json`) |
+| `me [--json]` | your Claude Code animal from the saved profile (counts only); see [Your Claude Code animal](#your-claude-code-animal) |
 | `stats [--share] [--json]` | share of rated picks that were useful, and the data folder; `--share` prints the only text a tester is asked to share |
 
 Options:

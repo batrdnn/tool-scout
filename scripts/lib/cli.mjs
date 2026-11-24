@@ -18,6 +18,7 @@
 //   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
+//   scout.mjs me [--json]                      your Claude Code animal, from the saved profile (counts only)
 //
 // Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
 //         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
@@ -36,6 +37,7 @@ import { checkRepo, formatCheck } from './check.mjs';
 import { auditLocal, formatAudit } from './audit.mjs';
 import { resolveDataDir, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
+import { whoAmI, formatMe } from './me.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -210,6 +212,14 @@ async function main() {
       console.log(s.rated ? `${s.rated} rated picks: ${s.useful} useful (${Math.round(s.usefulShare * 100)}%), ${s.not} not useful.` : 'No ratings yet. Rate a pick with: rate <owner/repo> useful|not');
       break;
     }
+    case 'me': {
+      // Reads the saved profile (builds one only if there is none, or for another window).
+      let p = readJSON('profile.json');
+      if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
+      const r = whoAmI(p);
+      console.log(opts.json ? JSON.stringify(r, null, 2) : formatMe(r));
+      break;
+    }
     case 'exclude-project': {
       if (!opts._.length) {
         const ex = loadSettings(dataDir).excludeProjects;
@@ -231,7 +241,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|rate|stats> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 
