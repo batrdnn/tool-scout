@@ -6,18 +6,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { whoAmI, formatMe, ANIMALS, ORDER, EGG_SESSIONS } from '../scripts/lib/me.mjs';
+import { prof } from './helpers.mjs';
 
 const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
 
-/** A minimal profile in the shape buildProfile returns. */
-export function prof(o = {}) {
-  return {
-    generatedAt: '2026-11-24T00:00:00.000Z', windowDays: 30, sessions: 20, prompts: 40, projects: 1,
-    topics: {}, topicSources: { actions: {}, mentions: {} }, topicWeights: {}, friction: {}, toolKeywords: {},
-    languages: {}, tools: { Read: 50, Bash: 50 }, repeatedCommands: [], installed: { names: [], repos: [] }, stack: {},
-    ...o,
-  };
-}
 const cmds = (n, sessions = 3) => Array.from({ length: n }, (_, i) => ({ command: `tool${i} run`, count: 10, sessions }));
 
 const CASES = {

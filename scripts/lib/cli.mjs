@@ -18,7 +18,8 @@
 //   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
-//   scout.mjs me [--json]                      your Claude Code animal, from the saved profile (counts only)
+//   scout.mjs me [--json] [--card out.svg]     your Claude Code animal, from the saved profile (counts only);
+//                                              --card writes a shareable SVG (animal, title, 3 general stats)
 //
 // Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
 //         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
@@ -37,7 +38,7 @@ import { checkRepo, formatCheck } from './check.mjs';
 import { auditLocal, formatAudit } from './audit.mjs';
 import { resolveDataDir, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
-import { whoAmI, formatMe } from './me.mjs';
+import { whoAmI, formatMe, meCard } from './me.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -217,7 +218,10 @@ async function main() {
       let p = readJSON('profile.json');
       if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
       const r = whoAmI(p);
-      console.log(opts.json ? JSON.stringify(r, null, 2) : formatMe(r));
+      const card = typeof opts.card === 'string' ? path.resolve(opts.card) : null;
+      if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); }
+      if (opts.json) console.log(JSON.stringify(card ? { ...r, card } : r, null, 2));
+      else console.log(`${formatMe(r)}${card ? `\n\nCard saved to ${card} (animal, title, sessions, top language and top topic only).` : ''}`);
       break;
     }
     case 'exclude-project': {

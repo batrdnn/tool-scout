@@ -19,3 +19,13 @@ export function mockFetch(routes, { remaining = 4999 } = {}) {
   fn.calls = calls;
   return fn;
 }
+
+/** A minimal profile in the shape buildProfile returns. */
+export function prof(o = {}) {
+  return {
+    generatedAt: '2026-11-24T00:00:00.000Z', windowDays: 30, sessions: 20, prompts: 40, projects: 1,
+    topics: {}, topicSources: { actions: {}, mentions: {} }, topicWeights: {}, friction: {}, toolKeywords: {},
+    languages: {}, tools: { Read: 50, Bash: 50 }, repeatedCommands: [], installed: { names: [], repos: [] }, stack: {},
+    ...o,
+  };
+}

@@ -24,6 +24,19 @@ Nothing leaves the machine.
    scout yourself or suggest specific tools here; the animal doesn't change recommendations.
 4. If it is the Egg (under 10 sessions), say they can come back after 10 sessions.
 
+## Shareable card
+
+When the user asks for a card, image or something to share, add `--card <file>.svg` (the path
+they name, else `claude-code-animal.svg` in the current folder):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card claude-code-animal.svg --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+Tell them where it was saved and what is on it: the animal, its title, the session count, the
+top language and the top topic. Nothing else: no project, library or repo names, paths or
+prompt text. Don't add anything to the file yourself.
+
 ## If the script fails
 
 If running the script fails because Node.js is missing (`node: command not found`) or too old
