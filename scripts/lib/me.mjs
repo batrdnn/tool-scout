@@ -250,7 +250,7 @@ export function meCard(r, p) {
   const art = r.art.map((l, i) => `    <text x="${(24 + (240 - artW) / 2).toFixed(1)}" y="${artTop + i * 24}" xml:space="preserve">${esc(l)}</text>`);
   const rows = [['Sessions', st.sessions], ['Top language', st.topLanguage || '—'], ['Top topic', st.topTopic || '—']]
     .map(([k, v], i) => `  <text x="296" y="${190 + i * 30}" font-size="15" fill="#57606a" ${sans}>${k}</text>\n  <text x="576" y="${190 + i * 30}" font-size="15" font-weight="700" text-anchor="end" fill="#1f2328" ${sans}>${esc(v)}</text>`);
-  const footer = r.hatched ? `My last ${windowDays(p)} days in Claude Code · tool-scout` : `My last ${windowDays(p)} days in Claude Code · come back after ${EGG_SESSIONS} sessions`;
+  const footer = r.hatched ? `My last ${windowDays(p)} days in Claude Code · tool-scout` : `My last ${windowDays(p)} days · come back after ${EGG_SESSIONS} sessions`;
   return [
     '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="315" viewBox="0 0 600 315" role="img" aria-label="' + esc(`My Claude Code animal: ${r.animal}, ${r.title}`) + '">',
     `  <rect width="600" height="315" rx="20" fill="${bg}"/>`,
