@@ -100,9 +100,11 @@ the hint is a link to the README, never a guess. It's shown, never run.
 
 `check` turns the same scan plus metadata into a verdict (`safe-looking`, `review`,
 `do not install`) and shows how many files it read. `audit` reads your personal skills
-(`~/.claude/skills`), installed plugin folders (`~/.claude/plugins`) and the MCP server commands
-in `~/.claude.json` and project `.mcp.json` files from disk, with no network, and lists anything
-medium or high with file and line (never MCP arguments, which can hold tokens).
+(`~/.claude/skills`), installed plugin folders (`~/.claude/plugins`), the MCP server commands
+in `~/.claude.json` and project `.mcp.json` files, and the hooks in `~/.claude/settings.json`,
+`~/.claude/settings.local.json` and each project's `.claude/settings.json` (plus any script a hook
+runs) from disk, with no network. It lists every hook by event and matcher, and anything medium or
+high with file and line (never MCP arguments or hook commands, which can hold tokens).
 
 This is a heuristic, **not** a security review: no flags doesn't mean safe.
 

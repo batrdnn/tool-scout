@@ -1,14 +1,16 @@
 // Local audit of what the user already has installed: personal skills (~/.claude/skills),
-// installed plugin folders (~/.claude/plugins), and MCP server commands (~/.claude.json and
-// project .mcp.json files). Files are read from disk and run through the same rules as the
+// installed plugin folders (~/.claude/plugins), MCP server commands (~/.claude.json and
+// project .mcp.json files), and hooks (~/.claude/settings.json, ~/.claude/settings.local.json
+// and each project's .claude/settings.json, plus any script file a hook runs). Files are read from disk and run through the same rules as the
 // content scan. No network at all: this module never creates a GitHub client.
 //
-// Output keeps file:line and the rule's detail only, never excerpts: MCP args and local
-// scripts can contain tokens.
+// Output keeps file:line and the rule's detail only, never excerpts: MCP args, hook commands
+// and local scripts can contain tokens. Hooks are listed by event and matcher, never by command.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { scanText, pickFiles, explainedHostsOf } from './scan.mjs';
+import { sessionProjectDirs } from './installed.mjs';
 
 const MAX_BYTES = 300_000;
 const MAX_ENTRIES = 3000;
@@ -95,6 +97,61 @@ function installedPlugins(home) {
   return [...found].map(([dir, name]) => ({ dir, name }));
 }
 
+/** Project folders to look in: the cwd, every session cwd, and the projects in ~/.claude.json. */
+function projectDirs(home, cwd) {
+  const cj = readJSON(path.join(home, '.claude.json')) || {};
+  const out = new Map();
+  for (const d of [cwd, ...sessionProjectDirs(home, 3650), ...Object.keys(cj.projects || {})].filter(Boolean)) {
+    let real;
+    try { real = fs.realpathSync(d); } catch { continue; }
+    if (real !== fs.realpathSync(home) && !out.has(real)) out.set(real, d);
+  }
+  return [...out.values()];
+}
+
+/** The script file a hook command runs, if it names one that exists: { abs, shown } or null. */
+function hookScript(command, { home, projectDir }) {
+  const expand = (t) => t
+    .replace(/^["']|["']$/g, '')
+    .replace(/\$\{?CLAUDE_PROJECT_DIR\}?/g, projectDir || '\0')
+    .replace(/^~(?=\/)/, home)
+    .replace(/["']/g, '');
+  for (const raw of command.split(/\s+/)) {
+    const t = expand(raw);
+    if (!t || t.includes('\0') || t.startsWith('-') || /\$/.test(t) || !/[\/.]/.test(t)) continue;
+    const abs = path.isAbsolute(t) ? t : projectDir ? path.join(projectDir, t) : null;
+    if (!abs) continue;
+    try { if (!fs.statSync(abs).isFile() || fs.statSync(abs).size > MAX_BYTES) continue; } catch { continue; }
+    const shown = projectDir && abs.startsWith(projectDir + path.sep) ? path.relative(projectDir, abs) : abs.replace(home, '~');
+    return { abs, shown };
+  }
+  return null;
+}
+
+/** Every hook in the user, local and project settings files. */
+function hookSources(home, cwd) {
+  const files = [
+    { file: path.join(home, '.claude', 'settings.json'), where: '~/.claude/settings.json', projectDir: null },
+    { file: path.join(home, '.claude', 'settings.local.json'), where: '~/.claude/settings.local.json', projectDir: null },
+    ...projectDirs(home, cwd).map((d) => ({ file: path.join(d, '.claude', 'settings.json'), where: `${path.basename(d)}/.claude/settings.json`, projectDir: d })),
+  ];
+  const out = [];
+  for (const { file, where, projectDir } of files) {
+    const hooks = readJSON(file)?.hooks;
+    if (!hooks || typeof hooks !== 'object') continue;
+    for (const [event, groups] of Object.entries(hooks)) {
+      for (const g of Array.isArray(groups) ? groups : []) {
+        const matcher = typeof g?.matcher === 'string' && g.matcher ? g.matcher.slice(0, 80) : undefined;
+        for (const h of Array.isArray(g?.hooks) ? g.hooks : []) {
+          const text = typeof h?.command === 'string' ? h.command : typeof h?.prompt === 'string' ? h.prompt : null;
+          if (text) out.push({ event, matcher, where, projectDir, kind: h.command ? 'command' : 'prompt', text });
+        }
+      }
+    }
+  }
+  return out;
+}
+
 const keep = (flags) => flags.filter((f) => SEV[f.severity] >= 2).map(({ excerpt, ...f }) => f)
   .sort((a, b) => SEV[b.severity] - SEV[a.severity]);
 
@@ -102,10 +159,10 @@ const keep = (flags) => flags.filter((f) => SEV[f.severity] >= 2).map(({ excerpt
 export function auditLocal({ home, cwd = process.cwd() }) {
   const findings = [];
   const counts = { high: 0, medium: 0, low: 0 };
-  const record = (type, name, where, flags) => {
+  const record = (type, name, where, flags, extra = {}) => {
     for (const f of flags) counts[f.severity] = (counts[f.severity] || 0) + 1;
     const k = keep(flags);
-    if (k.length) findings.push({ type, name, where, flags: k });
+    if (k.length) findings.push({ type, name, ...extra, where, flags: k });
   };
 
   const skillsDir = path.join(home, '.claude', 'skills');
@@ -121,17 +178,38 @@ export function auditLocal({ home, cwd = process.cwd() }) {
     record('mcp', name, where, line ? scanText(line, { file: `${where}#${name}`, role: 'config' }) : []);
   }
 
+  // Hooks: the command (or prompt) and any script it runs go through the same rules. The
+  // label is event + matcher; the command itself never leaves this function.
+  const hooks = [];
+  for (const h of hookSources(home, cwd)) {
+    const label = `${h.event}${h.matcher ? ` [${h.matcher}]` : ''}`;
+    const flags = scanText(h.text, { file: `${h.where}#${label}`, role: h.kind === 'prompt' ? 'skill' : 'script' });
+    const script = h.kind === 'command' ? hookScript(h.text, { home, projectDir: h.projectDir }) : null;
+    if (script) {
+      const body = (() => { try { return fs.readFileSync(script.abs, 'utf8'); } catch { return null; } })();
+      if (body != null) flags.push(...scanText(body, { file: script.shown, role: 'script' }));
+    }
+    for (const f of flags) f.line = f.file.includes('#') ? undefined : f.line; // a command's "line" is meaningless
+    record('hook', h.event, h.where, flags, h.matcher ? { matcher: h.matcher } : {});
+    hooks.push({ event: h.event, ...(h.matcher ? { matcher: h.matcher } : {}), where: h.where, kind: h.kind,
+      ...(script ? { script: script.shown } : {}), flagged: keep(flags).length });
+  }
+
   findings.sort((a, b) => SEV[b.flags[0].severity] - SEV[a.flags[0].severity]);
-  return { checked: { skills: skills.length, plugins: plugins.length, mcpServers: servers.length }, counts, findings };
+  return { checked: { skills: skills.length, plugins: plugins.length, mcpServers: servers.length, hooks: hooks.length }, counts, findings, hooks };
 }
 
 export function formatAudit(r) {
-  const lines = [`Checked ${r.checked.skills} personal skills, ${r.checked.plugins} installed plugins and ${r.checked.mcpServers} MCP server commands.`,
+  const lines = [`Checked ${r.checked.skills} personal skills, ${r.checked.plugins} installed plugins, ${r.checked.mcpServers} MCP server commands and ${r.checked.hooks ?? 0} hooks.`,
     `Flags: ${r.counts.high} high, ${r.counts.medium} medium, ${r.counts.low} low (low ones are not listed).`];
   if (!r.findings.length) lines.push('Nothing medium or high.');
   for (const f of r.findings) {
-    lines.push(`\n${f.type} ${f.name}  (${f.where})`);
+    lines.push(`\n${f.type} ${f.name}${f.matcher ? ` [${f.matcher}]` : ''}  (${f.where})`);
     for (const x of f.flags) lines.push(`  ⚑ ${x.severity.toUpperCase()} ${x.id}: ${x.detail} (${x.file}${x.line ? `:${x.line}` : ''})`);
+  }
+  if (r.hooks?.length) {
+    lines.push('\nHooks (event [matcher], where; commands are not shown):');
+    for (const h of r.hooks) lines.push(`  ${h.event}${h.matcher ? ` [${h.matcher}]` : ''}  ${h.where}${h.script ? `, runs ${h.script}` : ''}${h.kind === 'prompt' ? ' (prompt hook)' : ''}  ${h.flagged ? `⚑ ${h.flagged} flag${h.flagged > 1 ? 's' : ''}` : 'no medium/high flags'}`);
   }
   lines.push('\nNo network was used: everything was read from local files. No flags does not mean safe.');
   return lines.join('\n');

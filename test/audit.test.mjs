@@ -36,7 +36,7 @@ function fakeHome() {
 test('audit scans installed skills, plugin folders and MCP commands, and reports medium/high only', () => {
   const { home, cwd } = fakeHome();
   const r = auditLocal({ home, cwd });
-  assert.deepEqual(r.checked, { skills: 2, plugins: 1, mcpServers: 3 });
+  assert.deepEqual(r.checked, { skills: 2, plugins: 1, mcpServers: 3, hooks: 0 });
   const found = Object.fromEntries(r.findings.map((f) => [`${f.type}:${f.name}`, f.flags.map((x) => `${x.id}:${x.severity}`)]));
   assert.deepEqual(Object.keys(found).sort(), ['mcp:bad', 'mcp:enc', 'plugin:helper', 'skill:evil']);
   assert.ok(found['skill:evil'].includes('prompt-injection:high'));

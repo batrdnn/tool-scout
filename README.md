@@ -68,7 +68,7 @@ README, `SKILL.md` files, install scripts, hooks and MCP config, and gives a ver
 | `do not install` | at least one high flag (prompt injection, hidden instructions, exfiltration, decode-and-run, a download piped into a shell from a script) |
 
 `node scripts/scout.mjs audit` checks what you **already** have (personal skills, installed
-plugins, MCP server commands) from disk, with no network at all.
+plugins, MCP server commands, hooks) from disk, with no network at all.
 
 Both are heuristics: no flags doesn't mean safe. Skills and MCP servers run with your
 permissions, and Tool Scout never installs anything on its own.
