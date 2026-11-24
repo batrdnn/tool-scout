@@ -134,8 +134,11 @@ Egg.
 | **Egg** | Not hatched yet | fewer sessions than the threshold; "come back after 10 sessions" | 10 sessions |
 
 **What it shows:** the animal's ASCII art, its title, the time window ("Your last 30 days: N
-sessions across M projects"), 3 evidence lines from the real counts behind its score, a
-superpower, a blind spot, a close second if there is one, and the link line. The text uses counts,
+sessions across M projects"), up to 3 evidence lines, a
+superpower, a blind spot, a close second if there is one, and the link line. Evidence lines
+must support the animal: each candidate line has a strength (its signal ÷ a reference value), a
+line whose value is 0 or whose strength is under 0.5 is never shown, and the 3 strongest are kept.
+With thin history that can be fewer than 3. The text uses counts,
 topic names and language names only: never commands, MCP servers, libraries, installed tools,
 projects or paths. `--json` gives the same plus every animal's score.
 

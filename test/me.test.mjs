@@ -17,9 +17,9 @@ const CASES = {
   Owl: prof({ topics: { debugging: 10, testing: 6 }, friction: { testing: 6, debugging: 3 } }),
   Bee: prof({ repeatedCommands: [{ command: 'npm test', count: 40, sessions: 15 }], topicSources: { actions: { testing: 15 }, mentions: {} } }),
   Octopus: prof({ projects: 4, tools: { 'mcp:alpha': 5, 'mcp:beta': 5, 'mcp:gamma': 5, 'mcp:delta': 5, Read: 20 } }),
-  Ant: prof({ repeatedCommands: cmds(9) }),
+  Ant: prof({ repeatedCommands: cmds(9, 12) }),
   Fox: prof({ topics: { a: 2, b: 2, c: 2, d: 2, e: 2, f: 2, g: 2, h: 2, i: 2, j: 2 }, languages: { Python: 3, Go: 3, Rust: 3, Swift: 3 } }),
-  Turtle: prof({ projects: 1, tools: { Read: 1200, Bash: 500, Edit: 100 } }),
+  Turtle: prof({ projects: 1, prompts: 200, tools: { Read: 1200, Bash: 500, Edit: 100 } }),
 };
 
 test('each archetype comes from the signal it stands for', () => {
@@ -64,7 +64,7 @@ test('every animal (and the Egg) has its own ASCII art, title, 3 evidence lines,
     arts.add(a.art.join('\n'));
   }
   assert.equal(arts.size, ORDER.length + 1);
-  for (const p of [...Object.values(CASES), prof({ sessions: 3 })]) assert.equal(whoAmI(p).evidence.length, 3);
+  assert.equal(whoAmI(prof({ sessions: 3 })).evidence.length, 3);
 });
 
 test('a close score shows a second animal; a clear win does not', () => {
@@ -130,4 +130,31 @@ test('one line links to recommendations, as text only ("Tools that fit a/an <ani
   // Text only: nothing in me.mjs touches ranking.
   const src = fs.readFileSync(new URL('../scripts/lib/me.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /from '\.\/(rank|pipeline|crawl|momentum)\.mjs'/);
+});
+
+test('evidence lines support the animal: no zero values, nothing that contradicts the title, strongest first', async () => {
+  const { materialize, PERSONAS } = await import('./eval/personas.mjs');
+  const { buildProfile } = await import('../scripts/lib/profile.mjs');
+  const ZERO = /(?<![\d.,])0(?![\d.,])/;
+  const profiles = [...Object.values(CASES), prof(), prof({ sessions: 3 }), prof({ sessions: 0, projects: 0, tools: {} }),
+    ...Object.keys(PERSONAS).map((n) => buildProfile({ home: materialize(n), excludeSessions: [] }))];
+  for (const p of profiles) {
+    for (const as of [undefined, ...ORDER, 'Egg']) {
+      const r = whoAmI(p, { as });
+      assert.ok(r.evidence.length >= 1 && r.evidence.length <= 3, `${r.animal}: ${r.evidence.length} lines`);
+      for (const e of r.evidence) assert.doesNotMatch(e, ZERO, `${r.animal}: "${e}"`);
+    }
+  }
+  // The real case: a Beaver who wrote no new files doesn't get "0 new files written".
+  const noNew = whoAmI(prof({ tools: { Edit: 80, Bash: 20, Read: 20 }, languages: { Go: 80 } }));
+  assert.equal(noNew.animal, 'Beaver');
+  assert.doesNotMatch(noNew.evidence.join('\n'), /new file/);
+  assert.match(whoAmI(CASES.Beaver).evidence.join('\n'), /20 new files/);
+  // A Turtle across many projects doesn't get a "work in N projects" line: that contradicts "few projects".
+  const busy = whoAmI(prof({ projects: 6, prompts: 200, tools: { Read: 4000, Bash: 1000 } }), { as: 'Turtle' });
+  assert.doesNotMatch(busy.evidence.join('\n'), /projects?\b/);
+  // Every winner with rich counts gets 3 lines, strongest first.
+  for (const [animal, p] of Object.entries(CASES)) assert.equal(whoAmI(p).evidence.length, 3, animal);
+  const bee = whoAmI(prof({ repeatedCommands: [{ command: 'pytest', count: 100, sessions: 11 }] }));
+  assert.match(bee.evidence[0], /100 test runs/, 'runs per session (5) beats sessions with tests (0.55)');
 });

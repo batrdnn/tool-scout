@@ -110,6 +110,8 @@ export function signals(p) {
     sessions: S, projects: count(p.projects), prompts: count(p.prompts), toolCalls, edits, newFiles: tools.Write || 0,
     distinctTools: Object.keys(tools).length,
     mcpServers: Object.keys(tools).filter((k) => k.startsWith('mcp:')).length,
+    mcpCalls: Object.entries(tools).filter(([k]) => k.startsWith('mcp:')).reduce((a, [, v]) => a + (Number(v) || 0), 0),
+    testCommands: tests.length,
     debugSessions: p.topics?.debugging || 0,
     frictionTop: friction[0]?.[1] || 0, frictionTopics: friction.length, frictionTopic: friction[0]?.[0] || null,
     testSessions: Math.max(0, ...tests.map((c) => c.sessions)), testRuns: tests.reduce((a, c) => a + c.count, 0),
@@ -137,52 +139,70 @@ export function scores(sig) {
   return Object.fromEntries(ORDER.map((a) => [a, r3(Math.min(MAX_SCORE, raw[a]))]));
 }
 
+export const SUPPORT = 0.5; // an evidence line needs at least this strength (signal ÷ its reference)
+
+/**
+ * Up to 3 evidence lines that support the animal, strongest first. Each candidate has a value
+ * (never shown when 0) and a strength = signal ÷ reference; under SUPPORT it would undercut the
+ * title (a Beaver with 1 edit per session), so it's left out. Ties keep the listed order.
+ */
 function evidence(animal, s) {
+  const S = s.sessions || 1;
   const lang = s.languages[0];
-  const topic = s.topics[0];
-  const lines = {
+  const perSession = (x) => Math.round((10 * x) / S) / 10;
+  const c = (value, strength, text) => ({ value, strength, text });
+  const candidates = {
     Beaver: [
-      `Edits and new files: ${s.edits} of ${s.toolCalls} tool calls (${pct(s.edits, s.toolCalls)}%)`,
-      `${plural(s.newFiles, 'new file')} written`,
-      lang ? `Most edited language: ${lang[0]} (${plural(lang[1], 'edit')})` : 'No language edits recorded',
+      c(s.edits, (s.toolCalls ? s.edits / s.toolCalls : 0) / 0.4, `${s.newFiles ? 'Edits and new files' : 'Edits'}: ${s.edits} of ${s.toolCalls} tool calls (${pct(s.edits, s.toolCalls)}%)`),
+      c(s.newFiles, (s.edits ? s.newFiles / s.edits : 0) / 0.25, `${plural(s.newFiles, 'new file')} written (${pct(s.newFiles, s.edits)}% of edits)`),
+      c(s.edits, s.edits / S / 5, `${perSession(s.edits)} edits per session`),
+      c(lang?.[1] || 0, SUPPORT, lang ? `Most edited language: ${lang[0]} (${plural(lang[1], 'edit')})` : ''),
     ],
     Owl: [
-      `Debugging came up in ${s.debugSessions} of ${plural(s.sessions, 'session')}`,
-      `Friction ("still failing", "same error") in ${s.frictionTop} of ${plural(s.sessions, 'session')}${s.frictionTopic ? `, most around ${s.frictionTopic}` : ''}`,
-      `${plural(s.frictionTopics, 'topic')} with friction`,
+      c(s.debugSessions, s.debugSessions / S / 0.3, `Debugging came up in ${s.debugSessions} of ${plural(s.sessions, 'session')}`),
+      c(s.frictionTop, s.frictionTop / S / 0.3, `Friction ("still failing", "same error") in ${s.frictionTop} of ${plural(s.sessions, 'session')}${s.frictionTopic ? `, most around ${s.frictionTopic}` : ''}`),
+      c(s.frictionTopics, s.frictionTopics / 2, `${plural(s.frictionTopics, 'topic')} with friction`),
     ],
     Bee: [
-      `Test runs in ${s.testSessions} of ${plural(s.sessions, 'session')}`,
-      `${plural(s.testRuns, 'test command')} run`,
-      `Testing work (test files or commands) in ${plural(s.testingSessions, 'session')}`,
+      c(s.testSessions, s.testSessions / S / 0.5, `Test runs in ${s.testSessions} of ${plural(s.sessions, 'session')}`),
+      c(s.testRuns, s.testRuns / S / 1, `${plural(s.testRuns, 'test run')} (${perSession(s.testRuns)} per session)`),
+      c(s.testingSessions, s.testingSessions / S / 0.5, `Testing work (test files or commands) in ${s.testingSessions} of ${plural(s.sessions, 'session')}`),
+      c(s.testCommands, s.testCommands / 2, `${plural(s.testCommands, 'different test command')} in regular use`),
     ],
     Octopus: [
-      `${plural(s.mcpServers, 'MCP server')} used`,
-      `${plural(s.distinctTools, 'distinct tool')} called`,
-      `Work across ${plural(s.projects, 'project')}`,
+      c(s.mcpServers, s.mcpServers / 3, `${plural(s.mcpServers, 'MCP server')} used`),
+      c(s.mcpCalls, (s.toolCalls ? s.mcpCalls / s.toolCalls : 0) / 0.1, `MCP tools: ${s.mcpCalls} of ${s.toolCalls} tool calls (${pct(s.mcpCalls, s.toolCalls)}%)`),
+      c(s.projects, s.projects / 3, `Work across ${plural(s.projects, 'project')}`),
+      c(s.distinctTools, s.distinctTools / 8, `${plural(s.distinctTools, 'distinct tool')} called`),
     ],
     Ant: [
-      `${plural(s.repeated, 'command')} repeated in 3+ sessions (everyday shell utilities not counted)`,
-      `${plural(s.repeatedRuns, 'run')} of those commands`,
-      s.repeatedTop ? `The most repeated one: ${plural(s.repeatedTop.count, 'run')} over ${plural(s.repeatedTop.sessions, 'session')}` : 'No single command stands out',
+      c(s.repeated, s.repeated / 6, `${plural(s.repeated, 'command')} repeated in 3+ sessions (everyday shell utilities not counted)`),
+      c(s.repeatedRuns, s.repeatedRuns / S / 5, `${plural(s.repeatedRuns, 'run')} of those commands (${perSession(s.repeatedRuns)} per session)`),
+      c(s.repeatedTop?.sessions || 0, (s.repeatedTop?.sessions || 0) / S / 0.5, s.repeatedTop ? `The most repeated one: ${plural(s.repeatedTop.count, 'run')} over ${s.repeatedTop.sessions} of ${plural(s.sessions, 'session')}` : ''),
     ],
     Fox: [
-      `${plural(s.broadTopics, 'topic')} in 2+ sessions`,
-      `${plural(s.languages.length, 'language')} edited`,
-      topic ? `Top topic: ${topic[0]} (${plural(topic[1], 'session')})` : 'No topics recorded',
+      c(s.broadTopics, s.broadTopics / 8, `${plural(s.broadTopics, 'topic')} in 2+ sessions`),
+      c(s.languages.length, s.languages.length / 3, `${plural(s.languages.length, 'language')} edited`),
+      c(s.topics.length, s.topics.length / 12, `${plural(s.topics.length, 'topic')} touched in all`),
     ],
     Turtle: [
-      `Work in ${plural(s.projects, 'project')}`,
-      `${Math.round(s.toolCalls / (s.sessions || 1))} tool calls per session`,
-      `${Math.round((10 * s.prompts) / (s.sessions || 1)) / 10} prompts per session`,
+      c(s.toolCalls, s.toolCalls / S / 40, `${Math.round(s.toolCalls / S)} tool calls per session`),
+      c(s.prompts, s.prompts / S / 5, `${perSession(s.prompts)} prompts per session`),
+      c(s.projects, s.projects ? TURTLE_PROJECTS / s.projects : 0, `Work in ${s.projects === 1 ? 'a single project' : plural(s.projects, 'project')}`),
     ],
+    // The Egg isn't scored: its lines are the plain facts, without zeros.
     Egg: [
-      `${plural(s.sessions, 'session')} so far (${EGG_SESSIONS} needed)`,
-      `Work in ${plural(s.projects, 'project')}`,
-      `${plural(s.toolCalls, 'tool call')} in all`,
+      c(s.sessions, 1, `${plural(s.sessions, 'session')} so far (${EGG_SESSIONS} needed)`),
+      c(s.projects, 1, `Work in ${plural(s.projects, 'project')}`),
+      c(s.toolCalls, 1, `${plural(s.toolCalls, 'tool call')} in all`),
     ],
-  };
-  return lines[animal];
+  }[animal];
+  const lines = candidates.map((x, i) => ({ ...x, i }))
+    .filter((x) => x.value > 0 && x.text && x.strength >= SUPPORT)
+    .sort((a, b) => b.strength - a.strength || a.i - b.i)
+    .slice(0, 3).map((x) => x.text);
+  if (lines.length) return lines;
+  return [animal === 'Egg' ? 'No Claude Code sessions in this window yet' : 'No single signal stands out yet'];
 }
 
 /** The animal for a profile. `as` forces one animal (for its evidence lines; used by tests). */
