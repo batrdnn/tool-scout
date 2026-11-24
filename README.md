@@ -49,6 +49,7 @@ sessions, because it reads your local session history. To drive it from a browse
 | `/tool-scout:scout testing` (any topic) | prefer picks for that topic |
 | `/tool-scout:scout refresh` | crawl GitHub again first |
 | `/tool-scout:check owner/repo` | trust check of one repo before you install it |
+| `/tool-scout:me` | your Claude Code animal (Beaver, Owl, Bee, …) from your last 30 days, plus a shareable card |
 
 Or just ask, in plain language:
 
@@ -62,6 +63,7 @@ Or just ask, in plain language:
 | "show my scout stats" | `stats` |
 | "show my share stats" | `stats --share` |
 | "show my scout profile" | `profile --show` |
+| "what's my Claude Code animal?" | `me` |
 
 ## Privacy
 
@@ -99,6 +101,7 @@ node scripts/scout.mjs audit              # local scan of what you have installe
 node scripts/scout.mjs rate owner/repo useful|not|clear
 node scripts/scout.mjs dismiss owner/repo # also: undismiss, exclude-project, include-project
 node scripts/scout.mjs stats [--share]
+node scripts/scout.mjs me --card me.svg   # your Claude Code animal, plus a shareable SVG card
 ```
 
 Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folder, else

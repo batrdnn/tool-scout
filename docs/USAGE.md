@@ -109,6 +109,41 @@ high with file and line (never MCP arguments or hook commands, which can hold to
 
 This is a heuristic, **not** a security review: no flags doesn't mean safe.
 
+## Your Claude Code animal
+
+`scout.mjs me` (and `/tool-scout:me`) reads the saved profile (counts only; it builds one if
+there is none) and maps it to one animal. It's just for fun and doesn't change ranking or
+recommendations: the only link is one text line, "Tools that fit a Beaver: run
+/tool-scout:scout". The same profile always gives the same animal, text and card.
+
+**How the animal is picked.** Each animal gets a score = its signal ÷ its threshold, capped at 2
+(so 1 means the threshold is reached). The highest score wins; a tie goes to the earlier animal in
+this order: Beaver, Owl, Bee, Octopus, Ant, Fox, Turtle. A second animal ("Close second") is shown
+when its score is at least 0.85 of the winner's. Under 10 sessions in the window, it is always the
+Egg.
+
+| animal | title | signal (from the profile) | threshold (score 1) |
+|---|---|---|---|
+| **Beaver** | The Builder | edits and new files (`Edit`, `MultiEdit`, `Write`, `NotebookEdit`) ÷ all tool calls | 0.4 |
+| **Owl** | The Debugger | (sessions where debugging came up + sessions with friction on the top friction topic) ÷ sessions | 0.3 |
+| **Bee** | The Tester | sessions running the most-used test command (`npm test`, `pytest`, `go test`, …) ÷ sessions | 0.5 |
+| **Octopus** | The Orchestrator | MCP servers used, scaled by projects ÷ 3 when there are fewer than 3 projects | 3 servers, 3 projects |
+| **Ant** | The Grinder | distinct commands repeated in 3+ sessions, not counting everyday shell utilities (`ls`, `cat`, `grep`, `sed`, …) | 6 commands |
+| **Fox** | The Explorer | average of (topics in 2+ sessions ÷ 8) and (languages edited ÷ 3) | 8 topics, 3 languages |
+| **Turtle** | The Deep Diver | tool calls per session, scaled by 2 ÷ projects when there are more than 2 projects | 40 calls, 2 projects |
+| **Egg** | Not hatched yet | fewer sessions than the threshold; "come back after 10 sessions" | 10 sessions |
+
+**What it shows:** the animal's ASCII art, its title, the time window ("Your last 30 days: N
+sessions across M projects"), 3 evidence lines from the real counts behind its score, a
+superpower, a blind spot, a close second if there is one, and the link line. The text uses counts,
+topic names and language names only: never commands, MCP servers, libraries, installed tools,
+projects or paths. `--json` gives the same plus every animal's score.
+
+**The card.** `me --card out.svg` also writes a self-contained SVG (no scripts, fonts or links)
+with the animal, its title and 3 general stats: sessions, top language and top topic. The language
+and topic are shown only when they are names from Tool Scout's fixed vocabulary, so a hand-edited
+profile can't put other text on it. A test fails if any other profile string appears on the card.
+
 ## Eval setup
 
 ```bash
