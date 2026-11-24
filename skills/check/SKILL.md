@@ -24,7 +24,10 @@ scripts, .mcp.json) and its metadata. Your job is to explain the result plainly.
 
 2. Present the result in plain language:
    - **Verdict** first, in one line: `safe-looking`, `review`, or `do not install`, with the
-     `reasons`.
+     `reasons`. Right below it, show `coverage.line` ("Checked N files: …") and every entry in
+     `coverage.notes` word for word (for an MCP server, that its source code wasn't scanned; for
+     a docker-based install, that the container image wasn't scanned), so the user sees how much
+     the verdict rests on.
    - **What was found:** each entry in `flags` as "⚑ severity id: detail (file:line)", most severe
      first, with one plain sentence on what it means (for example, `pipe-to-shell` = "the install
      step downloads a script and runs it immediately, without you seeing it"). Say nothing more

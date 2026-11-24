@@ -9,6 +9,16 @@ import { trust } from './rank.mjs';
 
 const NO_TEXT = new Set(['prompt-injection', 'hidden-instructions', 'invisible-unicode', 'exfiltration', 'obfuscated-exec']);
 const SEV = { high: 3, medium: 2, low: 1 };
+export const NOTE_MCP_SOURCE = 'Server source code was not scanned: it runs with your permissions, so review it or prefer official servers.';
+export const NOTE_CONTAINER = 'Container image not scanned.';
+
+/** What the scan actually read, and what it can't have read. */
+function coverageOf(files, kind, installCommands) {
+  const notes = [];
+  if (kind === 'mcp-server') notes.push(NOTE_MCP_SOURCE);
+  if (installCommands.some((c) => /\bdocker\b|\bpodman\b/i.test(c))) notes.push(NOTE_CONTAINER);
+  return { files, line: `Checked ${files.length} file${files.length === 1 ? '' : 's'}: ${files.join(', ') || 'none'}`, notes };
+}
 
 export async function checkRepo(client, input, { now = Date.now() } = {}) {
   const name = normalizeRepo(input);
@@ -33,6 +43,7 @@ export async function checkRepo(client, input, { now = Date.now() } = {}) {
   return {
     name: repo.full_name, url: repo.url, kind, description: repo.description, verdict, reasons, flags,
     scannedFiles: scan.scannedFiles,
+    coverage: coverageOf(scan.scannedFiles, kind, scan.install || []),
     metadata: { stars: repo.stars, forks: repo.forks, license: repo.license, ownerType: repo.ownerType, createdAt: repo.createdAt, pushedAt: repo.pushedAt, archived: repo.archived, score: meta.score, tier: meta.tier, notes: meta.notes },
     install: { commands: scan.install || [], ...(scan.installNote ? { note: scan.installNote } : {}) },
   };
@@ -43,8 +54,9 @@ export function formatCheck(r) {
   const lines = [
     `${r.name}  [${r.kind}]  ${r.url}`,
     `Verdict: ${r.verdict}${r.reasons.length ? ` (${r.reasons.join('; ')})` : ''}`,
+    r.coverage.line,
+    ...r.coverage.notes,
     `Metadata trust: ${m.tier} (${m.score}/100). ${m.stars}★, ${m.forks} forks, ${m.license || 'no license'}, ${m.ownerType === 'Organization' ? 'organization' : 'personal'} account, created ${String(m.createdAt).slice(0, 10)}, last push ${String(m.pushedAt).slice(0, 10)}${m.archived ? ', ARCHIVED' : ''}${m.notes.length ? `. Notes: ${m.notes.join(', ')}` : ''}`,
-    `Scanned: ${r.scannedFiles.join(', ') || 'nothing'}`,
   ];
   if (!r.flags.length) lines.push('Flags: none.');
   for (const f of r.flags) lines.push(`  ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);

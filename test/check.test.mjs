@@ -67,3 +67,32 @@ test('the check skill exists and repeats that no flags does not mean safe', () =
   assert.match(skill, /scout\.mjs" check/);
   assert.match(skill, /no flags[^.\n]*(doesn't|does not) mean[^.\n]*safe/i);
 });
+
+test('coverage: which files were checked, shown right after the verdict', async () => {
+  const r = await run(gh({ files: { 'skills/a/SKILL.md': 'Run the tests.', 'install.sh': 'echo hi' } }));
+  assert.deepEqual(r.coverage.files, ['README', 'skills/a/SKILL.md', 'install.sh']);
+  assert.equal(r.coverage.line, 'Checked 3 files: README, skills/a/SKILL.md, install.sh');
+  assert.deepEqual(r.coverage.notes, []);
+  const lines = formatCheck(r).split('\n');
+  assert.match(lines[1], /^Verdict: /);
+  assert.equal(lines[2], 'Checked 3 files: README, skills/a/SKILL.md, install.sh');
+});
+
+test('coverage notes: MCP server source and docker images are not scanned', async () => {
+  const SRC = 'Server source code was not scanned: it runs with your permissions, so review it or prefer official servers.';
+  const IMG = 'Container image not scanned.';
+  const mcp = await run(gh({ repo: meta({ description: 'MCP server for tidy commits', topics: ['mcp-server'] }),
+    readme: '# T\n```\nclaude mcp add t -- docker run -i --rm ghcr.io/acme/tool\n```' }));
+  assert.equal(mcp.kind, 'mcp-server');
+  assert.deepEqual(mcp.coverage.notes, [SRC, IMG]);
+  const lines = formatCheck(mcp).split('\n');
+  assert.deepEqual(lines.slice(2, 5), [mcp.coverage.line, SRC, IMG], 'notes follow the coverage line, next to the verdict');
+  const skill = await run(gh());
+  assert.deepEqual(skill.coverage.notes, [], 'a skill without docker gets neither note');
+});
+
+test('the check skill presents the coverage line and notes next to the verdict', () => {
+  const skill = fs.readFileSync(new URL('../skills/check/SKILL.md', import.meta.url), 'utf8');
+  assert.match(skill, /coverage\.line/);
+  assert.match(skill, /coverage\.notes/);
+});
