@@ -134,6 +134,20 @@ Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folde
 `~/.tool-scout`. All options, how ranking and trust scoring work, and the eval setup:
 [docs/USAGE.md](docs/USAGE.md).
 
+## Updating
+
+To update to the newest version:
+
+1. **Update now:** in `/plugin`, open the **Installed** tab, pick Tool Scout and choose
+   **Update now**. Or, from a shell: `claude plugin update tool-scout@tool-scout`.
+2. **Reload:** run `/reload-plugins` (or restart Claude Code) so the new version is loaded.
+
+We recommend turning on **auto-update** for the `tool-scout` marketplace in the **Marketplaces**
+tab of `/plugin`, so new releases arrive on their own.
+
+Note: `/plugin marketplace update` alone only refreshes the marketplace listing. It doesn't update
+the installed plugin. What changed in each release: [CHANGELOG.md](CHANGELOG.md).
+
 ## Development
 
 ```bash
