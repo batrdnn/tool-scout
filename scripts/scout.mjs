@@ -19,7 +19,8 @@
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
 //
-// Common: --data DIR (default $SCOUT_DATA or ~/.tool-scout), --home DIR (default ~)
+// Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
+//         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -33,6 +34,7 @@ import { loadSettings, excludeProject, includeProject } from './lib/settings.mjs
 import { rate, ratingStats, shareText } from './lib/ratings.mjs';
 import { checkRepo, formatCheck } from './lib/check.mjs';
 import { auditLocal, formatAudit } from './lib/audit.mjs';
+import { resolveDataDir, SOURCE_LABELS } from './lib/datadir.mjs';
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -50,7 +52,8 @@ function parseArgs(argv) {
 
 const { cmd, opts } = parseArgs(process.argv.slice(2));
 const home = opts.home || os.homedir();
-const dataDir = opts.data || process.env.SCOUT_DATA || path.join(home, '.tool-scout');
+const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, env: process.env, home });
+const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
 // By default the session running this command is not part of the profile (see buildProfile).
 // Projects left out: the persistent setting plus any --exclude-project for this run.
@@ -81,6 +84,7 @@ function showProfile(p) {
   const st = Object.entries(p.stack || {});
   console.log(`  Stack (projects):   ${st.slice(0, 10).map(([k, v]) => `${k} (${v})`).join(', ') || '—'}${st.length > 10 ? ` … ${st.length} libraries` : ''}`);
   console.log(`Stored counts only (no prompt text) in ${path.join(dataDir, 'profile.json')}`);
+  console.log(dataLine());
 }
 
 function showRecs(recs) {
@@ -201,6 +205,7 @@ async function main() {
       }
       const s = ratingStats(dataDir);
       if (opts.json) { console.log(JSON.stringify(s, null, 2)); break; }
+      console.log(dataLine());
       console.log(s.rated ? `${s.rated} rated picks: ${s.useful} useful (${Math.round(s.usefulShare * 100)}%), ${s.not} not useful.` : 'No ratings yet. Rate a pick with: rate <owner/repo> useful|not');
       break;
     }
