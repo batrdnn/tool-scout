@@ -9,6 +9,8 @@ Type `/tool-scout:scout` in Claude Code and get up to 5 picks, each with the rea
 > *Why you:* iOS work came up in 6 of your last 20 sessions, and you hit trouble with it in 2.
 > *Install:* `/plugin marketplace add daveebbelaar/bama`
 
+## Tool Scout works in Claude Code running locally (terminal or desktop app), not in cloud sessions.
+
 ## How it works
 
 ```
