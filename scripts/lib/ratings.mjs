@@ -1,10 +1,11 @@
 // Local feedback: was a shown pick useful? Stored in the data dir as ratings.json (repo names
 // and ratings only). `stats` turns it into the real-world metric for testers; `stats --share`
-// prints the only thing a tester is asked to share: counts plus the rated repo names.
+// prints the only thing a tester is asked to share: counts, the rated repo names and the animal's name.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeRepo } from './feedback.mjs';
+import { whoAmI } from './me.mjs';
 
 const FILE = 'ratings.json';
 const VALUES = { useful: 'useful', yes: 'useful', y: 'useful', good: 'useful', '+': 'useful', not: 'not', no: 'not', n: 'not', bad: 'not', '-': 'not', clear: null };
@@ -44,13 +45,19 @@ export function ratingStats(dataDir) {
 
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`);
 
-/** The exact text `stats --share` prints: aggregate counts and rated repo names, nothing else. */
+/** The animal's name from the saved profile, or null. Never reads history; nothing else of the profile is used. */
+function savedAnimal(dataDir) {
+  try { return whoAmI(JSON.parse(fs.readFileSync(path.join(dataDir, 'profile.json'), 'utf8'))).animal; } catch { return null; }
+}
+
+/** The exact text `stats --share` prints: aggregate counts, rated repo names and the animal's name, nothing else. */
 export function shareText(dataDir, { version = '?', now = new Date() } = {}) {
   const s = ratingStats(dataDir);
   const repos = loadRatings(dataDir).repos;
   const names = (r) => Object.keys(repos).filter((n) => repos[n].rating === r).sort();
   return [
     `tool-scout ${version} ratings (${now.toISOString().slice(0, 10)})`,
+    `animal: ${savedAnimal(dataDir) || '—'}`,
     `rated: ${s.rated}`,
     `useful: ${s.useful} (${pct(s.usefulShare)})`,
     `not useful: ${s.not}`,

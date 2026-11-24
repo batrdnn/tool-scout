@@ -50,8 +50,9 @@ Run the scout again on other days or in other projects and rate those picks too.
 ## 4. Share your stats, and only those
 
 When you're done, ask Claude: "show my tool scout share stats". It runs `stats --share` and
-prints the text below. This is the **only** thing we ask you to share. It holds aggregate counts
-and the names of the public repos you rated. It doesn't include your profile, topics, libraries,
+prints the text below. This is the **only** thing we ask you to share. It holds aggregate counts,
+the names of the public repos you rated, and the name of your Claude Code animal (just the name,
+like `Bee`; see `/tool-scout:me`). It doesn't include your profile, topics, libraries,
 project names, prompts or anything else from your machine. Tool Scout never sends it: you copy and
 paste it yourself, if you agree with what you see.
 
@@ -59,10 +60,11 @@ Example of exactly what you'll see and share:
 
 <!-- share-example -->
 ```text
-This is everything that would be shared: aggregate counts and the rated repo names.
+This is everything that would be shared: aggregate counts, the rated repo names and your Claude Code animal.
 No profile, topics, libraries, projects or prompts. Nothing is sent: copy it yourself if you agree.
 
 tool-scout 0.4.0 ratings (2026-11-23)
+animal: Bee
 rated: 3
 useful: 2 (67%)
 not useful: 1

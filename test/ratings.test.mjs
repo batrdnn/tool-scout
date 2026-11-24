@@ -48,6 +48,24 @@ test('CLI: rate, stats, stats --share', () => {
   cli('rate', 'acme/other', 'not');
   assert.match(cli('stats'), /2 rated picks: 1 useful \(50%\), 1 not useful/);
   const share = cli('stats', '--share');
-  assert.match(share, /This is everything that would be shared/);
+  assert.match(share, /This is everything that would be shared: aggregate counts, the rated repo names and your Claude Code animal\./);
   assert.match(share, /acme\/tool/);
+  assert.match(share, /^animal: —$/m, 'no saved profile: stats --share does not read history');
+  assert.ok(!fs.existsSync(path.join(d, 'profile.json')));
+});
+
+test('stats --share adds the animal name only (from the saved profile; "—" without one)', async () => {
+  const { GALLERY } = await import('./gallery.mjs');
+  const d = tmp();
+  rate(d, 'a/one', 'useful');
+  const now = new Date('2026-11-24T00:00:00Z');
+  assert.match(shareText(d, { version: '9.9.9', now }), /^animal: —$/m);
+  fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ ...GALLERY.Bee, stack: { zzsecretlib: 2 } }));
+  const text = shareText(d, { version: '9.9.9', now });
+  assert.equal(text.split('\n')[1], 'animal: Bee');
+  for (const leak of ['The Tester', 'pytest', 'Python', 'testing', 'zzsecretlib', 'sessions', 'Hatching']) assert.ok(!text.includes(leak), `leaked: ${leak}`);
+  // An Egg is shared as Egg, without its teaser.
+  fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify(GALLERY.Egg));
+  assert.match(shareText(d, { version: '9.9.9', now }), /^animal: Egg$/m);
+  assert.doesNotMatch(shareText(d, { version: '9.9.9', now }), /Bee|Hatching/);
 });

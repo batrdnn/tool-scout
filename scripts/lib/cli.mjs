@@ -202,7 +202,7 @@ async function main() {
     case 'stats': {
       if (opts.share) {
         const version = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
-        console.log('This is everything that would be shared: aggregate counts and the rated repo names.');
+        console.log('This is everything that would be shared: aggregate counts, the rated repo names and your Claude Code animal.');
         console.log('No profile, topics, libraries, projects or prompts. Nothing is sent: copy it yourself if you agree.\n');
         console.log(shareText(dataDir, { version }));
         break;
