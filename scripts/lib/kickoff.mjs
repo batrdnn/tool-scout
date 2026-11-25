@@ -76,7 +76,7 @@ function segments(text) {
     const bullet = body !== line;
     if (!bullet && open && /^\s/.test(raw)) { open.text = `${open.text.replace(/[.;]$/, '')} ${body}`.replace(/[.;]$/, ''); continue; }
     open = null;
-    for (const s of bullet ? [body] : body.split(/(?<=[.!?])\s+/)) if (s.trim()) out.push({ text: s.trim().replace(/[.;]$/, ''), heading });
+    for (const s of bullet ? [body] : body.split(/(?<=[.!?])\s+/)) if (s.trim()) out.push({ text: s.trim().replace(/[.;]$/, ''), heading, bullet });
     if (bullet) open = out[out.length - 1];
   }
   return out;
@@ -104,7 +104,7 @@ const STACK_HEADING = /\b(?:stack|tech(?:nology)?|built with)\b/i;
  * project's dependency files), the domain (the most-mentioned domain topic) and the conventions.
  */
 export function extractNeeds(text, { project = null } = {}) {
-  const tasks = {}; const conventions = []; const direct = {}; const outside = {};
+  const tasks = {}; const conventions = []; const direct = {}; const outside = {}; const other = [];
   for (const s of segments(text)) {
     if (CONVENTION_LINE.test(s.text) || (CONVENTION_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading))) { conventions.push(s.text); continue; }
     if (STACK_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading)) continue; // describes the stack, not a task
@@ -114,7 +114,9 @@ export function extractNeeds(text, { project = null } = {}) {
       for (const o of os) (outside[o.id] ||= []).push(s.text);
       continue;
     }
-    for (const t of topicsIn(s.text)) (tasks[t] ||= []).push(s.text);
+    const ts = topicsIn(s.text);
+    for (const t of ts) (tasks[t] ||= []).push(s.text);
+    if (!ts.length && s.bullet) other.push(s.text); // no topic, no tool: still answered, never skipped
   }
   const libraries = project ? [...librariesIn(project)].sort() : [];
   const libTopics = [...new Set(libraries.flatMap((l) => LIBRARY_TOPICS[l] || []))].sort();
@@ -131,6 +133,7 @@ export function extractNeeds(text, { project = null } = {}) {
     conventions: conventions.slice(0, 20),
     direct: DIRECT.filter((d) => direct[d.id]).map((d) => ({ id: d.id, label: d.label, lines: direct[d.id], how: d.how })),
     outside: OUTSIDE.filter((o) => outside[o.id]).map((o) => ({ id: o.id, label: o.label, lines: outside[o.id], how: o.how })),
+    other,
     needs,
   };
 }
@@ -150,6 +153,7 @@ function validate(n) {
   const group = (g) => (Array.isArray(g) ? g.filter((d) => d?.id && d?.how).map((d) => ({ id: String(d.id), label: String(d.label || d.id), lines: (d.lines || []).map(String), how: String(d.how) })) : []);
   n.direct = group(n.direct);
   n.outside = group(n.outside);
+  n.other = Array.isArray(n.other) ? n.other.map(String) : [];
 }
 
 /** The profile one need stands for: only its topic, its plan words and its libraries. */
@@ -204,6 +208,11 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
     const said = `Your plan has ${plural(need.lines.length, `${need.topic} line`)} (${ex})`;
     // Anthropic's official plugins and the built-in features come first: they beat trending repos for the same need.
     const cand = pickCandidate(need, { official, installed: new Set(installed.names), used });
+    if (cand?.type === 'installed') {
+      used.add(cand.name);
+      items.push({ topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT.nothing).toFixed(2)), action: 'nothing', installed: cand.name, reason: `${said}: already installed: ${cand.name}.` });
+      continue;
+    }
     if (cand) {
       used.add(cand.name);
       const base = { topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[cand.type === 'builtin' ? 'builtin' : 'install']).toFixed(2)), scope: 'project' };
@@ -276,7 +285,11 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
   // Needs that are not tool needs: listed apart (they are not among the items to set up).
   const direct = (n.direct || []).map((d) => ({ id: d.id, topic: d.label, action: 'nothing', direct: true,
     reason: `Your plan has ${plural(d.lines.length, `${d.label} line`)} ("${clip(d.lines[0], 60)}"): nothing needed: Claude does this directly: ${d.how}.` }));
-  return { items: out, direct, omitted: items.length - kept.length, notes };
+  const outside = (n.outside || []).map((d) => ({ id: d.id, topic: d.label, action: 'nothing', outside: true,
+    reason: `Your plan has ${plural(d.lines.length, `${d.label} line`)} ("${clip(d.lines[0], 60)}"): outside Claude Code: ${d.how}.` }));
+  const other = (n.other || []).map((l) => ({ topic: 'other', action: 'nothing', direct: true,
+    reason: `Your plan line "${clip(l, 60)}": nothing needed: Claude does this directly: it is ordinary work in this project.` }));
+  return { items: out, direct, outside, other, omitted: items.length - kept.length, notes };
 }
 
 export function loadNeeds(dataDir) {
@@ -348,6 +361,14 @@ export function formatKickoff({ needsFile, needs: n, toolkit }) {
   if (toolkit.direct?.length) {
     out.push('', 'Claude does these directly (no tool needed):');
     for (const d of toolkit.direct) out.push(`- ${d.topic}: ${d.reason}`);
+  }
+  if (toolkit.outside?.length) {
+    out.push('', 'Outside Claude Code (not a tool need):');
+    for (const d of toolkit.outside) out.push(`- ${d.topic}: ${d.reason}`);
+  }
+  if (toolkit.other?.length) {
+    out.push('', 'Other plan lines, nothing to set up:');
+    for (const d of toolkit.other) out.push(`- ${d.reason}`);
   }
   if (toolkit.omitted) out.push(`(${plural(toolkit.omitted, 'smaller need')} left out to keep it to ${MAX_ITEMS}.)`);
   for (const note of toolkit.notes) out.push(`Note: ${note}`);

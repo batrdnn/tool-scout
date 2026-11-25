@@ -58,8 +58,10 @@ export async function loadOfficial({ client = null, dataDir, now = Date.now(), l
  */
 export function pickCandidate(need, { official = null, installed = new Set(), used = new Set() } = {}) {
   const text = need.lines.join('\n');
+  let already = null; // an official plugin the plan calls for that is installed: the answer unless a built-in fits
   for (const r of OFFICIAL_RULES) {
-    if (!r.topics.includes(need.topic) || !r.when.test(text) || used.has(r.name) || installed.has(r.name)) continue;
+    if (!r.topics.includes(need.topic) || !r.when.test(text) || used.has(r.name)) continue;
+    if (installed.has(r.name)) { already ||= { type: 'installed', ...r }; continue; }
     if (official && !official.has(r.name)) continue;
     return { type: 'official-plugin', ...r };
   }
@@ -67,5 +69,5 @@ export function pickCandidate(need, { official = null, installed = new Set(), us
     if (!b.topics.includes(need.topic) || !b.when.test(text) || used.has(b.name)) continue;
     return { type: 'builtin', ...b };
   }
-  return null;
+  return already;
 }
