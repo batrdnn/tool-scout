@@ -7,9 +7,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const GUARD = process.env.FREEZE_GUARD || path.join(os.homedir(), '.claude', 'hooks', 'ranking-freeze', 'freeze-guard.mjs');
-const ROOT = path.resolve(import.meta.dirname, '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const opts = { skip: fs.existsSync(GUARD) ? false : `no freeze hook at ${GUARD}` };
 
 function run(tool_name, tool_input) {
