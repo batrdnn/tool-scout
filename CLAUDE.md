@@ -26,4 +26,7 @@ Before each release, check that `git diff <last tag> HEAD` on these paths prints
 Stack: Node.js 18+, plain ES modules (.mjs), tests with node:test. Domain: security-sensitive install and build code, being prepared for a public v1.0 launch.
 
 - Never add runtime dependencies.
+- Tests first, one commit per item; chain commands with && so nothing runs after a failure.
+- The ranking freeze stays until the tester round ends.
+- Ask before every push.
 <!-- tool-scout:end tool-scout-conventions -->
