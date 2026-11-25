@@ -49,8 +49,11 @@ function getKey(file, key) {
   const v = o?.[top];
   return rest.length ? v?.[rest.join('.')] : v;
 }
+/** A settings file Tool Scout must not edit: it exists but is not a JSON object (a hand edit, or a write in progress). */
+export const unreadableJson = (f) => { if (!fs.existsSync(f)) return false; const o = readJson(f); return !o || typeof o !== 'object' || Array.isArray(o); };
 function setKey(file, key, value) {
   const [top, ...rest] = key.split('.');
+  if (unreadableJson(file)) throw new Error(`${file} is not valid JSON`);
   const o = readJson(file) || {};
   if (!rest.length) { if (value == null) delete o[top]; else o[top] = value; } else {
     const sub = { ...(o[top] || {}) };
@@ -63,7 +66,15 @@ function setKey(file, key, value) {
 export function writeJsonStyled(file, o) {
   let raw = ''; try { raw = fs.readFileSync(file, 'utf8'); } catch { /* new file */ }
   const indent = raw.match(/^\{\n([ \t]+)"/)?.[1] ?? 2;
-  fs.writeFileSync(file, JSON.stringify(o, null, indent) + (raw && !raw.endsWith('\n') ? '' : '\n'));
+  // A temp file renamed over the original: a crash or a concurrent reader never sees half a file,
+  // and the file keeps its mode (~/.claude.json is often 0600).
+  let mode = 0o644; try { mode = fs.statSync(file).mode & 0o777; } catch { /* new file */ }
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.tool-scout-${process.pid}.tmp`);
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(o, null, indent) + (raw && !raw.endsWith('\n') ? '' : '\n'), { mode });
+    fs.chmodSync(tmp, mode);
+    fs.renameSync(tmp, file);
+  } catch (e) { try { fs.unlinkSync(tmp); } catch { /* not written */ } throw e; }
 }
 /** A JSON file left with nothing in it: {} or a registry whose lists are empty ({"version": 2, "plugins": {}}). */
 export const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
@@ -288,6 +299,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       else notes.push(`The marketplace ${mName} is already added: Claude Code uses its current checkout, which Tool Scout can't pin.`);
       commands.push(['plugin', 'install', id, '--scope', scope]);
       const file = scope === 'project' ? path.join(cwd, '.claude', 'settings.json') : path.join(home, '.claude', 'settings.json');
+      for (const f of [file, path.join(home, '.claude.json')]) if (unreadableJson(f)) blockers.push(`${tilde(f, home)} is not valid JSON: Tool Scout won't change it (fix it, then plan again)`);
       const before = getKey(file, `enabledPlugins.${id}`) ?? null;
       if (before === true) blockers.push(`${id} is already enabled`);
       settings.push({ file, key: `enabledPlugins.${id}`, before, after: true });
@@ -319,6 +331,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
         for (const k of c.env) credentials.add(k);
         for (const d of c.dropped) notes.push(`The README sets a ${d}: add it yourself if the server needs it (Tool Scout never handles secrets).`);
         const file = scope === 'project' ? path.join(cwd, '.mcp.json') : path.join(home, '.claude.json');
+        if (unreadableJson(file)) blockers.push(`${tilde(file, home)} is not valid JSON: Tool Scout won't change it (fix it, then plan again)`);
         if (getKey(file, `mcpServers.${c.name}`) != null) blockers.push(`an MCP server named ${c.name} is already configured`);
         settings.push({ file, key: `mcpServers.${c.name}`, before: null, after: '(set by claude mcp add)' });
         if (unpinned) notes.push(`The server runs \`${[c.target, ...c.args].join(' ')}\` each time Claude Code starts it. That package comes from its registry and is not pinned by this commit.`);
@@ -470,25 +483,29 @@ function rollbackFiles(entry) {
 
 /** Undo claude-made changes: inverse commands, settings back to their logged values, new empty leftovers removed. */
 function undoSteps(entry, b, run) {
-  const kept = [];
+  const kept = []; const untouched = [];
+  // A settings file that no longer parses is left exactly as it is, and named in the result.
+  const edit = (file, fn) => { try { fn(); } catch (e) { if (!/is not valid JSON/.test(e.message)) throw e; const n = `${file} (not valid JSON: left as it is; check it yourself)`; if (!untouched.includes(n)) untouched.push(n); } };
   for (const c of [...entry.commands].reverse()) {
     const inv = c[0] === 'mcp' ? ['mcp', 'remove', c[2], '--scope', entry.scope]
       : c[1] === 'install' ? ['plugin', 'uninstall', c[2], '--scope', entry.scope]
         : ['plugin', 'marketplace', 'remove', b.name.split('@')[1], '--scope', entry.scope];
     try { run('claude', inv); } catch { /* already gone */ }
   }
-  for (const s of entry.settings) {
+  for (const s of entry.settings) edit(s.file, () => {
+    if (unreadableJson(s.file)) throw new Error(`${s.file} is not valid JSON`);
     // The user's earlier value comes back, whether the setting still has ours or the uninstall removed it.
     if (s.before !== null && typeof s.after !== 'string' && [s.after, undefined].includes(getKey(s.file, s.key))) setKey(s.file, s.key, s.before);
     const top = s.key.split('.')[0];
     if (s.topExisted === false && fs.existsSync(s.file) && isEmptyValue(readJson(s.file)?.[top])) setKey(s.file, top, null); // e.g. an empty mcpServers left by mcp remove
     if (!s.fileExisted && fs.existsSync(s.file) && emptyJson(s.file)) fs.unlinkSync(s.file);
-  }
-  for (const r of entry.restore || []) {
-    if (!fs.existsSync(r.file)) continue;
+  });
+  for (const r of entry.restore || []) edit(r.file, () => {
+    if (!fs.existsSync(r.file)) return;
+    if (unreadableJson(r.file)) throw new Error(`${r.file} is not valid JSON`);
     const now = getKey(r.file, r.key);
     if (JSON.stringify(now ?? null) !== JSON.stringify(r.before)) setKey(r.file, r.key, r.before);
-  }
+  });
   // A plugin's own cache folder, created by this install, is left behind by the uninstall (marked .orphaned_at).
   if (b.name?.includes('@')) {
     const [plugin, mkt] = b.name.split('@');
@@ -513,7 +530,7 @@ function undoSteps(entry, b, run) {
       if (st.isDirectory()) { if (!fs.readdirSync(p).length) fs.rmdirSync(p); else kept.push(p); } else if (emptyJson(p) || !st.size) fs.unlinkSync(p); else kept.push(p);
     } catch { /* already gone */ }
   }
-  return kept.filter((p) => fs.existsSync(p));
+  return [...kept.filter((p) => fs.existsSync(p)), ...untouched];
 }
 
 export async function undoInstall({ name, dataDir, run = defaultRun }) {
