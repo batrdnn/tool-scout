@@ -25,6 +25,7 @@
 //   scout.mjs build --start --form F --name N          makes drafts/N/ in the data folder for Claude's draft
 //   scout.mjs build --form F --name N --from DIR [--scope user|project] [--source owner/repo] --plan
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
+//   scout.mjs build --confirm-hook <planId>            a hook's second, separate confirmation (after --confirm)
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
 //                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
@@ -298,9 +299,10 @@ async function main() {
         console.log(opts.json ? JSON.stringify(rec, null, 2) : formatBuildPlan(rec, { home }));
         break;
       }
-      const id = str('confirm');
+      const id = str('confirm') || str('confirm-hook');
       if (!id) throw new Error('usage: build --start --form F --name N, then build --form F --name N --from DIR --plan, then build --confirm <planId>');
-      const res = await confirmBuild({ ...ctx, client: client(), id });
+      const res = await confirmBuild({ ...ctx, client: client(), id, hook: !!str('confirm-hook') });
+      if (res.pending === 'hook' && !opts.json) { console.log(`Not built yet: ${res.reason.replace('build --confirm-hook', 'scout.mjs build --confirm-hook')}`); break; }
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
       if (!res.ok) { console.log(`Not built: ${res.reason}`); process.exitCode = 1; break; }
       const e = res.entry;

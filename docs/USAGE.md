@@ -21,6 +21,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `build --start --form F --name N` | makes `drafts/N/` in the data folder and says which files form F needs (skill, command, subagent, hook, memory) |
 | `build --form F --name N --from DIR [--scope user\|project] [--source owner/repo] --plan` | writes nothing: checks Claude's draft and prints the plan (files and where they go, the trust scan, any source repo's license) and its ID, valid for 15 minutes |
 | `build --confirm <planId>` | writes exactly that plan, logged like an install |
+| `build --confirm-hook <planId>` | a hook's second, separate confirmation: `--confirm` alone only records the first yes and writes nothing |
 | `undo <name>` | removes exactly what an install logged and restores the logged settings |
 | `installed [--json]` | what Tool Scout installed and hasn't undone |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
