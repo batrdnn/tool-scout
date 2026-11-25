@@ -32,7 +32,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
 | `include-project <name\|path> \| --all` | undo |
 | `rate <owner/repo> useful\|not\|clear` | was a shown pick useful? (local `ratings.json`) |
-| `me [--json] [--card [out.svg]]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG; see [Your Claude Code animal](#your-claude-code-animal) |
+| `me [--json] [--card [out.svg]] [--open]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG, `--open` then opens it; see [Your Claude Code animal](#your-claude-code-animal) |
 | `stats [--share] [--json]` | share of rated picks that were useful, and the data folder; `--share` prints the only text a tester is asked to share |
 
 Options:
@@ -283,6 +283,16 @@ and prints the full path) (no scripts, fonts or links)
 with the animal, its title and 3 general stats: sessions, top language and top topic. The language
 and topic are shown only when they are names from Tool Scout's fixed vocabulary, so a hand-edited
 profile can't put other text on it. A test fails if any other profile string appears on the card.
+
+**Pixel art.** Each animal is a 16×16 sprite stored in `scripts/lib/sprites.mjs` (no images, no
+dependencies). A color terminal draws it with half-block characters (24-bit color when `COLORTERM` allows it,
+else 256 colors). Plain output (`--plain`, pipes, Claude Code) and `NO_COLOR` draw it in two tones plus an
+accent (█, ▓ and blank) with no escape codes; an ASCII-only terminal keeps the old ASCII art. The SVG card
+draws the same sprite as crisp pixel squares.
+
+**Opening the card.** `me --card out.svg --open` opens the saved card with the system opener (`open` on macOS,
+`xdg-open` on Linux) so you see the full-color version; if there is no opener, it is skipped without a message.
+The `/tool-scout:me` skill saves the card in the plugin's data folder and opens it this way.
 
 ## Eval setup
 

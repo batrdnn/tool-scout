@@ -74,14 +74,14 @@ test('scout: nothing is installed without a yes to a plan, and there is a text f
   assert.match(SCOUT_SEC, /1 useful, 2 not, 3 useful/, 'the one-line rating fallback stays');
 });
 
-test('me: one question with "See recommendations" and "Save my card", mapped to existing actions', () => {
+test('me: one question with "See recommendations" and "Not now" (the card is already saved and opened)', () => {
   assert.match(ME_SEC, /AskUserQuestion/);
   const by = Object.fromEntries(options(ME_RAW).map((o) => [o.label, o.does]));
-  assert.deepEqual(Object.keys(by), ['See recommendations', 'Save my card']);
+  assert.deepEqual(Object.keys(by), ['See recommendations', 'Not now']);
   assert.match(by['See recommendations'], /\/tool-scout:scout/);
-  assert.match(by['Save my card'], /Shareable card/);
+  assert.match(by['Not now'], /nothing more/i);
   assert.match(ME, /^## Shareable card$/m);
-  assert.match(ME, /scout\.mjs" me --card --plain/);
+  assert.match(ME, /scout\.mjs" me --card \S+ --plain/);
   assert.match(ME_SEC, /without (?:the )?AskUserQuestion|AskUserQuestion isn't available/i);
   assert.ok(!/\b(?:npm|pip|brew) install\b|\/plugin install|git clone/.test(ME_SEC));
 });

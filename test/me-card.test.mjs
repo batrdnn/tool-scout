@@ -62,7 +62,7 @@ test('the card shows the animal, its title and 3 general stats: sessions, top la
   assert.match(svg, />TypeScript</);
   assert.match(svg, />frontend</);
   assert.match(svg, /last 30 days/i);
-  for (const line of ANIMALS.Beaver.art) assert.ok(svg.includes(line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')), 'art line missing');
+  assert.match(svg, /<g shape-rendering="crispEdges">/); // the sprite, as pixel squares (v0.11.2)
   // Self-contained, no dependencies: no scripts, links, images, fonts or styles from elsewhere.
   assert.doesNotMatch(svg, /<script|<image|<foreignObject|href=|url\(|@import|on[a-z]+=/i);
 });
@@ -152,9 +152,9 @@ test('CLI: --card with no path saves ./tool-scout-me.svg in the current folder a
   assert.ok(fs.existsSync(want));
 });
 
-test('the me skill makes the card with plain --card and tells the user the printed path', () => {
+test('the me skill saves the card in the data folder (v0.11.2: and opens it) and tells the user the printed path', () => {
   const skill = fs.readFileSync(new URL('../skills/me/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skill, /scout\.mjs" me --card (--plain )?--data/); // no path after --card
+  assert.match(skill, /scout\.mjs" me --plain --card "\$\{CLAUDE_PLUGIN_DATA\}\/tool-scout-me\.svg" --open --data/);
   assert.match(skill, /tool-scout-me\.svg/);
   assert.match(skill, /full path/i);
 });

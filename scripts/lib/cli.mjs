@@ -33,7 +33,8 @@
 //   scout.mjs kickoff --rematch | --summary    match the saved (corrected) needs again | what was installed since, with undo
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
-//                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
+//                                              --card writes a shareable SVG (default ./tool-scout-me.svg);
+//                                              --open also opens it (macOS open, Linux xdg-open)
 //
 // Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
 //         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
@@ -62,6 +63,7 @@ import { formatProfile, formatAll } from './output.mjs';
 import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettyStats } from './pretty.mjs';
 import { detectStyle, painter } from './term.mjs';
 import { supportsTruecolor } from './sprites.mjs';
+import { openFile } from './open.mjs';
 import { matchCollections } from './effort.mjs';
 import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
@@ -69,7 +71,7 @@ import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './buil
 import { runKickoff, formatKickoff, kickoffSummary } from './kickoff.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json', 'plan', 'start', 'replace', 'rematch', 'summary']);
+const BOOLEAN = new Set(['plain', 'json', 'open', 'plan', 'start', 'replace', 'rematch', 'summary']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -229,7 +231,7 @@ async function main() {
       if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
       const r = whoAmI(p);
       const card = typeof opts.card === 'string' ? path.resolve(opts.card) : opts.card ? path.resolve('tool-scout-me.svg') : null; // no path: ./tool-scout-me.svg
-      if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); }
+      if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); if (opts.open) openFile(card); } // --open: show the full-color card
       if (opts.json) console.log(JSON.stringify(card ? { ...r, card } : r, null, 2));
       else console.log(`${style.pretty ? prettyMe(r, P) : formatMe(r)}${card ? `\n\nCard saved to ${card} (animal, title, sessions, top language and top topic only).` : ''}`);
       break;

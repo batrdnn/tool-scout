@@ -20,8 +20,12 @@ same text without them; `--json` is for reading results.
 1. Run:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --plain --data "${CLAUDE_PLUGIN_DATA}"
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --plain --card "${CLAUDE_PLUGIN_DATA}/tool-scout-me.svg" --open --data "${CLAUDE_PLUGIN_DATA}"
    ```
+
+   This also saves the shareable card in the plugin's data folder and opens it in the browser
+   (`open` on macOS, `xdg-open` on Linux; skipped without a message if neither works), so the
+   user sees the full-color version.
 
 2. Show the output exactly as printed, in a `text` code block, so the shaded pixel-art animal keeps its shape.
    Don't change the animal, the evidence lines or the counts, and don't add a different animal.
@@ -37,7 +41,7 @@ same text without them; `--json` is for reading results.
 After the animal, ask one multiple-choice question with the AskUserQuestion tool: "What next?",
 header `Next`, single choice, with these options:
 - "See recommendations": run the `/tool-scout:scout` skill and follow its steps.
-- "Save my card": make the card as in Shareable card below and give the user the full path.
+- "Not now": do nothing more.
 
 Skip this question if the user already asked for the card. If they skip it, do nothing more. A
 typed "Other" answer is a normal message. If AskUserQuestion isn't available, don't ask: the last
@@ -45,17 +49,17 @@ line already points to `/tool-scout:scout`. Neither option installs anything.
 
 ## Shareable card
 
-When the user asks for a card, image or something to share, add `--card`. With no path it saves
-`tool-scout-me.svg` in the current folder; if the user names a path, put it right after `--card`.
+The command above has already saved the card and opened it in the browser. Tell the user where it
+was saved (the script prints "Card saved to <full path>": give that full path) and what is on it:
+the animal, its title, the session count, the top language and the top topic. Nothing else: no
+project, library or repo names, paths or prompt text. Don't add anything to the file yourself.
+
+If the user wants the card somewhere else, or asks for it without opening it, run it again with
+`--card <path>` and without `--open`:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card --plain --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card ~/Desktop/tool-scout-me.svg --plain --data "${CLAUDE_PLUGIN_DATA}"
 ```
-
-The script prints "Card saved to <full path>": give the user that full path, so they can find it.
-Tell them where it was saved and what is on it: the animal, its title, the session count, the
-top language and the top topic. Nothing else: no project, library or repo names, paths or
-prompt text. Don't add anything to the file yourself.
 
 ## If the script fails
 
