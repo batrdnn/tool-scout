@@ -94,6 +94,8 @@ function validate(n) {
     x.impact = Number.isFinite(x.impact) ? x.impact : x.lines.length;
   }
   n.conventions = Array.isArray(n.conventions) ? n.conventions.map(String) : [];
+  if (n.rejects != null && !Array.isArray(n.rejects)) throw new Error('rejects in the needs file must be a list of owner/repo names');
+  n.rejects = (n.rejects || []).map(String);
 }
 
 /** The profile one need stands for: only its topic, its plan words and its libraries. */
@@ -117,7 +119,8 @@ const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || [
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
 export async function buildToolkit(n, catalog, { home, project = null, dataDir, now = Date.now(), platform = process.platform, scan = null } = {}) {
   const installed = detectInstalled(home, project || home);
-  const exclude = dataDir ? dismissedSet(dataDir) : new Set();
+  // Repos Claude judged a weak fit (the scout skill's steps 2-4) are never offered, whatever their rank.
+  const exclude = new Set([...(dataDir ? dismissedSet(dataDir) : []), ...(n.rejects || []).map((r) => String(r).toLowerCase())]);
   const used = new Set();
   const name = slug(project ? path.basename(project) : 'project');
   const libsHere = n.stack?.libraries || [];

@@ -52,14 +52,25 @@ Below, `…` stands for running the bundled script as in the Final summary block
    or add the convention's line to `conventions`. Topics must be from the shared list (the error
    names them). Then match again: `… kickoff --rematch --json`. Don't rematch if nothing changed.
 
-4. **Present the toolkit**, at most 5 items, in the order given (by impact). For each:
+4. **Judge every match.** Before showing anything, read the `/tool-scout:scout` skill's steps 2-4
+   (the shortlist filtering) and apply those rules to every `install` and `build` item that has a
+   repo: a keyword coincidence, a consumer app, a duplicate of something installed, a repo for
+   another OS, risky tooling the plan doesn't call for, a high trust flag, or simply a tool that
+   doesn't do what the plan's lines ask. Read the repo's description against the plan's lines, as
+   the scout does. If you would call a match weak, write its `owner/repo` into a `rejects` list in
+   `needsFile` (with the Edit tool) and run `… kickoff --rematch --json`: the script then offers
+   the next fit, or "nothing needed", or a build proposal. Repeat until you would stand behind
+   every item. Never show an item you yourself call weak, and never show one with a caveat like
+   "probably not useful".
+
+5. **Present the toolkit**, at most 5 items, in the order given (by impact). For each:
    **N. what** (Install `owner/repo`, Build your own `<form>`, CLAUDE.md note, or Nothing needed):
    its `reason` line, which ties it to the plan. For an install, add the kind, ★ stars, `trust`
    tier and `effort` label when present; for a build with a `source`, say the idea comes from that
    repo. Say "nothing needed: Claude handles this without a tool" for `nothing` items as given.
    If `omitted` is above 0, say how many smaller needs were left out. Relay every entry in `notes`.
 
-5. **Selection.** With AskUserQuestion, ask "Which of these should I set up?", header `Toolkit`,
+6. **Selection.** With AskUserQuestion, ask "Which of these should I set up?", header `Toolkit`,
    `multiSelect: true`, one option per item, labeled like "1. Install owner/repo".
    "Nothing needed" items are not options. A question takes at most 4 options: with 5 items, ask about items 1 to 4,
    then item 5 in a second question in the same call. If the user picks nothing, stop: say they can
