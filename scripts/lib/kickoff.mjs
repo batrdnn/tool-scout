@@ -33,6 +33,7 @@ const CONVENTION_HEADING = /\b(?:conventions?|rules|guidelines|style|standards)\
 // A match is good enough when the repo says it is about the need (in its name or first clause), or
 // is built around one of the project's own libraries.
 const GOOD_STRENGTH = EVIDENCE.headWeak; // the taxonomy's own bar for a head mention, even of a weak keyword
+const HEAVY_WEIGHT = 0.6; // a heavy setup ranks below a light one of the same impact
 const ACTION_WEIGHT = { install: 1, builtin: 0.9, build: 0.9, nothing: 0.4 };
 const FORM_OF = { hook: 'hook', subagent: 'subagent', 'slash command': 'command', 'CLAUDE.md note': 'memory', skill: 'skill', 'skill with a script': 'skill' };
 
@@ -132,6 +133,20 @@ const goodEnough = (rec, repo, topic) => {
   const ev = repoTopicEvidence(repo)[topic];
   return !!ev && ev.inHead && ev.strength >= GOOD_STRENGTH;
 };
+const SERVICE_WORDS = { docker: /docker|container/i, database: /postgres|mysql|sqlite|mongo|redis|database|\bdb\b|\bsql\b/i };
+const CREDENTIAL_WORDS = /\b(?:api[ -]?keys?|tokens?|credentials?|secrets?|passwords?)\b/i;
+const MAX_FREE_CREDENTIALS = 3;
+/** What makes a match heavy to set up: a local service, or more than 3 credentials, that the plan doesn't mention. */
+export function heavySetup(rec, planText) {
+  const nd = rec.effort?.needs;
+  if (!nd) return null;
+  const parts = [];
+  const svc = (nd.services || []).filter((x) => !(SERVICE_WORDS[x] || new RegExp(x, 'i')).test(planText));
+  if (svc.length) parts.push(`needs ${svc.join(' and ')} running`);
+  const cc = nd.credentialCount ?? nd.credentials?.length ?? 0;
+  if (cc > MAX_FREE_CREDENTIALS && !CREDENTIAL_WORDS.test(planText)) parts.push(`${cc} credentials to set`);
+  return parts.length ? parts.join(', ') : null;
+}
 const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
 
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
@@ -142,6 +157,7 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
   const used = new Set();
   const name = slug(project ? path.basename(project) : 'project');
   const libsHere = n.stack?.libraries || [];
+  const planText = n.plan?.text || n.needs.flatMap((x) => x.lines).join('\n');
   const items = [];
   for (const need of n.needs.filter((x) => x.lines.length)) {
     const ex = `"${clip(need.lines[0])}"`;
@@ -158,13 +174,23 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
           reason: `${said}; ${cand.name} in Anthropic's official marketplace is ${cand.what}.` });
       continue;
     }
-    const recs = recommend(needProfile(need, installed), catalog, { top: 3, exclude, now, platform });
-    let match = null;
-    for (const r of recs) {
-      if (used.has(r.name) || r.thinEvidence || !goodEnough(r, catalog.repos[r.name], need.topic)) continue;
-      if (scan) await scan([r]);
-      if (flaggedHigh(r)) continue;
-      match = r; break;
+    // The best good-enough match; a heavy one (see heavySetup) only when no lighter one fits.
+    const pick = async (skip) => {
+      let match = null; let heavy = null;
+      for (const r of recommend(needProfile(need, installed), catalog, { top: 3, exclude: skip, now, platform })) {
+        if (used.has(r.name) || r.thinEvidence || !goodEnough(r, catalog.repos[r.name], need.topic)) continue;
+        if (scan) await scan([r]);
+        if (flaggedHigh(r)) continue;
+        const h = heavySetup(r, planText);
+        if (!h) return { match: r, heavy: null };
+        if (!match) { match = r; heavy = h; }
+      }
+      return { match, heavy };
+    };
+    let { match, heavy } = await pick(exclude);
+    if (match && heavy) { // the ranking keeps one repo per job: look for a lighter one past it
+      const other = await pick(new Set([...exclude, match.name.toLowerCase()]));
+      if (other.match && !other.heavy) ({ match, heavy } = other);
     }
     const uses = need.libraries.length ? `, and you use ${need.libraries.join(', ')} in this project` : '';
     let item;
@@ -178,8 +204,8 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
           reason: `${said}${uses}; ${match.name} fits, and it is small enough to build your own (${form}${match.effort.buildTime ? `, ${match.effort.buildTime}` : ''}).` };
       } else {
         item = { action: 'install', repo: match.name, kind: match.kind, scope: 'project', next: `install ${match.name} --scope project --plan`,
-          ...(match.effort ? { effort: match.effort.adviceLabel } : {}), trust: match.trust?.tier,
-          reason: `${said}${uses}; ${match.name} is built for that (${match.kind}, ★ ${match.stars}).` };
+          ...(match.effort ? { effort: match.effort.adviceLabel } : {}), trust: match.trust?.tier, ...(heavy ? { heavy } : {}),
+          reason: `${said}${uses}; ${match.name} is built for that (${match.kind}, ★ ${match.stars}).${heavy ? ` Heavy setup: ${heavy}.` : ''}` };
       }
     } else if (!NATIVE.has(need.topic) && need.lines.length >= 2) {
       const nm = `${name}-${need.topic}`;
@@ -188,7 +214,7 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
     } else {
       item = { action: 'nothing', reason: `${said}: nothing needed: Claude handles this without a tool.` };
     }
-    items.push({ topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[item.action]).toFixed(2)), ...item });
+    items.push({ topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[item.action] * (item.heavy ? HEAVY_WEIGHT : 1)).toFixed(2)), ...item });
   }
   items.sort((a, b) => b.impact - a.impact);
   const kept = items.slice(0, MAX_ITEMS - 1);

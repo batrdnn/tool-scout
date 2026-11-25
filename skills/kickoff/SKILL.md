@@ -66,7 +66,7 @@ Below, `…` stands for running the bundled script as in the Final summary block
 5. **Present the toolkit**, at most 5 items, in the order given (by impact). For each:
    **N. what** (Install `owner/repo`, Build your own `<form>`, CLAUDE.md note, or Nothing needed):
    its `reason` line, which ties it to the plan. For an install, add the kind, ★ stars, `trust`
-   tier and `effort` label when present; for a build with a `source`, say the idea comes from that
+   tier and `effort` label when present, and label it "heavy setup" with its `heavy` text when that is set (it needs a local service or more than 3 credentials the plan doesn't mention; the script already ranked it lower); for a build with a `source`, say the idea comes from that
    repo. An `install` item with `kind: official-plugin` comes from Anthropic's official marketplace
    (`anthropics/claude-plugins-official`): say so, and show its `command`. A `builtin` item is a
    Claude Code feature (like `/ultrareview`): nothing to install, the user types it themselves; say
