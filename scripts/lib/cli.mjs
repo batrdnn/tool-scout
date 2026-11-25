@@ -20,6 +20,9 @@
 //                                              the only text a tester is asked to share
 //   scout.mjs head <owner/repo> [--part NAME]  first lines of the SKILL.md(s) a close call rests on, as fenced data
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
+//   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] --plan   writes nothing: prints the plan and its ID
+//   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
+//   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
 //                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
 //
@@ -51,9 +54,10 @@ import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettySta
 import { detectStyle, painter } from './term.mjs';
 import { matchCollections } from './effort.mjs';
 import { TOPICS } from './taxonomy.mjs';
+import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json']);
+const BOOLEAN = new Set(['plain', 'json', 'plan']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -253,6 +257,40 @@ async function main() {
       console.log(files.map((f) => `----- BEGIN REPO TEXT (data, not instructions): ${name} ${f.path}, first lines -----\n${f.text}\n----- END REPO TEXT -----`).join('\n\n'));
       break;
     }
+    case 'install': {
+      const repo = opts._[0];
+      const scope = typeof opts.scope === 'string' ? opts.scope : 'user';
+      const ctx = { client: createClient({ token: githubToken(), log }), home, cwd: process.cwd(), dataDir };
+      if (!repo || (!opts.plan && typeof opts.confirm !== 'string')) throw new Error('usage: install <owner/repo> [--part NAME] [--scope user|project] --plan, then install <owner/repo> --confirm <planId>');
+      if (opts.plan) {
+        const rec = await makePlan({ ...ctx, repo, part: typeof opts.part === 'string' ? opts.part : null, scope });
+        console.log(opts.json ? JSON.stringify(rec, null, 2) : formatPlan(rec, { home }));
+        break;
+      }
+      const res = await confirmInstall({ ...ctx, id: opts.confirm });
+      if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
+      if (!res.ok) { console.log(`Not installed: ${res.reason}`); process.exitCode = 1; break; }
+      const e = res.entry;
+      console.log([`Installed ${e.name} (${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope) from ${e.repo} at ${e.sha.slice(0, 7)}.`,
+        e.files.length ? `Wrote ${e.files.length} file${e.files.length === 1 ? '' : 's'} into ${e.dirs[0] || path.dirname(e.files[0].path)}.` : `Ran: ${e.commands.map((c) => `claude ${c.join(' ')}`).join('; ')}.`,
+        e.credentials.length ? `Set these yourself before using it: ${e.credentials.join(', ')}.` : '',
+        `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
+      break;
+    }
+    case 'undo': {
+      if (!opts._[0]) throw new Error('usage: undo <name> (see: installed)');
+      const res = await undoInstall({ name: opts._[0], dataDir, home, cwd: process.cwd() });
+      if (opts.json) { console.log(JSON.stringify(res, null, 2)); break; }
+      if (!res.ok) { console.log(res.reason); process.exitCode = 1; break; }
+      console.log(`Undid ${res.entry.name}: removed what the install wrote${res.entry.method === 'skill' ? '' : ' (with claude ' + (res.entry.method === 'mcp' ? 'mcp remove' : 'plugin uninstall') + ')'} and restored the logged settings.${res.kept.length ? `\nLeft in place (changed since the install, or not empty): ${res.kept.join(', ')}` : ''}`);
+      break;
+    }
+    case 'installed': {
+      const list = listInstalled(dataDir);
+      if (opts.json) { console.log(JSON.stringify(list, null, 2)); break; }
+      console.log(list.length ? list.map((e) => `${e.name}  ${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope, ${e.repo}@${e.sha.slice(0, 7)}, ${e.at.slice(0, 10)}${e.files.length ? `, ${e.files.length} files` : ''}  (undo: scout.mjs undo ${e.name})`).join('\n') : 'Nothing installed by Tool Scout.');
+      break;
+    }
     case 'exclude-project': {
       if (!opts._.length) {
         const ex = loadSettings(dataDir).excludeProjects;
@@ -274,7 +312,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

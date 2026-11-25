@@ -21,7 +21,7 @@ function coverageOf(files, kind, installCommands) {
   return { files, line: `Checked ${files.length} file${files.length === 1 ? '' : 's'}: ${files.join(', ') || 'none'}`, notes };
 }
 
-export async function checkRepo(client, input, { now = Date.now() } = {}) {
+export async function checkRepo(client, input, { now = Date.now(), ref = null } = {}) {
   const name = normalizeRepo(input);
   if (!name) throw new Error(`not a GitHub repo: ${input} (expected owner/repo or a github.com URL)`);
   const res = await client.request(`https://api.github.com/repos/${name}`);
@@ -29,7 +29,7 @@ export async function checkRepo(client, input, { now = Date.now() } = {}) {
   const repo = slim(res.data);
   const kind = classify(repo);
   const meta = trust(repo, now);
-  const scan = await scanRepo(client, repo.full_name, { kind, description: repo.description });
+  const scan = await scanRepo(client, repo.full_name, { kind, description: repo.description, ref });
   const flags = scan.flags
     .map(({ excerpt, ...f }) => (NO_TEXT.has(f.id) || !excerpt ? f : { ...f, excerpt }))
     .sort((a, b) => SEV[b.severity] - SEV[a.severity]);

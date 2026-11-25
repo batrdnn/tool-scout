@@ -198,16 +198,18 @@ async function fetchRaw(client, url) {
   return r.status === 200 && typeof r.data === 'string' ? r.data : null;
 }
 
+/** meta: { kind, description, ref } — ref pins every read to one commit (default: HEAD). */
 export async function scanRepo(client, fullName, meta = {}) {
   const api = `https://api.github.com/repos/${fullName}`;
-  const readme = await fetchRaw(client, `${api}/readme`);
-  const treeRes = await client.request(`${api}/git/trees/HEAD?recursive=1`);
+  const at = meta.ref ? `?ref=${encodeURIComponent(meta.ref)}` : '';
+  const readme = await fetchRaw(client, `${api}/readme${at}`);
+  const treeRes = await client.request(`${api}/git/trees/${meta.ref ? encodeURIComponent(meta.ref) : 'HEAD'}?recursive=1`);
   const files = pickFiles(treeRes.data?.tree);
   const explained = explainedHostsOf(readme);
   const flags = readme ? scanText(readme, { file: 'README', role: 'readme', explainedHosts: explained, repo: fullName }) : [];
   const scanned = readme ? ['README'] : [];
   const texts = {}; // what was fetched, reused by the effort estimate
-  const contents = (p) => fetchRaw(client, `${api}/contents/${p.split('/').map(encodeURIComponent).join('/')}`);
+  const contents = (p) => fetchRaw(client, `${api}/contents/${p.split('/').map(encodeURIComponent).join('/')}${at}`);
   for (const f of files) {
     const text = await contents(f.path);
     if (text == null) continue;
@@ -219,7 +221,7 @@ export async function scanRepo(client, fullName, meta = {}) {
   // A marketplace manifest says how many plugins the repo offers (for the install hint only).
   let marketplacePlugins = 0;
   if ((treeRes.data?.tree || []).some((t) => t.path === '.claude-plugin/marketplace.json')) {
-    try { marketplacePlugins = (JSON.parse(await fetchRaw(client, `${api}/contents/.claude-plugin/marketplace.json`) || '{}').plugins || []).length; } catch { /* malformed: ignore */ }
+    try { marketplacePlugins = (JSON.parse(await contents('.claude-plugin/marketplace.json') || '{}').plugins || []).length; } catch { /* malformed: ignore */ }
   }
   const hint = extractInstallHint(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind }, { marketplacePlugins });
   // Build-or-install facts from the same tree, plus the few small manifests not fetched above.

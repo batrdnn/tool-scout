@@ -16,6 +16,10 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `check <owner/repo \| URL> [--json]` | trust check of one repo before installing |
 | `audit [--json]` | local scan of installed skills, plugins and MCP server commands; no network |
 | `head <owner/repo> [--part NAME] [--json]` | the first 40 lines of the SKILL.md(s) a close call rests on, as fenced data, from the scan's cache; refuses repos the content scan flagged for injection-type content. The skills use it to decide Build your own vs Install |
+| `install <owner/repo> [--part NAME] [--scope user\|project] --plan` | writes nothing: prints the plan (files, settings, commands, scope, pinned commit, check verdict and coverage, credentials to set yourself) and its ID, valid for 15 minutes |
+| `install <owner/repo> --confirm <planId>` | does exactly that plan, and only if nothing changed (re-checked at the pinned commit) and the verdict isn't "do not install"; logged in the data folder |
+| `undo <name>` | removes exactly what an install logged and restores the logged settings |
+| `installed [--json]` | what Tool Scout installed and hasn't undone |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
 | `undismiss <owner/repo> \| --all` | bring it back |
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
