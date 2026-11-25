@@ -120,7 +120,10 @@ says "do not install":
    If it says "Blocked", explain why and stop: don't ask.
 3. Ask one yes/no question with AskUserQuestion for that one item: "Install <name> as planned?",
    with the options "Yes, install it" and "No". One item per question, never several in one question or
-   in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer.
+   in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer. For a
+   plugin, list every hook under "Hooks:" (event, matcher, what it runs) right next to the
+   question, in its text or the "Yes, install it" description, so they are seen before answering;
+   if the plan says its hooks could not be listed, say that there instead.
 4. Only after "Yes": `… install <owner/repo> --confirm <planId> --plain`, with the plan ID from
    step 1. Never pass --confirm without that yes for that exact plan ID. If it says the plan
    expired or the repo changed, make a new plan and ask again.

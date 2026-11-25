@@ -483,3 +483,46 @@ test('registry lookups go to npm or PyPI with the package name only, never with 
   assert.equal(await latestVersion('npm', 'x', 'latest', { fetchImpl: bad }), null, 'a version that is not a version is refused');
   assert.equal(await latestVersion('npm', 'x', 'latest', { fetchImpl: async () => { throw new Error('offline'); } }), null);
 });
+
+// ---- v0.9.1: plugin plans list every hook -------------------------------------------------------
+
+const HOOKS = JSON.stringify({ description: 'guard', hooks: {
+  PreToolUse: [{ matcher: 'Bash|Write', hooks: [{ type: 'command', command: '${CLAUDE_PLUGIN_ROOT}/hooks/check.sh​ --strict' }] }],
+  SessionStart: [{ hooks: [{ type: 'command', command: 'node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js' }, { type: 'prompt', prompt: 'Say hi to the user.' }] }],
+} });
+const EXTRA = JSON.stringify({ hooks: { Stop: [{ matcher: '', hooks: [{ type: 'command', command: 'echo bye' }] }] } });
+const hookRepo = (files, mk) => setup({ patch: (R) => ({ 'plugin-repo': { ...R['plugin-repo'], files: { ...R['plugin-repo'].files, ...(mk ? { '.claude-plugin/marketplace.json': JSON.stringify(mk) } : {}), ...files } } }) });
+
+test('plugin plans list each hook: event, matcher and what it runs', async () => {
+  const { ctx } = hookRepo({ 'guard/hooks/hooks.json': HOOKS, 'guard/.claude-plugin/plugin.json': JSON.stringify({ name: 'guard', hooks: './extra-hooks.json' }), 'guard/extra-hooks.json': EXTRA });
+  const p = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.deepEqual(p.body.hooks, [
+    { event: 'PreToolUse', matcher: 'Bash|Write', type: 'command', runs: '${CLAUDE_PLUGIN_ROOT}/hooks/check.sh --strict' },
+    { event: 'SessionStart', matcher: null, type: 'command', runs: 'node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js' },
+    { event: 'SessionStart', matcher: null, type: 'prompt', runs: 'Say hi to the user.' },
+    { event: 'Stop', matcher: null, type: 'command', runs: 'echo bye' },
+  ]);
+  const text = formatPlan(p);
+  assert.match(text, /^Hooks:     4 hooks run automatically on Claude Code events$/m);
+  for (const l of ['PreToolUse [Bash|Write]: runs ${CLAUDE_PLUGIN_ROOT}/hooks/check.sh --strict', 'SessionStart (every time): runs node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js',
+    'SessionStart (every time): asks the model "Say hi to the user."', 'Stop (every time): runs echo bye']) assert.ok(text.includes(`           ${l}`), `${l}\n${text}`);
+  assert.ok(text.indexOf('Hooks:') < text.indexOf('To install exactly this'), 'listed right before the yes/no');
+});
+
+test('a plugin without hooks says none; one whose files are elsewhere says its hooks could not be listed', async () => {
+  const none = await makePlan({ ...setup().ctx(), repo: 'o/plugin-repo' });
+  assert.deepEqual(none.body.hooks, []);
+  assert.match(formatPlan(none), /^Hooks:     none$/m);
+  const { ctx } = hookRepo({}, { name: 'o-tools', plugins: [{ name: 'guard', source: { source: 'github', repo: 'x/elsewhere' } }] });
+  const p = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.equal(p.body.hooks, null);
+  assert.match(formatPlan(p), /^Hooks:     could not be listed: the plugin's files are not in this repo/m);
+});
+
+test('skills: the plan\'s hooks (event, matcher, what it runs) are shown next to the yes/no question', () => {
+  for (const name of ['scout', 'check']) {
+    const md = fs.readFileSync(new URL(`../skills/${name}/SKILL.md`, import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    const sec = md.slice(md.indexOf('## Installing, with consent'));
+    assert.match(sec, /every hook under "Hooks:" \(event, matcher, what it runs\)[^.]*next to the (?:yes\/no )?question/, name);
+  }
+});
