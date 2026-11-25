@@ -101,3 +101,16 @@ test('check in a terminal shows a collection by its parts, not its total', async
   assert.match(text, /Parts\s+4 skills; typical ~80 lines of Markdown; largest big, ~5,000 lines of Python/);
   assert.doesNotMatch(text, /Size\s/);
 });
+
+test('regression (Skill_Seekers): skills shipped by a big tool are not a collection; the code outside them decides', () => {
+  const tree = [...Array.from({ length: 10 }, (_, i) => blob(`configs/s${i}/SKILL.md`, 80 * M)), ...Array.from({ length: 40 }, (_, i) => blob(`src/tool/m${i}.py`, (500 + i) * L))];
+  const e = est({ tree });
+  assert.notEqual(e.type, 'collection');
+  assert.equal(e.advice, 'install');
+  // …while code that lives inside the parts (plugins/<x>/skills/…, src/<server>/) keeps it a collection
+  const inside = est({ tree: ['a', 'b', 'c'].flatMap((n, i) => [blob(`plugins/${n}/.claude-plugin/plugin.json`), blob(`plugins/${n}/agents/${n}.md`, 50 * M), blob(`plugins/${n}/skills/x/run.py`, (900 + i) * L)]) });
+  assert.equal(inside.type, 'collection');
+  // …and so does repo tooling at the root (tools/, scripts/: generators and validators, wshobson/agents)
+  const tooling = est({ tree: [...Array.from({ length: 12 }, (_, i) => blob(`agents/a${i}.md`, (50 + i) * M)), ...Array.from({ length: 20 }, (_, i) => blob(`tools/gen${i}.py`, (300 + i) * L))] });
+  assert.equal(tooling.type, 'collection');
+});

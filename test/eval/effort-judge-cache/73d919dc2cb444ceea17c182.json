@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:01:11.256Z",
+  "advice": "build",
+  "reason": "(skill, a few hours for the part you need): The excerpt covers common prompt-engineering practice you already know: confirm which AI tool the prompt is for, prefer role assignment and few-shot examples, keep clarifying questions to a few, and output a clean prompt ready to paste."
+}

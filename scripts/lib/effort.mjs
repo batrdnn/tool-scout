@@ -217,6 +217,14 @@ function collectionOf(blobs, codeBlobs, mdBlobs, kind) {
   };
   const [unit, list] = Object.entries(units).sort((a, b) => b[1].length - a[1].length)[0];
   if (list.length < THRESHOLDS.COLLECTION_MIN) return null;
+  // Only a collection when the code lives in its parts (any skill, plugin or server folder). Skills
+  // shipped by a big tool (its code elsewhere) make an app, judged as a whole.
+  const partDirs = [...units.skill, ...units.plugin, ...units.server].map((p) => p.prefix).filter(Boolean);
+  const codeTotal = codeBlobs.reduce((a, t) => a + (t.size || 0), 0);
+  // Root-level repo tooling (generators, validators) maintains the collection; it isn't a product beside it.
+  const TOOLING = /^(?:tools|scripts|bin|hack|ci|dev|devtools|maintenance|utils)\//i;
+  const outside = codeBlobs.filter((t) => !partDirs.some((d) => t.path.startsWith(d)) && !TOOLING.test(t.path)).reduce((a, t) => a + (t.size || 0), 0);
+  if (outside / BYTES_PER_LINE > THRESHOLDS.SMALL_LOC && outside > codeTotal / 2) return null;
   const sum = (arr, part) => arr.filter((t) => (part.file ? t.path === part.file : t.path.startsWith(part.prefix))).reduce((a, t) => a + (t.size || 0), 0);
   const parts = list.map((p) => ({
     name: p.name, loc: Math.round(sum(codeBlobs, p) / BYTES_PER_LINE), instructionLines: Math.round(sum(mdBlobs, p) / BYTES_PER_MD_LINE),

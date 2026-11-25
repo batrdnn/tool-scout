@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:02:22.774Z",
+  "advice": "build",
+  "reason": "(skill, 1–2 hours): standard red-green-refactor TDD workflow, which is well-known general knowledge rather than specialized expertise."
+}

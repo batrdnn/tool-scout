@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:01:24.514Z",
+  "advice": "build",
+  "reason": "(hook, 2–4 hours): explaining code and auditing trade-offs uses general code-review and teaching knowledge you already have, not specialized or curated domain rules."
+}

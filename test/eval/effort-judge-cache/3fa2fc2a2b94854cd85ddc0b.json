@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:01:33.729Z",
+  "advice": "install",
+  "reason": "curated Codex CLI rules you wouldn't reliably write yourself: a current model lineup, which reasoning efforts each model supports (max/ultra limits, fallbacks), and careful permission rules for --skip-git-repo-check. Text only, low risk, check passed."
+}

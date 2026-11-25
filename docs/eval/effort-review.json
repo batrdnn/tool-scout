@@ -1,142 +1,40 @@
 {
-  "generatedAt": "2026-11-25T02:28:14.124Z",
-  "version": "0.8.0",
-  "seed": 2026,
+  "generatedAt": "2026-11-25T03:03:15.321Z",
+  "version": "0.8.1",
+  "model": "claude-opus-5-5",
+  "topics": [
+    "testing",
+    "frontend",
+    "database",
+    "git"
+  ],
   "repos": [
     {
-      "name": "sepehr071/iran-mcp",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-23T13:01:12Z",
-      "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 284,
-        "codeFiles": 2,
-        "loc": 1563,
-        "instructionLines": 9627,
-        "languages": [
-          "Python"
-        ],
-        "dependencies": null,
-        "needs": {
-          "credentials": [
-            "BALE_BOT_TOKEN",
-            "PAYPING_TOKEN",
-            "OAuth"
-          ],
-          "credentialCount": 3,
-          "apis": [
-            "BALE",
-            "PAYPING"
-          ],
-          "apiCount": 2,
-          "network": true,
-          "services": []
-        },
-        "parts": {
-          "skills": 97,
-          "hooks": false,
-          "agents": 0,
-          "commands": 0,
-          "pluginManifest": true
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the BALE API and the PAYPING API with ~1,600 lines of Python: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "rehan-remade/universal-modder",
-      "source": "seed 2026",
+      "name": "agentskills/agentskills",
+      "group": "small skill",
       "kind": "skill",
-      "pushedAt": "2026-11-25T00:39:36Z",
+      "pushedAt": "2026-11-04T19:47:27Z",
       "effort": {
-        "type": "plugin",
-        "typeLabel": "plugin with hooks or agents",
-        "files": 962,
-        "codeFiles": 29,
-        "loc": 11232,
-        "instructionLines": 140638,
+        "judgmentHeads": [
+          "README.md"
+        ],
+        "type": "app",
+        "typeLabel": "app or standalone tool",
+        "files": 142,
+        "codeFiles": 8,
+        "loc": 450,
+        "instructionLines": 374,
         "languages": [
           "Python"
         ],
-        "dependencies": 3,
+        "dependencies": 2,
         "needs": {
-          "credentials": [
-            "FAL_KEY",
-            "API key"
-          ],
-          "credentialCount": 2,
-          "apis": [
-            "FAL"
-          ],
-          "apiCount": 1,
-          "network": true,
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
           "services": []
-        },
-        "parts": {
-          "skills": 39,
-          "hooks": true,
-          "agents": 3,
-          "commands": 0,
-          "pluginManifest": true
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the FAL API with ~11,200 lines of Python: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "OpenByteInc/QuantDinger",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-22T19:38:46Z",
-      "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 1965,
-        "codeFiles": 1254,
-        "loc": 459320,
-        "instructionLines": 613,
-        "languages": [
-          "Python"
-        ],
-        "dependencies": 41,
-        "needs": {
-          "credentials": [
-            "ADANOS_API_KEY",
-            "ADMIN_PASSWORD",
-            "AGENT_MAX_CONCURRENT_JOBS_PER_TOKEN",
-            "ALPHA_VANTAGE_API_KEY",
-            "ATLASCLOUD_API_KEY",
-            "BEA_API_KEY",
-            "BLS_API_KEY",
-            "BSCSCAN_API_KEY"
-          ],
-          "credentialCount": 51,
-          "apis": [
-            "ADANOS",
-            "AGENT",
-            "ALPHA",
-            "ATLASCLOUD",
-            "BEA",
-            "BLS",
-            "BSCSCAN",
-            "COINGLASS"
-          ],
-          "apiCount": 33,
-          "network": true,
-          "services": [
-            "docker",
-            "database"
-          ]
         },
         "parts": {
           "skills": 0,
@@ -145,210 +43,115 @@
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "advice": "either",
+        "adviceLabel": "Either",
+        "buildForm": "skill with a script",
+        "buildTime": "about a day",
+        "reason": "Medium-sized (~450 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "either",
+        "form": "skill with a script",
+        "time": "about a day",
+        "reason": "Medium-sized (~450 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "by": "rules"
+      }
+    },
+    {
+      "name": "yusufkaraaslan/Skill_Seekers",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-11-16T12:58:52Z",
+      "effort": {
+        "judgmentHeads": [
+          "skills/skill-seekers/SKILL.md",
+          "distribution/claude-plugin/skills/skill-builder/SKILL.md",
+          "tests/golden/phase2/chat_empty/SKILL.md"
+        ],
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 3153,
+        "codeFiles": 377,
+        "loc": 132088,
+        "instructionLines": 3811,
+        "languages": [
+          "Python",
+          "TypeScript"
+        ],
+        "dependencies": 98,
+        "needs": {
+          "credentials": [
+            "ANTHROPIC_API_KEY",
+            "GITHUB_TOKEN",
+            "GOOGLE_API_KEY",
+            "MINIMAX_API_KEY",
+            "OPENAI_API_KEY",
+            "PINECONE_API_KEY"
+          ],
+          "credentialCount": 6,
+          "apis": [
+            "Anthropic",
+            "GitHub",
+            "Google",
+            "OpenAI",
+            "Pinecone"
+          ],
+          "apiCount": 5,
+          "network": true,
+          "services": [
+            "docker"
+          ]
+        },
+        "parts": {
+          "skills": 26,
+          "hooks": false,
+          "agents": 0,
+          "commands": 3,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
         "buildTime": null,
-        "reason": "Wraps 33 APIs (ADANOS, AGENT, ALPHA, …) with ~459,300 lines of Python: installing saves you keeping up with it."
+        "reason": "Wraps 5 APIs (Anthropic, GitHub, Google, …) with ~132,100 lines of Python and more: installing saves you keeping up with it.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Wraps 5 APIs (Anthropic, GitHub, Google, …) with ~132,100 lines of Python and more: installing saves you keeping up with it.",
+        "by": "rules"
       }
     },
     {
-      "name": "teng-lin/notebooklm-py",
-      "source": "seed 2026",
+      "name": "oil-oil/beautify-github-readme",
+      "group": "small skill",
       "kind": "skill",
-      "pushedAt": "2026-11-24T16:25:35Z",
+      "pushedAt": "2026-11-24T13:31:11Z",
       "effort": {
+        "judgmentHeads": [
+          "skills/beautify-github-readme/SKILL.md"
+        ],
         "type": "skill-scripts",
         "typeLabel": "skill with scripts",
-        "files": 2234,
-        "codeFiles": 607,
-        "loc": 221496,
-        "instructionLines": 532,
+        "files": 50,
+        "codeFiles": 2,
+        "loc": 645,
+        "instructionLines": 1363,
         "languages": [
           "Python"
         ],
-        "dependencies": 6,
-        "needs": {
-          "credentials": [
-            "CF_TUNNEL_TOKEN",
-            "NOTEBOOKLM_MCP_OAUTH_PASSWORD",
-            "NOTEBOOKLM_MCP_TOKEN",
-            "TUNNEL_TOKEN",
-            "OAuth"
-          ],
-          "credentialCount": 5,
-          "apis": [
-            "CF",
-            "NOTEBOOKLM",
-            "TUNNEL"
-          ],
-          "apiCount": 3,
-          "network": true,
-          "services": []
-        },
-        "parts": {
-          "skills": 1,
-          "hooks": false,
-          "agents": 0,
-          "commands": 0,
-          "pluginManifest": false
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps 3 APIs (CF, NOTEBOOKLM, TUNNEL) with ~221,500 lines of Python: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "onehumanbeing/esp32-iphone-agent",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-24T18:34:30Z",
-      "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 741,
-        "codeFiles": 524,
-        "loc": 125547,
-        "instructionLines": 1258,
-        "languages": [
-          "Swift",
-          "C"
-        ],
-        "dependencies": 9,
-        "needs": {
-          "credentials": [
-            "LLM_API_KEY",
-            "API key"
-          ],
-          "credentialCount": 2,
-          "apis": [
-            "LLM"
-          ],
-          "apiCount": 1,
-          "network": true,
-          "services": []
-        },
-        "parts": {
-          "skills": 5,
-          "hooks": false,
-          "agents": 0,
-          "commands": 0,
-          "pluginManifest": true
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the LLM API with ~125,500 lines of Swift and more: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "alchaincyf/huashu-design",
-      "source": "seed 2026",
-      "kind": "skill",
-      "pushedAt": "2026-11-23T06:13:20Z",
-      "effort": {
-        "type": "skill-scripts",
-        "typeLabel": "skill with scripts",
-        "files": 496,
-        "codeFiles": 35,
-        "loc": 10157,
-        "instructionLines": 16636,
-        "languages": [
-          "Python",
-          "JavaScript"
-        ],
-        "dependencies": 3,
-        "needs": {
-          "credentials": [
-            "ARK_API_KEY",
-            "DOUBAO_ACCESS_KEY",
-            "DOUBAO_TTS_API_KEY"
-          ],
-          "credentialCount": 3,
-          "apis": [
-            "ARK",
-            "DOUBAO"
-          ],
-          "apiCount": 2,
-          "network": true,
-          "services": []
-        },
-        "parts": {
-          "skills": 1,
-          "hooks": false,
-          "agents": 0,
-          "commands": 0,
-          "pluginManifest": false
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the ARK API and the DOUBAO API with ~10,200 lines of Python and more: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "getsentry/MobileBuildMCP",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-19T03:33:58Z",
-      "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 1837,
-        "codeFiles": 422,
-        "loc": 70515,
-        "instructionLines": 1883,
-        "languages": [
-          "TypeScript"
-        ],
-        "dependencies": 11,
-        "needs": {
-          "credentials": [],
-          "credentialCount": 0,
-          "apis": [],
-          "apiCount": 0,
-          "network": true,
-          "services": []
-        },
-        "parts": {
-          "skills": 13,
-          "hooks": false,
-          "agents": 0,
-          "commands": 0,
-          "pluginManifest": false
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "~70,500 lines of TypeScript: far more than you'd want to write and maintain."
-      }
-    },
-    {
-      "name": "Tthanh2k6/turbo-browser-mcp",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-24T05:44:29Z",
-      "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 133,
-        "codeFiles": 14,
-        "loc": 18149,
-        "instructionLines": 597,
-        "languages": [
-          "JavaScript"
-        ],
-        "dependencies": 1,
+        "dependencies": null,
         "needs": {
           "credentials": [],
           "credentialCount": 0,
@@ -364,76 +167,159 @@
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "~18,100 lines of JavaScript: far more than you'd want to write and maintain."
+        "advice": "either",
+        "adviceLabel": "Either",
+        "buildForm": "skill with a script",
+        "buildTime": "about a day",
+        "reason": "Medium-sized (~650 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "either",
+        "form": "skill with a script",
+        "time": "about a day",
+        "reason": "Medium-sized (~650 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "by": "rules"
       }
     },
     {
-      "name": "AhmadHassan-BTed/Jantt",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-24T15:10:22Z",
+      "name": "nidhinjs/prompt-master",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-10-22T13:26:18Z",
       "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 473,
-        "codeFiles": 255,
-        "loc": 74362,
-        "instructionLines": 30508,
-        "languages": [
-          "TypeScript"
+        "judgmentHeads": [
+          "SKILL.md"
         ],
-        "dependencies": 0,
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 5,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 1164,
+        "languages": [],
+        "dependencies": null,
         "needs": {
-          "credentials": [
-            "VITE_FIREBASE_API_KEY",
-            "API key",
-            "OAuth"
-          ],
-          "credentialCount": 3,
-          "apis": [
-            "FIREBASE"
-          ],
-          "apiCount": 1,
-          "network": true,
-          "services": [
-            "docker"
-          ]
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
         },
         "parts": {
-          "skills": 0,
+          "skills": 1,
           "hooks": false,
           "agents": 0,
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the FIREBASE API with ~74,400 lines of TypeScript: installing saves you keeping up with it."
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "a few hours for the part you need",
+        "reason": "Only instructions (~1,200 lines of Markdown), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "build",
+        "form": "skill",
+        "time": "a few hours for the part you need",
+        "reason": "The excerpt covers common prompt-engineering practice you already know: confirm which AI tool the prompt is for, prefer role assignment and few-shot examples, keep clarifying questions to a few, and output a clean prompt ready to paste.",
+        "by": "Claude",
+        "hash": "73d919dc2cb444ceea17c182"
       }
     },
     {
-      "name": "trailofbits/skills",
-      "source": "seed 2026",
+      "name": "DreambigOu/ELI5",
+      "group": "small skill",
       "kind": "skill",
-      "pushedAt": "2026-11-24T02:56:05Z",
+      "pushedAt": "2026-03-18T03:35:25Z",
       "effort": {
+        "judgmentHeads": [
+          "skills/eli5/SKILL.md"
+        ],
+        "type": "app",
+        "typeLabel": "app or standalone tool",
+        "files": 9,
+        "codeFiles": 1,
+        "loc": 287,
+        "instructionLines": 330,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill with a script",
+        "buildTime": "2–4 hours",
+        "reason": "A small app or standalone tool (~300 lines of Python), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "skills/eli5/SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "build",
+        "form": "skill with a script",
+        "time": "2–4 hours",
+        "reason": "adjusting an explanation to the listener's age, school level or job is common knowledge, and the repo's tables only list familiar styles, not specialized rules.",
+        "by": "Claude",
+        "hash": "6be7338ed7f782d566620c45"
+      }
+    },
+    {
+      "name": "mohi-devhub/antivibe",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-07-31T10:26:47Z",
+      "effort": {
+        "judgmentHeads": [
+          "SKILL.md"
+        ],
         "type": "plugin",
         "typeLabel": "plugin with hooks or agents",
-        "files": 1660,
-        "codeFiles": 134,
-        "loc": 67917,
-        "instructionLines": 80305,
+        "files": 15,
+        "codeFiles": 4,
+        "loc": 271,
+        "instructionLines": 601,
         "languages": [
-          "Python",
-          "JavaScript",
           "Shell"
         ],
         "dependencies": null,
@@ -446,47 +332,61 @@
           "services": []
         },
         "parts": {
-          "skills": 99,
+          "skills": 1,
           "hooks": true,
-          "agents": 33,
-          "commands": 8,
-          "pluginManifest": true
+          "agents": 2,
+          "commands": 0,
+          "pluginManifest": false
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "~67,900 lines of Python and more: far more than you'd want to write and maintain."
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "hook",
+        "buildTime": "2–4 hours",
+        "reason": "A small plugin with hooks or agents (~250 lines of Shell), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "build",
+        "form": "hook",
+        "time": "2–4 hours",
+        "reason": "explaining code and auditing trade-offs uses general code-review and teaching knowledge you already have, not specialized or curated domain rules.",
+        "by": "Claude",
+        "hash": "0fe13452f568f6873354e876"
       }
     },
     {
-      "name": "oss-invisible/playwright_mcp",
-      "source": "seed 2026",
-      "kind": "mcp-server",
-      "pushedAt": "2026-11-24T15:16:44Z",
+      "name": "skills-directory/skill-codex",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-10-21T13:45:22Z",
       "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
-        "files": 359,
-        "codeFiles": 50,
-        "loc": 18564,
-        "instructionLines": 25,
-        "languages": [
-          "Python",
-          "JavaScript"
+        "judgmentHeads": [
+          "plugins/skill-codex/skills/codex/SKILL.md"
         ],
-        "dependencies": 0,
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 6,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 175,
+        "languages": [],
+        "dependencies": null,
         "needs": {
-          "credentials": [
-            "OPENROUTER_API_KEY"
-          ],
-          "credentialCount": 1,
-          "apis": [
-            "OPENROUTER"
-          ],
-          "apiCount": 1,
-          "network": true,
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
           "services": []
         },
         "parts": {
@@ -496,22 +396,374 @@
           "commands": 0,
           "pluginManifest": true
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "under an hour",
+        "reason": "Only instructions (~200 lines of Markdown), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "plugins/skill-codex/skills/codex/SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "install",
+        "form": "skill",
+        "time": "under an hour",
+        "reason": "curated Codex CLI rules you wouldn't reliably write yourself: a current model lineup, which reasoning efforts each model supports (max/ultra limits, fallbacks), and careful permission rules for --skip-git-repo-check. Text only, low risk, check passed.",
+        "by": "Claude",
+        "hash": "3fa2fc2a2b94854cd85ddc0b"
+      }
+    },
+    {
+      "name": "op7418/Humanizer-zh",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-09-23T02:24:28Z",
+      "effort": {
+        "judgmentHeads": [
+          "SKILL.md"
+        ],
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 9,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 428,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "1–2 hours",
+        "reason": "Only instructions (~450 lines of Markdown), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "install",
+        "form": "skill",
+        "time": "1–2 hours",
+        "reason": "Curated Chinese-specific rules for spotting and fixing template-like writing. They were refined over several upstream revisions, with careful limits on keeping facts, certainty and the author's voice intact, which is hard to rebuild well from scratch. Text only, low risk, check passed.",
+        "by": "Claude",
+        "hash": "81f5260a278f3d9a1aa505fa"
+      }
+    },
+    {
+      "name": "aiwithremy/claude-skills-llm-council",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-04-26T01:08:39Z",
+      "effort": {
+        "judgmentHeads": [
+          "SKILL.md"
+        ],
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 2,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 313,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "1–2 hours",
+        "reason": "Only instructions (~300 lines of Markdown), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "SKILL.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "build",
+        "form": "skill",
+        "time": "1–2 hours",
+        "reason": "a well-known multi-perspective pattern (Karpathy's LLM Council: independent sub-agent advisors, anonymous peer review, chairman synthesis) that you can write from general knowledge.",
+        "by": "Claude",
+        "hash": "8d8649804d38037fa4f3a6de"
+      }
+    },
+    {
+      "name": "anthropics/launch-your-agent",
+      "group": "small skill",
+      "kind": "skill",
+      "pushedAt": "2026-09-23T07:36:41Z",
+      "effort": {
+        "judgmentHeads": [
+          ".claude/skills/launch-your-agent/SKILL.md",
+          ".claude/skills/wrap-up/SKILL.md"
+        ],
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 18,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 2813,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [
+            "API key"
+          ],
+          "credentialCount": 1,
+          "apis": [],
+          "apiCount": 0,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 2,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": "anthropics",
+        "wraps": null,
         "truncated": false,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
         "buildTime": null,
-        "reason": "Wraps the OPENROUTER API with ~18,600 lines of Python and more: installing saves you keeping up with it."
+        "reason": "Maintained by the vendor (anthropics), ~2,800 lines of Markdown: install it to stay on their updates.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Maintained by the vendor (anthropics), ~2,800 lines of Markdown: install it to stay on their updates.",
+        "by": "rules"
+      }
+    },
+    {
+      "name": "anthropics/skills",
+      "group": "collection",
+      "kind": "skill",
+      "pushedAt": "2026-11-16T14:22:50Z",
+      "effort": {
+        "judgmentHeads": [
+          "skills/webapp-testing/SKILL.md"
+        ],
+        "type": "collection",
+        "typeLabel": "collection of 20 skills",
+        "files": 448,
+        "codeFiles": 51,
+        "loc": 16588,
+        "instructionLines": 42026,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 20,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "collection": {
+          "unit": "skill",
+          "count": 20,
+          "typical": {
+            "name": "webapp-testing",
+            "loc": 106,
+            "instructionLines": 78
+          },
+          "largest": {
+            "name": "claude-api",
+            "loc": 4588,
+            "instructionLines": 33195
+          },
+          "hooks": false,
+          "typicalAdvice": "judge",
+          "largestAdvice": {
+            "advice": "install",
+            "adviceLabel": "Install"
+          },
+          "match": {
+            "name": "webapp-testing",
+            "topic": "testing"
+          }
+        },
+        "vendor": "anthropics",
+        "wraps": null,
+        "truncated": false,
+        "judgment": null,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Collection of 20 skills: a typical one is ~100 lines of Python; the largest, claude-api, ~4,600 lines of Python (Install). Maintained by the vendor (anthropics): install the part you need."
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Collection of 20 skills: a typical one is ~100 lines of Python; the largest, claude-api, ~4,600 lines of Python (Install). Maintained by the vendor (anthropics): install the part you need.",
+        "by": "rules"
+      }
+    },
+    {
+      "name": "wshobson/agents",
+      "group": "collection",
+      "kind": "skill",
+      "pushedAt": "2026-11-24T14:32:25Z",
+      "effort": {
+        "judgmentHeads": [
+          "plugins/systems-programming/agents/golang-pro.md"
+        ],
+        "type": "collection",
+        "typeLabel": "collection of 199 agents",
+        "files": 1229,
+        "codeFiles": 52,
+        "loc": 14308,
+        "instructionLines": 122089,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [
+            "ANTHROPIC_API_KEY"
+          ],
+          "credentialCount": 1,
+          "apis": [
+            "Anthropic"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 185,
+          "hooks": true,
+          "agents": 199,
+          "commands": 103,
+          "pluginManifest": true
+        },
+        "collection": {
+          "unit": "agent",
+          "count": 199,
+          "typical": {
+            "name": "golang-pro",
+            "loc": 0,
+            "instructionLines": 140
+          },
+          "largest": {
+            "name": "backend-architect",
+            "loc": 0,
+            "instructionLines": 367
+          },
+          "hooks": false,
+          "typicalAdvice": "judge",
+          "largestAdvice": {
+            "advice": "judge",
+            "adviceLabel": "Judgment needed"
+          },
+          "match": {
+            "name": "playwright",
+            "topic": "testing"
+          }
+        },
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "plugins/systems-programming/agents/golang-pro.md"
+          ]
+        },
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "subagent",
+        "buildTime": "under an hour",
+        "reason": "Collection of 199 agents: a typical one is ~150 lines of Markdown; the largest, backend-architect, ~350 lines of Markdown (Judgment needed). Take only the part you need."
+      },
+      "final": {
+        "advice": "build",
+        "form": "subagent",
+        "time": "under an hour",
+        "reason": "Playwright end-to-end tests with the page object pattern are standard practice you already know, and this agent mostly adds ship-mate pipeline wiring (state.json, orchestrator-output.md) that you wouldn't need.",
+        "by": "Claude",
+        "hash": "2ca9fbe7979fe539a6d19bc6"
       }
     },
     {
       "name": "awslabs/mcp",
-      "source": "seed 2026",
+      "group": "collection",
       "kind": "mcp-server",
       "pushedAt": "2026-11-24T22:39:43Z",
       "effort": {
-        "type": "mcp-server",
-        "typeLabel": "MCP server",
+        "judgmentHeads": [],
+        "type": "collection",
+        "typeLabel": "collection of 60 MCP servers",
         "files": 3923,
         "codeFiles": 1108,
         "loc": 389405,
@@ -522,10 +774,11 @@
         "dependencies": 8,
         "needs": {
           "credentials": [
+            "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",
             "AWS_SESSION_TOKEN"
           ],
-          "credentialCount": 2,
+          "credentialCount": 3,
           "apis": [
             "AWS"
           ],
@@ -540,96 +793,142 @@
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": {
+          "unit": "server",
+          "count": 60,
+          "typical": {
+            "name": "aws-documentation-mcp-server",
+            "loc": 3253,
+            "instructionLines": 0
+          },
+          "largest": {
+            "name": "aws-healthomics-mcp-server",
+            "loc": 42355,
+            "instructionLines": 1089
+          },
+          "hooks": false,
+          "typicalAdvice": "install",
+          "largestAdvice": {
+            "advice": "install",
+            "adviceLabel": "Install"
+          },
+          "match": {
+            "name": "mysql-mcp-server",
+            "topic": "database"
+          }
+        },
+        "vendor": "awslabs",
+        "wraps": null,
         "truncated": false,
+        "judgment": null,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
         "buildTime": null,
-        "reason": "Wraps the AWS API with ~389,400 lines of Python: installing saves you keeping up with it."
+        "reason": "Collection of 60 MCP servers: a typical one is ~3,300 lines of Python; the largest, aws-healthomics-mcp-server, ~42,400 lines of Python (Install). Maintained by the vendor (awslabs): install the part you need."
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Collection of 60 MCP servers: a typical one is ~3,300 lines of Python; the largest, aws-healthomics-mcp-server, ~42,400 lines of Python (Install). Maintained by the vendor (awslabs): install the part you need.",
+        "by": "rules"
       }
     },
     {
-      "name": "antonbabenko/terraform-skill",
-      "source": "hand",
+      "name": "ScrapeCreators/social-media-research-skills",
+      "group": "collection",
       "kind": "skill",
-      "pushedAt": "2026-11-19T12:30:08Z",
+      "pushedAt": "2026-08-26T17:26:01Z",
       "effort": {
-        "type": "instructions",
-        "typeLabel": "instructions-only skill",
-        "files": 34,
-        "codeFiles": 0,
-        "loc": 0,
-        "instructionLines": 5712,
-        "languages": [],
+        "judgmentHeads": [
+          "skills/trend-discovery/SKILL.md"
+        ],
+        "type": "collection",
+        "typeLabel": "collection of 13 skills",
+        "files": 20,
+        "codeFiles": 1,
+        "loc": 44,
+        "instructionLines": 1148,
+        "languages": [
+          "Python"
+        ],
         "dependencies": null,
         "needs": {
-          "credentials": [],
-          "credentialCount": 0,
-          "apis": [],
-          "apiCount": 0,
-          "network": false,
+          "credentials": [
+            "SCRAPECREATORS_API_KEY"
+          ],
+          "credentialCount": 1,
+          "apis": [
+            "Scrapecreators"
+          ],
+          "apiCount": 1,
+          "network": true,
           "services": []
         },
         "parts": {
-          "skills": 1,
+          "skills": 13,
           "hooks": false,
           "agents": 0,
           "commands": 0,
           "pluginManifest": true
         },
-        "truncated": false,
-        "advice": "build",
-        "adviceLabel": "Build your own",
-        "buildForm": "skill",
-        "buildTime": "a few hours for the part you need",
-        "reason": "Only instructions (~5,700 lines of Markdown) and no external API: write your own for the part you need."
-      }
-    },
-    {
-      "name": "0xfurai/claude-code-subagents",
-      "source": "hand",
-      "kind": "tool",
-      "pushedAt": "2026-11-07T13:34:14Z",
-      "effort": {
-        "type": "plugin",
-        "typeLabel": "plugin with hooks or agents",
-        "files": 142,
-        "codeFiles": 0,
-        "loc": 0,
-        "instructionLines": 6748,
-        "languages": [],
-        "dependencies": null,
-        "needs": {
-          "credentials": [],
-          "credentialCount": 0,
-          "apis": [],
-          "apiCount": 0,
-          "network": false,
-          "services": []
-        },
-        "parts": {
-          "skills": 0,
+        "collection": {
+          "unit": "skill",
+          "count": 13,
+          "typical": {
+            "name": "trend-discovery",
+            "loc": 0,
+            "instructionLines": 63
+          },
+          "largest": {
+            "name": "scrapecreators-api",
+            "loc": 0,
+            "instructionLines": 321
+          },
           "hooks": false,
-          "agents": 140,
-          "commands": 0,
-          "pluginManifest": false
+          "typicalAdvice": "judge",
+          "largestAdvice": {
+            "advice": "judge",
+            "adviceLabel": "Judgment needed"
+          }
         },
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "skills/trend-discovery/SKILL.md"
+          ]
+        },
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "under an hour",
+        "reason": "Collection of 13 skills: a typical one is ~60 lines of Markdown; the largest, scrapecreators-api, ~300 lines of Markdown (Judgment needed). Take only the part you need."
+      },
+      "final": {
         "advice": "build",
-        "adviceLabel": "Build your own",
-        "buildForm": "subagent",
-        "buildTime": "a few hours for the part you need",
-        "reason": "A plugin with hooks or agents (~6,700 lines of Markdown) and no external API: write your own for the part you need."
+        "form": "skill",
+        "time": "under an hour",
+        "reason": "The typical part, trend-discovery, is a standard trend-research workflow: search a niche, rank the evidence, turn trends into content angles. You already know how to do that. It's also tied to a paid ScrapeCreators API key you'd need either way.",
+        "by": "Claude",
+        "hash": "065f6ebcc4b422c145898341"
       }
     },
     {
       "name": "obra/superpowers",
-      "source": "hand",
+      "group": "plugin",
       "kind": "skill",
       "pushedAt": "2026-11-24T23:59:04Z",
       "effort": {
-        "type": "plugin",
-        "typeLabel": "plugin with hooks or agents",
+        "judgmentHeads": [
+          "skills/test-driven-development/SKILL.md"
+        ],
+        "type": "collection",
+        "typeLabel": "collection of 15 skills",
         "files": 236,
         "codeFiles": 16,
         "loc": 3498,
@@ -654,30 +953,146 @@
           "commands": 0,
           "pluginManifest": true
         },
+        "collection": {
+          "unit": "skill",
+          "count": 15,
+          "typical": {
+            "name": "test-driven-development",
+            "loc": 0,
+            "instructionLines": 357
+          },
+          "largest": {
+            "name": "brainstorming",
+            "loc": 1197,
+            "instructionLines": 590
+          },
+          "hooks": false,
+          "typicalAdvice": "judge",
+          "largestAdvice": {
+            "advice": "install",
+            "adviceLabel": "Install"
+          },
+          "match": {
+            "name": "test-driven-development",
+            "topic": "testing"
+          }
+        },
+        "vendor": null,
+        "wraps": null,
+        "truncated": false,
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "skills/test-driven-development/SKILL.md"
+          ]
+        },
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill",
+        "buildTime": "1–2 hours",
+        "reason": "Collection of 15 skills: a typical one is ~350 lines of Markdown; the largest, brainstorming, ~1,200 lines of JavaScript and more (Install). Take only the part you need."
+      },
+      "final": {
+        "advice": "build",
+        "form": "skill",
+        "time": "1–2 hours",
+        "reason": "standard red-green-refactor TDD workflow, which is well-known general knowledge rather than specialized expertise.",
+        "by": "Claude",
+        "hash": "99a56b5c5f21faddd4765970"
+      }
+    },
+    {
+      "name": "disler/claude-code-hooks-mastery",
+      "group": "plugin",
+      "kind": "tool",
+      "pushedAt": "2026-03-04T18:16:25Z",
+      "effort": {
+        "judgmentHeads": [
+          ".claude/agents/hello-world-agent.md",
+          ".claude/agents/llm-ai-agents-and-eng-research.md",
+          ".claude/agents/meta-agent.md"
+        ],
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 130,
+        "codeFiles": 48,
+        "loc": 6112,
+        "instructionLines": 6408,
+        "languages": [
+          "Python",
+          "TypeScript"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [
+            "ANTHROPIC_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "ELEVENLABS_API_KEY",
+            "FIRECRAWL_API_KEY",
+            "GEMINI_API_KEY",
+            "GROQ_API_KEY",
+            "OPENAI_API_KEY"
+          ],
+          "credentialCount": 7,
+          "apis": [
+            "Anthropic",
+            "DeepSeek",
+            "ElevenLabs",
+            "Firecrawl",
+            "Gemini",
+            "Groq",
+            "OpenAI"
+          ],
+          "apiCount": 7,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 4,
+          "commands": 14,
+          "pluginManifest": false
+        },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
         "buildTime": null,
-        "reason": "~3,500 lines of JavaScript and more: far more than you'd want to write and maintain."
+        "reason": "Wraps 7 APIs (Anthropic, DeepSeek, ElevenLabs, …) with ~6,100 lines of Python and more: installing saves you keeping up with it.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Wraps 7 APIs (Anthropic, DeepSeek, ElevenLabs, …) with ~6,100 lines of Python and more: installing saves you keeping up with it.",
+        "by": "rules"
       }
     },
     {
-      "name": "anthropics/skills",
-      "source": "hand",
-      "kind": "skill",
-      "pushedAt": "2026-11-16T14:22:50Z",
+      "name": "privetbuket/pii-guard",
+      "group": "plugin",
+      "kind": "plugin",
+      "pushedAt": "2026-07-30T05:01:37Z",
       "effort": {
-        "type": "skill-scripts",
-        "typeLabel": "skill with scripts",
-        "files": 448,
-        "codeFiles": 51,
-        "loc": 16588,
-        "instructionLines": 42026,
+        "judgmentHeads": [
+          "skills/pii-guard/SKILL.md"
+        ],
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 25,
+        "codeFiles": 7,
+        "loc": 1180,
+        "instructionLines": 47,
         "languages": [
           "Python"
         ],
-        "dependencies": null,
+        "dependencies": 8,
         "needs": {
           "credentials": [],
           "credentialCount": 0,
@@ -687,26 +1102,40 @@
           "services": []
         },
         "parts": {
-          "skills": 20,
-          "hooks": false,
+          "skills": 1,
+          "hooks": true,
           "agents": 0,
           "commands": 0,
           "pluginManifest": true
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "~16,600 lines of Python: far more than you'd want to write and maintain."
+        "advice": "either",
+        "adviceLabel": "Either",
+        "buildForm": "hook",
+        "buildTime": "a few days",
+        "reason": "Medium-sized (~1,200 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "either",
+        "form": "hook",
+        "time": "a few days",
+        "reason": "Medium-sized (~1,200 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "by": "rules"
       }
     },
     {
       "name": "microsoft/playwright-mcp",
-      "source": "hand",
+      "group": "MCP server",
       "kind": "mcp-server",
       "pushedAt": "2026-11-18T18:50:37Z",
       "effort": {
+        "judgmentHeads": [
+          "README.md"
+        ],
         "type": "mcp-server",
         "typeLabel": "MCP server",
         "files": 44,
@@ -733,135 +1162,105 @@
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": null,
+        "vendor": "microsoft",
+        "wraps": "playwright",
         "truncated": false,
-        "advice": "either",
-        "adviceLabel": "Either",
-        "buildForm": "skill with a script",
-        "buildTime": "about a day",
-        "reason": "Medium-sized (~600 lines of JavaScript and more), no external API: building is real work; installing is quicker if it fits as it is."
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Maintained by the vendor (microsoft), ~600 lines of JavaScript and more: install it to stay on their updates.",
+        "judgment": null
+      },
+      "final": {
+        "advice": "install",
+        "form": null,
+        "time": null,
+        "reason": "Maintained by the vendor (microsoft), ~600 lines of JavaScript and more: install it to stay on their updates.",
+        "by": "rules"
       }
     },
     {
-      "name": "github/github-mcp-server",
-      "source": "hand",
+      "name": "21st-dev/magic-mcp",
+      "group": "MCP server",
       "kind": "mcp-server",
-      "pushedAt": "2026-11-24T16:19:19Z",
+      "pushedAt": "2026-09-09T20:38:22Z",
       "effort": {
+        "judgmentHeads": [
+          "skills/21st-ui/SKILL.md"
+        ],
         "type": "mcp-server",
         "typeLabel": "MCP server",
-        "files": 745,
-        "codeFiles": 190,
-        "loc": 67332,
-        "instructionLines": 3678,
+        "files": 21,
+        "codeFiles": 1,
+        "loc": 212,
+        "instructionLines": 105,
         "languages": [
-          "Go"
+          "TypeScript"
         ],
-        "dependencies": 31,
+        "dependencies": 0,
         "needs": {
           "credentials": [
-            "GITHUB_PAT",
-            "GITHUB_PERSONAL_ACCESS_TOKEN",
-            "YOUR_TOKEN",
-            "OAuth"
+            "TWENTY_FIRST_API_KEY",
+            "YOUR_21ST_API_KEY"
           ],
-          "credentialCount": 4,
-          "apis": [
-            "GITHUB"
-          ],
-          "apiCount": 1,
+          "credentialCount": 2,
+          "apis": [],
+          "apiCount": 0,
           "network": true,
           "services": []
         },
         "parts": {
-          "skills": 18,
-          "hooks": false,
-          "agents": 1,
-          "commands": 0,
-          "pluginManifest": false
-        },
-        "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps the GITHUB API with ~67,300 lines of Go: installing saves you keeping up with it."
-      }
-    },
-    {
-      "name": "langgenius/dify",
-      "source": "hand",
-      "kind": "skill",
-      "pushedAt": "2026-11-25T02:26:11Z",
-      "effort": {
-        "type": "app",
-        "typeLabel": "app or standalone tool",
-        "files": 16628,
-        "codeFiles": 7568,
-        "loc": 1382929,
-        "instructionLines": 54894,
-        "languages": [
-          "TypeScript",
-          "Python"
-        ],
-        "dependencies": 20,
-        "needs": {
-          "credentials": [
-            "AGENT_BACKEND_API_TOKEN",
-            "ALIBABACLOUD_MYSQL_PASSWORD",
-            "ALIYUN_OSS_ACCESS_KEY",
-            "ALIYUN_OSS_SECRET_KEY",
-            "ALIYUN_SLS_ACCESS_KEY_SECRET",
-            "ANALYTICDB_KEY_SECRET",
-            "ANALYTICDB_NAMESPACE_PASSWORD",
-            "ANALYTICDB_PASSWORD"
-          ],
-          "credentialCount": 77,
-          "apis": [
-            "AGENT",
-            "ALIYUN",
-            "ANALYTICDB",
-            "ARCHIVE",
-            "AZURE",
-            "BAIDU",
-            "CODE",
-            "CREATORS"
-          ],
-          "apiCount": 31,
-          "network": true,
-          "services": [
-            "docker",
-            "database"
-          ]
-        },
-        "parts": {
-          "skills": 6,
+          "skills": 1,
           "hooks": false,
           "agents": 0,
-          "commands": 1,
-          "pluginManifest": false
+          "commands": 0,
+          "pluginManifest": true
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
+        "buildForm": "skill with a script",
+        "buildTime": "2–4 hours",
+        "reason": "A small MCP server (~200 lines of TypeScript), needs 2 credentials: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "either",
+          "heads": [
+            "skills/21st-ui/SKILL.md"
+          ]
+        }
+      },
+      "final": {
         "advice": "install",
-        "adviceLabel": "Install",
-        "buildForm": null,
-        "buildTime": null,
-        "reason": "Wraps 31 APIs (AGENT, ALIYUN, ANALYTICDB, …) with ~1,382,900 lines of TypeScript and more: installing saves you keeping up with it."
+        "form": "skill with a script",
+        "time": "2–4 hours",
+        "reason": "It's a client for 21st.dev's own service, a catalog of 10,000+ components plus their hosted AI generation, which you can't recreate yourself. Expect to supply 2 credentials and allow network access. The free tier allows 2 component installs a day.",
+        "by": "Claude",
+        "hash": "f13de6025cfde718bddc96c5"
       }
     },
     {
-      "name": "cso1z/claude-ip-guard",
-      "source": "hand",
-      "kind": "tool",
-      "pushedAt": "2026-07-17T09:23:01Z",
+      "name": "cplj/axiocairn-mcp",
+      "group": "MCP server",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-13T11:27:55Z",
       "effort": {
-        "type": "app",
-        "typeLabel": "app or standalone tool",
-        "files": 11,
-        "codeFiles": 4,
-        "loc": 901,
-        "instructionLines": 0,
+        "judgmentHeads": [
+          "README.md"
+        ],
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 27,
+        "codeFiles": 1,
+        "loc": 12,
+        "instructionLines": 8,
         "languages": [
-          "Shell"
+          "Python"
         ],
         "dependencies": null,
         "needs": {
@@ -879,12 +1278,30 @@
           "commands": 0,
           "pluginManifest": false
         },
+        "collection": null,
+        "vendor": null,
+        "wraps": null,
         "truncated": false,
-        "advice": "either",
-        "adviceLabel": "Either",
+        "advice": "judge",
+        "adviceLabel": "Judgment needed",
         "buildForm": "skill with a script",
-        "buildTime": "about a day",
-        "reason": "Medium-sized (~900 lines of Shell), no external API: building is real work; installing is quicker if it fits as it is."
+        "buildTime": "about an hour",
+        "reason": "A small MCP server (~10 lines of Python), no external API: easy to write if it's general knowledge, worth installing if it's specialized.",
+        "judgment": {
+          "needed": true,
+          "ruleAdvice": "build",
+          "heads": [
+            "README.md"
+          ]
+        }
+      },
+      "final": {
+        "advice": "install",
+        "form": "skill with a script",
+        "time": "about an hour",
+        "reason": "The 12 lines of code only connect you to Axiocairn's hosted service at axiocairn.com/mcp. The real value is the service's curated, dated market data, research and House View reports, and you can't recreate those from general knowledge. It needs an account sign-in (OAuth) and network access, even though the script's facts say no network, and some tools depend on your plan.",
+        "by": "Claude",
+        "hash": "01c58fc02509f7efab6c0e0f"
       }
     }
   ]

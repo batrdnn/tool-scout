@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:01:43.089Z",
+  "advice": "install",
+  "reason": "Curated Chinese-specific rules for spotting and fixing template-like writing. They were refined over several upstream revisions, with careful limits on keeping facts, certainty and the author's voice intact, which is hard to rebuild well from scratch. Text only, low risk, check passed."
+}

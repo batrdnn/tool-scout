@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:02:45.441Z",
+  "advice": "install",
+  "reason": "The 12 lines of code only connect you to Axiocairn's hosted service at axiocairn.com/mcp. The real value is the service's curated, dated market data, research and House View reports, and you can't recreate those from general knowledge. It needs an account sign-in (OAuth) and network access, even though the script's facts say no network, and some tools depend on your plan."
+}

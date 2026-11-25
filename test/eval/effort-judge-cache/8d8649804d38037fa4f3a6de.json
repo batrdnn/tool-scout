@@ -1,0 +1,6 @@
+{
+  "model": "claude-opus-5-5",
+  "at": "2026-11-25T03:01:50.312Z",
+  "advice": "build",
+  "reason": "(skill, 1–2 hours): a well-known multi-perspective pattern (Karpathy's LLM Council: independent sub-agent advisors, anonymous peer review, chairman synthesis) that you can write from general knowledge."
+}
