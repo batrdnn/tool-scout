@@ -23,7 +23,7 @@
 //   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] [--replace] --plan   writes nothing: prints the plan and its ID
 //                                              --replace: swap an existing skill folder for this version in one step (undo restores it)
 //   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
-//   scout.mjs build --start --form F --name N          makes drafts/N/ in the data folder for Claude's draft
+//   scout.mjs build --start --form F --name N [--fresh]  makes drafts/N/ in the data folder for Claude's draft (refuses an old one; --fresh clears it)
 //   scout.mjs build --form F --name N --from DIR [--scope user|project|personal] [--replace] [--source owner/repo] --plan
 //                                              personal (hooks only): this project's .claude/settings.local.json, script in ~/.claude/hooks
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
@@ -71,7 +71,7 @@ import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './buil
 import { runKickoff, formatKickoff, kickoffSummary } from './kickoff.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json', 'open', 'plan', 'start', 'replace', 'rematch', 'summary']);
+const BOOLEAN = new Set(['plain', 'json', 'open', 'plan', 'start', 'fresh', 'replace', 'rematch', 'summary']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -296,7 +296,7 @@ async function main() {
     case 'build': {
       const str = (k) => (typeof opts[k] === 'string' ? opts[k] : null);
       if (opts.start) {
-        const s = startDraft({ dataDir, form: str('form'), name: str('name') });
+        const s = startDraft({ dataDir, form: str('form'), name: str('name'), fresh: !!opts.fresh });
         if (opts.json) { console.log(JSON.stringify(s, null, 2)); break; }
         console.log([`Write the ${s.form} draft for ${s.name} into: ${s.dir}`, 'It needs:', ...s.expect.map((x) => `  - ${x}`),
           `Then: scout.mjs build --form ${s.form} --name ${s.name} --from ${s.dir} --plan`].join('\n'));

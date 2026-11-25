@@ -231,7 +231,7 @@ reference repo:
    or `… profile --json`), so it names the tools they actually use. Keep it short and specific.
 5. Make the draft folder: `… build --start --form <form> --name <name> --plain` prints the folder
    and the files the form needs. Write those files there with the Write tool, in your own words.
-   Never write into ~/.claude or the project directly: the plan is the only way anything gets there.
+   If it refuses because drafts/<name>/ is left over from an earlier run, say so and ask whether to start over: only then run it again with `--fresh`. Show the plan's "Written:" line (when the draft files were last written) with the plan. Never write into ~/.claude or the project directly: the plan is the only way anything gets there.
 6. Make the plan: `… build --form <form> --name <name> --from <folder> --plan --plain`, adding
    `--scope project`, `--scope user` or (hooks only) `--scope personal` as answered, and `--source <owner/repo>` for a pick (it
    checks the license and refuses copied text). If it says "Blocked", fix the draft and make a new

@@ -46,16 +46,20 @@ function checkFormName(form, name) {
 }
 
 /** Make drafts/<name>/ in the data folder for Claude to write into. */
-export function startDraft({ dataDir, form, name }) {
+export function startDraft({ dataDir, form, name, fresh = false }) {
   checkFormName(form, name);
   const dir = draftDir(dataDir, name);
+  if (fs.existsSync(dir)) {
+    if (fresh) fs.rmSync(dir, { recursive: true, force: true });
+    else if (fs.readdirSync(dir).length) throw new Error(`drafts/${name}/ already exists with files from an earlier run (${dir}). Tool Scout won't reuse it silently: pass --fresh to clear it and start over, or pick another --name.`);
+  }
   fs.mkdirSync(dir, { recursive: true });
   return { dir, form, name, expect: EXPECT[form].map((x) => x.replace('<name>', name)) };
 }
 
 /** Every regular file in the draft folder: [{ rel, buf }], or { error }. Symlinks are refused. */
 function readDraft(dir) {
-  const files = []; let bytes = 0;
+  const files = []; let bytes = 0; let newest = 0;
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const p = path.join(d, e.name);
@@ -65,13 +69,14 @@ function readDraft(dir) {
       if (st.isDirectory()) { walk(p); continue; }
       if (!st.isFile()) throw new Error(`${rel} is not a plain file`);
       bytes += st.size;
+      newest = Math.max(newest, st.mtimeMs);
       files.push({ rel, buf: fs.readFileSync(p), mode: st.mode & 0o111 ? '100755' : '100644' });
     }
   };
   try { walk(dir); } catch (e) { return { error: e.message }; }
   if (files.length > MAX_FILES) return { error: `${files.length} files: more than ${MAX_FILES}` };
   if (bytes > MAX_BYTES) return { error: 'more than 1 MB' };
-  return { files };
+  return { files, written: newest ? new Date(newest).toISOString() : null };
 }
 
 /** YAML-ish frontmatter: `key: value` lines, folded (`>` / `|`) and indented continuations. */
@@ -233,13 +238,13 @@ export async function makeBuildPlan({ client = null, form, name, from, scope = n
     } };
   const want = draftDir(dataDir, name);
   const real = (d) => { try { return fs.realpathSync(d); } catch { return null; } };
-  let files = [];
+  let files = []; let written = null;
   if (!from || real(from) !== real(want) || !real(want)) blockers.push(`the draft must be in the data folder, in drafts/${name}/ (${want})`);
   else {
     const d = readDraft(want);
     if (d.error) blockers.push(d.error);
     else if (!d.files.length) blockers.push(`drafts/${name}/ is empty`);
-    else files = d.files;
+    else { files = d.files; written = d.written; }
   }
   if (files.length) FORM[form](p, files);
 
@@ -251,7 +256,7 @@ export async function makeBuildPlan({ client = null, form, name, from, scope = n
   if (source && files.length) await sourceCheck(p, client, source, files.map((f) => f.buf.toString('utf8')));
 
   const body = {
-    v: 1, kind: 'build', form, name, scope, from: want, source: p.source,
+    v: 1, kind: 'build', form, name, scope, from: want, draftWritten: written, source: p.source,
     writes, ...p.extra,
     scan: { line: `Checked ${scanned.length} file${scanned.length === 1 ? '' : 's'}: ${scanned.join(', ') || 'none'}`, flags: flags.map(({ excerpt, ...f }) => f) },
     notes, blockers,
@@ -262,6 +267,15 @@ export async function makeBuildPlan({ client = null, form, name, from, scope = n
   return rec;
 }
 
+function ago(ms) {
+  const m = Math.max(0, Math.round(ms / 60e3));
+  if (m < 60) return `${m} minute${m === 1 ? '' : 's'}`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `${h} hour${h === 1 ? '' : 's'}`;
+  const d = Math.round(h / 24);
+  return `${d} days`;
+}
+
 export function formatBuildPlan(rec, { home = '' } = {}) {
   const b = rec.body;
   const t = (x) => (home ? tilde(x, home) : x);
@@ -270,6 +284,7 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
     `What:      ${b.form} ${b.name} (from Claude's draft; nothing in it is run)`,
     `Scope:     ${b.scope === 'personal' ? 'personal (this project, only you)' : b.scope}`,
     `Draft:     ${t(b.from)}`,
+    ...(b.draftWritten ? [`Written:   draft files last written ${b.draftWritten.slice(0, 10)} ${b.draftWritten.slice(11, 16)} UTC (${ago(Date.parse(rec.createdAt) - Date.parse(b.draftWritten))} before this plan)`] : []),
     `Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`,
     ...b.writes.map((w) => `           ${t(w.path)}`),
   ];
