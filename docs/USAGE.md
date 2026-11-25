@@ -181,7 +181,8 @@ tool"; other work that takes two or more lines of the plan is a proposal to buil
 marketplace (`anthropics/claude-plugins-official`, its `marketplace.json`, fetched by repo name only
 and cached for a week) and a short list of built-in Claude Code features (`/ultrareview`,
 `/security-review`, `/simplify`). They are preferred over trending repos for the same need. An
-official plugin is installed with its `claude plugin install` command after one yes/no; a built-in
+official plugin gets the same install plan as `/tool-scout:check` (hooks, settings changed, pinned
+commit, license, scope) shown before its one yes/no; a built-in
 feature is something you type yourself.
 
 **Judgment.** Before showing the toolkit, Claude applies the scout skill's filtering (steps 2-4) to

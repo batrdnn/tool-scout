@@ -94,12 +94,16 @@ next. Never in bulk: never one plan, one question or one confirmation for severa
   verdict and coverage, credentials to set yourself, and the license line), ask one yes/no question
   for that item only ("Install <name> as planned?", options "Yes, install it" and "No"), and only
   after "Yes" run `… install <owner/repo> --confirm <planId> --plain`.
-- **Official plugin** items (`kind: official-plugin`, no `next`): there is no Tool Scout plan for
-  these. Show in plain words what the plugin is and the item's `command`
-  (`claude plugin install <plugin>@claude-plugins-official --scope project`: it installs from
-  Anthropic's marketplace into this project's settings), ask one yes/no question for that item only
-  ("Install <plugin> as planned?", "Yes, install it" and "No"), and only after "Yes" run the
-  `command`. Undo is `claude plugin uninstall <plugin>@claude-plugins-official --scope project`.
+- **Official plugin** items (`kind: official-plugin`): they get the same plan as any install, the
+  one `/tool-scout:check` gives. Make it with the item's `next` command
+  (`… install anthropics/claude-plugins-official --part <plugin> --scope project --plan --plain`),
+  then show it in plain words before anything else: every hook (event, matcher, command), the
+  settings it changes, the pinned commit or version, the license line and the scope (this project).
+  Never ask the yes/no question before the plan has been shown. Then ask one yes/no question for
+  that item only ("Install <plugin> as planned?", "Yes, install it" and "No"), and only after
+  "Yes" run `… install anthropics/claude-plugins-official --confirm <planId> --plain`. The plan runs
+  `claude plugin install <plugin>@claude-plugins-official --scope project` for you; never run that
+  `command` yourself. Undo is `… undo <plugin>@claude-plugins-official --plain`.
 - **Build** items: follow "Building your own, with consent" in the scout skill. Start the draft with
   the item's `next` command (`… build --start --form <form> --name <name> --plain`), write it in your
   own words, tailored to the plan's needs and stack, then make the plan with

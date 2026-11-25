@@ -195,6 +195,7 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
         ? { ...base, action: 'builtin', name: cand.name, reason: `${said}; Claude Code has ${cand.name} built in: ${cand.what}; you type ${cand.name} yourself (${cand.note}).` }
         : { ...base, action: 'install', kind: 'official-plugin', plugin: cand.name, repo: OFFICIAL_REPO, trust: 'official',
           command: `claude plugin install ${cand.name}@${OFFICIAL_MARKETPLACE} --scope project`,
+          next: `install ${OFFICIAL_REPO} --part ${cand.name} --scope project --plan`,
           reason: `${said}; ${cand.name} in Anthropic's official marketplace is ${cand.what}.` });
       continue;
     }
