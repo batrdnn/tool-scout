@@ -143,6 +143,41 @@ time. The facts are cached with the scan; the advice is worked out when read. It
 Nothing is built or installed without a plan and your yes. Results are in `effort` in the JSON, an "Effort"
 line in the text output, and `check`.
 
+## Project kickoff
+
+`/tool-scout:kickoff` (or `kickoff --plan-file <path> [--project DIR]`) turns a project plan into a
+toolkit. It only proposes: each item is then installed or built through its own plan and yes/no.
+
+**The plan text stays local.** It is read from the file (a pasted plan is first written to
+`kickoff/plan.md` in the data folder, then moved) and kept in one place: `kickoff/needs.json` in the
+data folder. It never goes into a network request, the catalog or its caches, or a log. The only
+network traffic is the scout's own: a catalog refresh with the fixed topic searches when the
+catalog is over 20 hours old, and the content scan of matched repos by name (`--offline` skips both).
+
+**Needs.** Each line of the plan is matched against the shared topic list (the same one the
+profile uses). Lines that start with always, never, must, should, prefer or avoid, or sit under a
+heading like Conventions, are conventions. The stack comes from the project's dependency files
+(the same parser as the profile's stack). The domain is the most-mentioned domain topic (finance,
+iOS, ML, data and the like). Claude reads the plan too and can correct the needs list in the file,
+then match again with `--rematch`.
+
+**Matching.** Each need is ranked on its own with the same ranking as the scout (`recommend`,
+unchanged), as if the user's history held only that need: its topic, the specific tools its lines
+name, and the project's libraries for it. A match is good enough when the repo says it is about
+the need in its name or first clause, or is built around one of the project's libraries. With
+network, the match then gets the scout's content scan: a high trust flag rules it out, and its
+effort estimate decides Install or Build your own (Build your own and Reference picks become a
+build, with the repo as the idea's source).
+
+**Without a good match:** everyday work (git, docs, testing, debugging, refactoring, frontend,
+backend, database, data, security, planning) is "nothing needed: Claude handles this without a
+tool"; other work that takes two or more lines of the plan is a proposal to build a small skill.
+
+**The list.** Items are ordered by impact (the plan lines a need covers, half a point per project
+library, one more for the domain; installs count fully, builds 0.9, nothing needed 0.4). The list has
+at most 5 items: the memory note with the plan's conventions is always one of them, so at most 4 others.
+`kickoff --summary` lists what was installed or built since the kickoff, each with its undo command.
+
 ## How trust scoring works
 
 Trust has two parts. Metadata (maintenance, license, age, archived) for every candidate, and a

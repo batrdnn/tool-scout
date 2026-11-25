@@ -51,6 +51,7 @@ sessions, because it reads your local session history. To drive it from a browse
 | `/tool-scout:scout refresh` | crawl GitHub again first |
 | `/tool-scout:check owner/repo` | trust check of one repo before you install it |
 | `/tool-scout:me` | your Claude Code animal (Beaver, Owl, Bee, …) from your last 30 days, plus a shareable card |
+| `/tool-scout:kickoff` | give it a project plan: it proposes up to 5 tools for it (install, build or nothing needed) and sets up the ones you choose |
 
 Or just ask, in plain language:
 
@@ -65,6 +66,7 @@ Or just ask, in plain language:
 | "show my share stats" | `stats --share` |
 | "show my scout profile" | `profile --show` |
 | "what's my Claude Code animal?" | `me` |
+| "here's my project plan: what tools should I set up?" | `kickoff --plan-file` |
 
 ## Your Claude Code animal
 
@@ -103,6 +105,9 @@ Example cards, made from synthetic profiles (`npm run gallery`).
   when you uninstall. `profile --show` shows exactly what it learned and where it's stored.
 - Tool Scout installs only after you approve a plan, and every install can be undone. It never
   asks for, reads or stores your API keys: a plan names the environment variables you set yourself.
+- A project plan you give to `/tool-scout:kickoff` is kept only in the data folder
+  (`kickoff/needs.json`) and is never sent anywhere: matching uses the local catalog and your
+  project's dependency files.
 
 ## Check before you install
 
@@ -147,6 +152,27 @@ memory (a section between markers):
   that runs automatically on Claude Code events, in this project by default) is shown in full,
   may not use the network, and needs a second, separate confirmation (`--confirm-hook`).
 - **Undo** (`undo <name>`) removes exactly what was built; for memory, just that section.
+- **Replace** (`--replace` on the plan): to update a skill, command, subagent or memory section you
+  already have, the new version is swapped in one step, so it is never missing, and undo puts the
+  previous version back. An installed skill folder works the same way (`install … --replace --plan`).
+- A hook can also be **personal**: it runs in this project for you alone. Its entry goes into the
+  project's `.claude/settings.local.json` (not shared) and its script stays outside the project.
+
+## Project kickoff
+
+Starting something new? Run `/tool-scout:kickoff` and paste your plan, or give the path of a plan
+file (and the project folder, if there is one). Claude turns it into a needs list: tasks, stack,
+domain and conventions.
+
+- **Private:** the plan text is never sent anywhere. It is kept only in the data folder
+  (`kickoff/needs.json`). Matching uses the local catalog and the project's dependency files.
+- **Toolkit, at most 5 items, by impact,** each with one reason tied to your plan: the best catalog
+  match for a need (the same ranking, effort estimate and trust checks as the scout), or a
+  proposal to build your own, or "nothing needed: Claude handles this without a tool". A CLAUDE.md
+  note with the plan's conventions is always offered.
+- **You choose** the items in one multi-select question. Then each one goes through its own plan,
+  in plain words, and its own yes/no before anything is installed or built: never in bulk.
+- **Summary:** what was installed or built, each with its undo command.
 
 ## Command line
 
@@ -164,6 +190,7 @@ node scripts/scout.mjs install owner/repo --confirm <planId> # do exactly that p
 node scripts/scout.mjs installed          # what Tool Scout installed; scout.mjs undo <name> removes one
 node scripts/scout.mjs build --start --form skill --name <name>   # the draft folder, and what goes in it
 node scripts/scout.mjs build --form skill --name <name> --from <draft> --plan   # then --confirm <planId>
+node scripts/scout.mjs kickoff --plan-file PLAN.md --project .   # needs list + toolkit for a plan; installs nothing
 ```
 
 Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folder, else
