@@ -74,11 +74,12 @@ test('scout: nothing is installed without a yes to a plan, and there is a text f
   assert.match(SCOUT_SEC, /1 useful, 2 not, 3 useful/, 'the one-line rating fallback stays');
 });
 
-test('me: one question with "See recommendations" and "Not now" (the card is already saved and opened)', () => {
+test('me: one question with "See recommendations", "Look at my blind-spot tool" and "Not now" (the card is already saved and opened)', () => {
   assert.match(ME_SEC, /AskUserQuestion/);
   const by = Object.fromEntries(options(ME_RAW).map((o) => [o.label, o.does]));
-  assert.deepEqual(Object.keys(by), ['See recommendations', 'Not now']);
+  assert.deepEqual(Object.keys(by), ['See recommendations', 'Look at my blind-spot tool', 'Not now']);
   assert.match(by['See recommendations'], /\/tool-scout:scout/);
+  assert.match(by['Look at my blind-spot tool'], /blind-spot tool/i);
   assert.match(by['Not now'], /nothing more/i);
   assert.match(ME, /^## Shareable card$/m);
   assert.match(ME, /scout\.mjs" me --card \S+ --plain/);

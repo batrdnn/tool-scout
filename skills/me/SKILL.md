@@ -41,11 +41,40 @@ same text without them; `--json` is for reading results.
 After the animal, ask one multiple-choice question with the AskUserQuestion tool: "What next?",
 header `Next`, single choice, with these options:
 - "See recommendations": run the `/tool-scout:scout` skill and follow its steps.
+- "Look at my blind-spot tool": follow "The blind-spot tool" below. Leave this option out for the
+  Egg: it has no blind-spot tool.
 - "Not now": do nothing more.
 
 Skip this question if the user already asked for the card. If they skip it, do nothing more. A
 typed "Other" answer is a normal message. If AskUserQuestion isn't available, don't ask: the last
-line already points to `/tool-scout:scout`. Neither option installs anything.
+line already points to `/tool-scout:scout`. No option installs anything by itself.
+
+## The blind-spot tool
+
+Each animal's blind spot maps to one topic (Owl testing, Beaver docs, Bee debugging, Octopus
+security, Ant refactoring, Fox planning, Turtle git). Only when the user picked "Look at my
+blind-spot tool":
+
+1. Run (matching is local; the only request is the content scan of the one matched repo, by name):
+
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --blind-spot --json --data "${CLAUDE_PLUGIN_DATA}"
+   ```
+
+2. Show `blindSpotTool.line` as it is: "Your blind spot (<topic>): <tool> (<why>)". Don't add tools
+   of your own.
+3. If `blindSpotTool.action` is `nothing` ("nothing needed: Claude covers this directly"), say
+   that in your own words and stop.
+4. If it is `builtin` (a built-in Claude Code feature), there is nothing to install: tell them to type the feature themselves (it
+   runs in their session), and stop.
+5. Otherwise (`install` or `official-plugin`), run `/tool-scout:check` on `blindSpotTool.check`
+   and show its verdict. Then offer "Install it" (one yes/no question) unless the verdict is "do not
+   install". On "Install it", follow the check skill's "Installing, with consent" with `blindSpotTool.next`
+   (`install <repo> [--part <plugin>] --plan`): show the plan in plain words and ask its one
+   yes/no before confirming it. Never pass `--confirm` before that answer.
+
+This never installs anything on its own: the check, the plan and the "Install it" yes/no are each
+the user's step.
 
 ## Shareable card
 
