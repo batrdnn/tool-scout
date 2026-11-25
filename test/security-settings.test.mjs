@@ -2,6 +2,7 @@
 // (install, undo). A file it can't parse (a hand edit with a trailing comma, or ~/.claude.json
 // half-written by a running Claude Code) must be left alone, never replaced by Tool Scout's few
 // keys; writes are atomic and keep the file's mode. (docs/security-review.md, "Settings writes")
+import { WIN } from './platform-skip.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -41,7 +42,7 @@ test('undo keeps the user\'s other keys and the file mode (0600 stays 0600), and
   await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
   assert.deepEqual(JSON.parse(fs.readFileSync(settings, 'utf8')), { theme: 'dark', enabledPlugins: { 'guard@o-tools': false }, addedLater: 1 });
   assert.deepEqual(JSON.parse(fs.readFileSync(cj, 'utf8')), { numStartups: 3, oauthAccount: { id: 'x' }, declinedPlugins: ['old@x'] });
-  assert.equal(fs.statSync(cj).mode & 0o777, 0o600);
+  if (!WIN) assert.equal(fs.statSync(cj).mode & 0o777, 0o600); // no POSIX modes on Windows
   assert.deepEqual(fs.readdirSync(path.dirname(cj)).filter((f) => /tool-scout|\.tmp/.test(f)), [], 'no temp file left');
   const src = fs.readFileSync(new URL('../scripts/lib/installer.mjs', import.meta.url), 'utf8');
   const writer = src.slice(src.indexOf('export function writeJsonStyled'), src.indexOf('\n}', src.indexOf('export function writeJsonStyled')));
@@ -107,7 +108,7 @@ test('a settings file that is a symlink stays a symlink: the change lands in its
   for (const link of [settings, cj]) assert.ok(fs.lstatSync(link).isSymbolicLink(), `${link} is still a symlink`);
   assert.equal(JSON.parse(fs.readFileSync(path.join(other, 'settings.json'), 'utf8')).enabledPlugins['guard@o-tools'], false);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(other, '.claude.json'), 'utf8')).declinedPlugins, ['old@x']);
-  assert.equal(fs.statSync(path.join(other, '.claude.json')).mode & 0o777, 0o600);
+  if (!WIN) assert.equal(fs.statSync(path.join(other, '.claude.json')).mode & 0o777, 0o600); // no POSIX modes on Windows
   for (const d of [other, path.dirname(settings), sb.home]) assert.deepEqual(fs.readdirSync(d).filter((f) => /tool-scout|\.tmp/.test(f)), [], `no temp file in ${d}`);
 });
 
