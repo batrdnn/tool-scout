@@ -1,6 +1,6 @@
 // Interactive choices in Claude Code: after the picks (and after /tool-scout:me) the skill asks
 // multiple-choice questions with AskUserQuestion. Every option maps to an action that already
-// exists; none of them installs or builds anything.
+// exists. Installing happens only through the plan flow, one item and one "yes" at a time.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -35,7 +35,7 @@ test('scout: after the picks, one multiple-choice question per pick with exactly
   assert.match(SCOUT_SEC, /one question per pick/i);
   assert.match(SCOUT_SEC, /multiSelect: true/);
   const opts = options(SCOUT_RAW);
-  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Check it first', 'Rate useful / not', 'Not interested']);
+  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Install it', 'Rate useful / not', 'Not interested']);
   assert.ok(opts.length <= 4, 'AskUserQuestion takes at most 4 options');
   for (const o of opts) assert.ok(o.label.split(/\s+/).length <= 5, `label too long: ${o.label}`);
 });
@@ -46,8 +46,10 @@ test('scout: each option maps to something that already exists', () => {
   assert.match(by['Why build vs install?'], /end with the install steps/i, 'install steps are not lost');
   assert.match(by['Why build vs install?'], /`install`/);
   assert.match(by['Why build vs install?'], /don't run/i);
-  assert.deepEqual(commandsIn(by['Check it first']), ['check']);
-  assert.match(by['Check it first'], /--json/);
+  assert.match(by['Install it'], /Installing, with consent/);
+  assert.match(by['Install it'], /`high` entry[^.]*offer "Check it first" instead/, '"do not install" picks get the check');
+  assert.deepEqual(commandsIn(by['Install it']), ['check']);
+  assert.match(by['Install it'], /`… check <owner\/repo> --json`/);
   assert.match(by['Rate useful / not'], /"Useful".*"Not useful"/);
   assert.match(by['Rate useful / not'], /Ratings/);
   assert.match(by['Not interested'], /Feedback: "not interested"/);
@@ -64,9 +66,9 @@ test('scout: question shape fits AskUserQuestion (≤4 questions per call, heade
   for (const h of headers) assert.ok(h.replace('N', '5').length <= 12, `header too long: ${h}`);
 });
 
-test('scout: nothing is installed or built, and there is a text fallback', () => {
-  assert.match(SCOUT_SEC, /none of these installs/i);
-  assert.match(SCOUT_SEC, /never (?:install|run an install)/i);
+test('scout: nothing is installed without a yes to a plan, and there is a text fallback', () => {
+  assert.match(SCOUT_SEC, /none of these installs anything without the user's yes to a plan/i);
+  assert.match(SCOUT_SEC, /each (?:one )?gets its own plan and its own yes\/no question/i);
   assert.ok(!/\b(?:npm|pip|brew) install\b|\/plugin install|git clone/.test(SCOUT_SEC), 'an install command in the choices');
   assert.match(SCOUT_SEC, /without (?:the )?AskUserQuestion|AskUserQuestion isn't available/i);
   assert.match(SCOUT_SEC, /1 useful, 2 not, 3 useful/, 'the one-line rating fallback stays');
@@ -94,17 +96,17 @@ test('scout step 5 shows the build-or-install advice in one line per pick', () =
   assert.match(step5, /one line/i);
 });
 
-test('the advice is never an offer to build or install', () => {
+test('the advice is never an offer to build; installing is only the "Install it" plan flow', () => {
   for (const sec of [SCOUT_SEC, flat(choices(SCOUT, /^5\. \*\*Present\*\*/m))]) {
-    assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create|install)\b/i.test(sec), sec);
+    assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create)\b/i.test(sec), sec);
   }
-  assert.match(SCOUT_SEC, /never offer to build or install/i);
+  assert.match(SCOUT_SEC, /never offer to build/i);
 });
 
 test('the check skill presents the build-or-install estimate too', () => {
   const CHECK = read('skills/check/SKILL.md');
   assert.match(flat(CHECK), /\*\*Build or install:\*\*.*`effort\.adviceLabel`/);
-  assert.match(flat(CHECK), /never offer to build or install/i);
+  assert.match(flat(CHECK), /never offer to build/i);
 });
 
 // ---- v0.8.1: Claude decides the close calls ------------------------------------------------
@@ -129,4 +131,34 @@ test('scout: for a close call Claude reads the SKILL.md head and decides build o
 
 test('check: the same close-call rules', () => {
   judgeRules(read('skills/check/SKILL.md'));
+});
+
+// ---- v0.9.0: install with consent ----------------------------------------------------------------
+
+const installRules = (md, label) => {
+  const sec = flat(choices(md, /^## Installing, with consent$/m));
+  const has = (re, why) => assert.match(sec, re, `${label}: ${why}`);
+  has(/`… install <owner\/repo> --plan --plain`/, 'plan first');
+  has(/--part <name>/, 'one part of a collection');
+  has(/writes nothing/, 'the plan writes nothing');
+  has(/in plain words/, 'the plan explained');
+  has(/"Blocked"[^.]*stop: don't ask/, 'blocked plans are not asked about');
+  has(/one yes\/no question[^.]*for that one item/, 'one item per question');
+  has(/"Yes, install it" and "No"/, 'the two options');
+  has(/never several in one question or in bulk/i, 'never in bulk');
+  has(/Only after "Yes": `… install <owner\/repo> --confirm <planId> --plain`/, 'confirm only after yes');
+  has(/Never pass --confirm without that yes for that exact plan ID/, 'never confirm on its own');
+  has(/expired or the repo changed, make a new plan and ask again/, 'expired: new plan, new question');
+  has(/never ask for, read or store/, 'credentials');
+  has(/`… undo <name> --plain`/, 'undo');
+  has(/`… installed --plain`/, 'installed');
+  has(/Never run install scripts, package-manager installs, `curl \| sh` or any other README command, and never add `-y`/, 'nothing else runs');
+  has(/do not install/, 'never for a do-not-install verdict');
+};
+
+test('scout: "Install it" goes plan → plain words → one yes/no → --confirm, nothing else', () => installRules(SCOUT, 'scout'));
+test('check: offers the same, only when the verdict is not "do not install"', () => {
+  const CHECK = read('skills/check/SKILL.md');
+  installRules(CHECK, 'check');
+  assert.match(flat(CHECK), /If the verdict is not "do not install", ask one yes\/no question: "Install it\?"/);
 });

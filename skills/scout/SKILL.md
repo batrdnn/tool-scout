@@ -133,7 +133,8 @@ same text without them; `--json` is for reading results.
 
 6. End with a short safety reminder: skills and MCP servers run with your permissions.
    Skim the repo (especially `SKILL.md`, install scripts and any network calls) before
-   installing. Never install anything yourself unless the user explicitly asks.
+   installing. Install only as in Installing, with consent below: a plan, the user's yes to that
+   plan, then --confirm.
 
 7. **Ask what's next, as multiple choice.** With the AskUserQuestion tool, ask one question per
    pick, all in one call (it takes up to 4 questions; with 5 picks, ask about picks 1 to 4, then
@@ -147,19 +148,44 @@ same text without them; `--json` is for reading results.
      hard to keep up with). Then end with the install steps: the pick's `install` value (or
      `installCommands`) in a code block, as "from the README, review before running". Don't run
      it. Without `effort`, say the repo wasn't scanned, then give the install steps.
-   - "Check it first": run the trust check, `… check <owner/repo> --json`, and present it the way
+   - "Install it": as in Installing, with consent below (the plan includes the check's verdict and
+     coverage). For a pick whose `trust.flags` has a `high` entry (its check says "do not install"), offer "Check it first" instead: run `… check <owner/repo> --json` and present it the way
      the `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't
      mean safe").
    - "Rate useful / not": ask one follow-up question per such pick with the options "Useful" and
      "Not useful", then record each answer as in Ratings below.
    - "Not interested": dismiss it as in Feedback: "not interested" below, and mention undo.
 
-   None of these installs anything, and you never install, clone or build anything from these
-   answers. Never offer to build or install a pick: the advice is for the user to act on. When several are picked, do them in the order above. A typed "Other" answer is a
+   None of these installs anything without the user's yes to a plan: "Install it" makes a plan and
+   asks. When several picks get "Install it", each one gets its own plan and its own yes/no question,
+   one at a time. Never offer to build a pick: the advice is for the user to act on. When several are picked, do them in the order above. A typed "Other" answer is a
    normal message: handle it as you would in chat. If the user skips a question, do nothing for
    that pick. If AskUserQuestion isn't available, ask for a rating in one line instead, for
    example: "Was each pick useful? Reply like `1 useful, 2 not, 3 useful`, or skip." Either way,
    this is how the scout learns whether it helps.
+
+## Installing, with consent
+
+Only when the user chose "Install it" (or asked to install this one tool), and never when the check
+says "do not install":
+
+1. Make the plan: `… install <owner/repo> --plan --plain` (add `--part <name>` for one skill,
+   plugin or server of a collection, e.g. `effort.collection.match.name`; add `--scope project`
+   only if the user asked for this project only). It writes nothing.
+2. Show the plan in plain words: what gets written or run and where, which settings change, the
+   pinned commit, the check verdict and coverage line, and the credentials they set themselves.
+   If it says "Blocked", explain why and stop: don't ask.
+3. Ask one yes/no question with AskUserQuestion for that one item: "Install <name> as planned?",
+   with the options "Yes, install it" and "No". One item per question, never several in one question or
+   in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer.
+4. Only after "Yes": `… install <owner/repo> --confirm <planId> --plain`, with the plan ID from
+   step 1. Never pass --confirm without that yes for that exact plan ID. If it says the plan
+   expired or the repo changed, make a new plan and ask again.
+5. Report the result, the credentials to set by name (never ask for, read or store their values),
+   and how to undo it: `… undo <name> --plain`. `… installed --plain` lists what Tool Scout
+   installed.
+
+Never run install scripts, package-manager installs, `curl | sh` or any other README command, and never add `-y`. The plan is the only way Tool Scout installs.
 
 ## If the script fails
 
