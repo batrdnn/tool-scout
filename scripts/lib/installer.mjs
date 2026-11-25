@@ -166,7 +166,11 @@ async function pinPackages(target, args, versions) {
 const CONTROL = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu;
 const clean = (t) => { const c = String(t ?? '').replace(CONTROL, '').replace(/\s+/g, ' ').trim(); return c.length > 300 ? `${c.slice(0, 299)}…` : c; };
 
-/** Every hook in a hooks file ({ hooks: { Event: [{ matcher, hooks: [{ type, command | prompt }] }] } }). */
+/** Repo text shown in full on one line: newlines, escapes and invisible characters written out as \n, \u{…}. */
+export const visible = (t) => String(t ?? '').replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu,
+  (c) => (c === '\n' ? '\\n' : c === '\t' ? '\\t' : `\\u{${c.codePointAt(0).toString(16)}}`));
+
+/** Every hook in a hooks file ({ hooks: { Event: [{ matcher, hooks: [{ type, command | prompt | url }] }] } }), in full. */
 function hooksIn(o) {
   const h = o && typeof o.hooks === 'object' && !Array.isArray(o.hooks) ? o.hooks : o;
   const out = [];
@@ -175,47 +179,68 @@ function hooksIn(o) {
     for (const g of groups) {
       for (const k of Array.isArray(g?.hooks) ? g.hooks : []) {
         const type = clean(k?.type) || 'command';
-        out.push({ event: clean(event), matcher: clean(g.matcher) || null, type, runs: clean(type === 'prompt' ? k.prompt : k.command ?? k.prompt) });
+        const what = type === 'command' ? k.command : type === 'prompt' || type === 'agent' ? k.prompt : type === 'http' ? k.url : undefined;
+        out.push({ event: clean(event), matcher: clean(g.matcher) || null, type, runs: visible(typeof what === 'string' ? what : JSON.stringify(k)) });
       }
     }
   }
   return out;
 }
 
+/** Every MCP server in an mcpServers object ({ name: { command, args } | { url } }), in full. */
+function serversIn(o) {
+  const s = o && typeof o.mcpServers === 'object' && !Array.isArray(o.mcpServers) ? o.mcpServers : o;
+  return Object.entries(s && typeof s === 'object' && !Array.isArray(s) ? s : {}).map(([name, v]) => ({
+    name: visible(name),
+    runs: visible(typeof v?.command === 'string' ? [v.command, ...(Array.isArray(v.args) ? v.args : [])].join(' ') : typeof v?.url === 'string' ? v.url : JSON.stringify(v)),
+  }));
+}
+
 /**
- * The hooks of one plugin of a marketplace: its hooks/hooks.json and any hooks in its plugin.json
- * (inline, or paths to more files). { hooks: [] } or { hooks: null, hooksWhy } when they can't be read.
+ * What one plugin of a marketplace runs on its own, from everywhere it can be declared: hooks in
+ * hooks/hooks.json, plugin.json and the marketplace entry (strict: false); MCP servers in .mcp.json,
+ * plugin.json and the entry. { hooks, mcp } or { hooks: null, mcp: null, hooksWhy } when any can't be read.
  */
 async function pluginHooks({ client, api, pinned, blobs, mk, plugin }) {
   const entry = (mk.plugins || []).find((p) => p?.name === plugin);
   const src = entry?.source;
-  if (typeof src !== 'string' || /^[a-z][\w+.-]*:/i.test(src)) return { hooks: null, hooksWhy: "the plugin's files are not in this repo" };
+  const none = (hooksWhy) => ({ hooks: null, mcp: null, hooksWhy });
+  if (typeof src !== 'string' || /^[a-z][\w+.-]*:/i.test(src)) return none("the plugin's files are not in this repo");
   const dir = path.posix.normalize(path.posix.join(src.startsWith('.') ? '' : mk.metadata?.pluginRoot || '', src)).replace(/^\.\/?|\/$/g, '').replace(/^\.$/, '');
-  if (dir.startsWith('..')) return { hooks: null, hooksWhy: "the plugin's files are not in this repo" };
+  if (dir.startsWith('..')) return none("the plugin's files are not in this repo");
   const at = (rel) => path.posix.normalize(path.posix.join(dir, rel)).replace(/^\.\//, '');
   const read = async (p) => {
     if (!blobs.some((t) => t.path === p)) return undefined;
     const r = await client.request(`${api}/contents/${p.split('/').map(encodeURIComponent).join('/')}?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true });
     try { return JSON.parse(r.data); } catch { return null; }
   };
-  const files = [at('hooks/hooks.json')];
   const manifest = await read(at('.claude-plugin/plugin.json'));
-  const inline = [];
-  const extra = manifest?.hooks;
-  if (typeof extra === 'string') files.push(at(extra));
-  else if (Array.isArray(extra)) files.push(...extra.filter((x) => typeof x === 'string').map(at));
-  else if (extra && typeof extra === 'object') inline.push(...hooksIn(extra));
-  const hooks = [];
-  for (const f of [...new Set(files)]) {
-    const o = await read(f);
-    if (o === null) return { hooks: null, hooksWhy: `${f} could not be read` };
-    if (o === undefined) { if (f !== files[0]) return { hooks: null, hooksWhy: `${f} is not in this repo` }; continue; }
-    hooks.push(...hooksIn(o));
-  }
-  return { hooks: [...hooks, ...inline] };
+  // Each source is optional (the default files) or named (a path the plugin gives, which must be there).
+  const out = { hooks: [], mcp: [] };
+  const collect = async (kind, defaults, declared) => {
+    const files = defaults.map((f) => [f, false]); const inline = [];
+    for (const d of declared) {
+      if (typeof d === 'string') files.push([at(d), true]);
+      else if (Array.isArray(d)) files.push(...d.filter((x) => typeof x === 'string').map((x) => [at(x), true]));
+      else if (d && typeof d === 'object') inline.push(d);
+    }
+    const seen = new Set();
+    for (const [f, named] of files) {
+      if (seen.has(f)) continue; seen.add(f);
+      const o = await read(f);
+      if (o === null) return `${f} could not be read`;
+      if (o === undefined) { if (named) return `${f} is not in this repo`; continue; }
+      out[kind].push(...(kind === 'hooks' ? hooksIn(o) : serversIn(o)));
+    }
+    for (const o of inline) out[kind].push(...(kind === 'hooks' ? hooksIn(o) : serversIn(o)));
+    return null;
+  };
+  const why = await collect('hooks', [at('hooks/hooks.json')], [manifest?.hooks, entry.hooks])
+    || await collect('mcp', [at('.mcp.json')], [manifest?.mcpServers, entry.mcpServers]);
+  return why ? none(why) : out;
 }
 
-const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every time)'}: ${h.type === 'command' ? `runs ${h.runs}` : h.type === 'prompt' ? `asks the model "${h.runs}"` : `${h.type} ${h.runs}`}`;
+const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every time)'}: ${h.type === 'command' ? `runs ${h.runs}` : h.type === 'prompt' || h.type === 'agent' ? `asks the model "${h.runs}"` : h.type === 'http' ? `sends the event to ${h.runs}` : `${h.type} ${h.runs}`}`;
 
 // ---- the plan -----------------------------------------------------------------------------------
 
@@ -249,7 +274,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
   const method = installMethod({ tree, readme, kind: check?.kind }) || (tree && mcp.length ? 'mcp' : null);
   if (tree && !method) blockers.push('no supported install method: no plugin marketplace, skill folder or claude mcp add command in the README');
 
-  let hooks = []; let hooksWhy = null; let replacing;
+  let hooks = []; let hooksWhy = null; let pluginMcp; let replacing;
   let name = null; const writes = []; const commands = []; const settings = []; const managed = []; const credentials = new Set();
   for (const c of check?.effort?.needs?.credentials || []) if (/^[A-Z][A-Z0-9_]+$/.test(c)) credentials.add(c);
   if (check?.effort?.needs?.credentials?.includes('OAuth')) notes.push('It may ask you to sign in (OAuth) the first time it runs.');
@@ -305,7 +330,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       settings.push({ file, key: `enabledPlugins.${id}`, before, after: true });
       managed.push(path.join(home, '.claude', 'plugins'));
       notes.push(`Claude Code adds the marketplace from the repo's current head. Tool Scout checks it is still ${pinned.slice(0, 7)} right before, and that the checkout is ${pinned.slice(0, 7)} right after; otherwise it undoes the install.`);
-      ({ hooks, hooksWhy } = await pluginHooks({ client, api, pinned, blobs, mk, plugin: part || plugins[0] }));
+      ({ hooks, hooksWhy, mcp: pluginMcp } = await pluginHooks({ client, api, pinned, blobs, mk, plugin: part || plugins[0] }));
       notes.push("Running claude also updates Claude Code's own ~/.claude.json (it may back it up under ~/.claude/backups). On undo, Tool Scout puts back what the uninstall changes there.");
     }
   } else if (method === 'mcp') {
@@ -345,7 +370,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
     v: 1, repo: full, sha: pinned, method, name, part, scope,
     check: check ? { verdict: check.verdict, reasons: check.reasons, line: check.coverage.line, notes: check.coverage.notes, license: check.metadata.license || null, flags: check.flags.map((f) => ({ severity: f.severity, id: f.id, file: f.file, line: f.line ?? null })) } : null,
     writes, commands, settings, managed, credentials: [...credentials].sort(), notes, blockers,
-    hooks, ...(hooksWhy ? { hooksWhy } : {}),
+    hooks, ...(hooksWhy ? { hooksWhy } : {}), ...(pluginMcp?.length ? { pluginMcp } : {}),
     ...(replace ? { replace: replacing && !replacing.error ? replacing : null } : {}),
   };
   const id = sha256(JSON.stringify(body)).slice(0, 12);
@@ -380,9 +405,11 @@ export function formatPlan(rec, { home = '' } = {}) {
   out.push(`Set yourself: ${b.credentials.length ? b.credentials.join(', ') : 'nothing'}${b.credentials.length ? ' (for example in your shell profile; Tool Scout never asks for, reads or stores them)' : ''}`);
   for (const n of b.notes) out.push(`Note:      ${n}`);
   if (b.method === 'plugin' && b.name) {
-    if (!b.hooks) out.push(`Hooks:     could not be listed: ${b.hooksWhy}. Read the plugin's hooks yourself before installing.`);
+    if (!b.hooks) out.push(`Hooks:     could not be listed: ${b.hooksWhy}. Read the plugin's hooks and MCP servers yourself before installing.`);
     else if (!b.hooks.length) out.push('Hooks:     none');
     else { out.push(`Hooks:     ${b.hooks.length} hook${b.hooks.length === 1 ? ' runs' : 's run'} automatically on Claude Code events`); for (const h of b.hooks) out.push(`           ${hookLine(h)}`); }
+    if (b.hooks) out.push(`MCP:       ${b.pluginMcp?.length ? `${b.pluginMcp.length} server${b.pluginMcp.length === 1 ? '' : 's'} the plugin starts on its own` : 'none'}`);
+    for (const m of b.pluginMcp || []) out.push(`           ${m.name}: ${m.runs}`);
   }
   if (b.blockers.length) { out.push('Blocked:   this plan cannot be installed:'); for (const x of b.blockers) out.push(`           - ${x}`); } else out.push(`To install exactly this: scout.mjs install ${b.repo} --confirm ${rec.id}`);
   return out.join('\n');

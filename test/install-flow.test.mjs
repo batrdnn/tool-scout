@@ -497,14 +497,14 @@ test('plugin plans list each hook: event, matcher and what it runs', async () =>
   const { ctx } = hookRepo({ 'guard/hooks/hooks.json': HOOKS, 'guard/.claude-plugin/plugin.json': JSON.stringify({ name: 'guard', hooks: './extra-hooks.json' }), 'guard/extra-hooks.json': EXTRA });
   const p = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
   assert.deepEqual(p.body.hooks, [
-    { event: 'PreToolUse', matcher: 'Bash|Write', type: 'command', runs: '${CLAUDE_PLUGIN_ROOT}/hooks/check.sh --strict' },
+    { event: 'PreToolUse', matcher: 'Bash|Write', type: 'command', runs: '${CLAUDE_PLUGIN_ROOT}/hooks/check.sh\\u{200b} --strict' },
     { event: 'SessionStart', matcher: null, type: 'command', runs: 'node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js' },
     { event: 'SessionStart', matcher: null, type: 'prompt', runs: 'Say hi to the user.' },
     { event: 'Stop', matcher: null, type: 'command', runs: 'echo bye' },
   ]);
   const text = formatPlan(p);
   assert.match(text, /^Hooks:     4 hooks run automatically on Claude Code events$/m);
-  for (const l of ['PreToolUse [Bash|Write]: runs ${CLAUDE_PLUGIN_ROOT}/hooks/check.sh --strict', 'SessionStart (every time): runs node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js',
+  for (const l of ['PreToolUse [Bash|Write]: runs ${CLAUDE_PLUGIN_ROOT}/hooks/check.sh\\u{200b} --strict', 'SessionStart (every time): runs node ${CLAUDE_PLUGIN_ROOT}/hooks/hello.js',
     'SessionStart (every time): asks the model "Say hi to the user."', 'Stop (every time): runs echo bye']) assert.ok(text.includes(`           ${l}`), `${l}\n${text}`);
   assert.ok(text.indexOf('Hooks:') < text.indexOf('To install exactly this'), 'listed right before the yes/no');
 });
