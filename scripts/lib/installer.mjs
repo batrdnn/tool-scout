@@ -262,8 +262,11 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
         if (t.type === 'tree') continue; // a folder: its files are listed on their own
         if (t.type !== 'blob') { notes.push(`Skipped ${rel} (a submodule).`); continue; }
         if (t.mode === '120000') { notes.push(`Skipped ${rel} (a symlink).`); continue; }
-        if (!rel || rel.split('/').some((s) => s === '..' || s === '.' || !s) || path.isAbsolute(rel)) { blockers.push(`unsafe path in the repo: ${JSON.stringify(rel)}`); continue; }
-        writes.push({ path: path.join(dest, ...rel.split('/')), rel, blob: t.sha, mode: t.mode === '100755' ? '100755' : '100644', size: t.size || 0 });
+        // Backslashes and colons are path syntax on Windows (..\..\x, C:x); control characters could fake plan lines.
+        const target = path.join(dest, ...rel.split('/'));
+        if (!rel || rel.split('/').some((s) => s === '..' || s === '.' || !s) || path.isAbsolute(rel) || /[\\:]|[\u0000-\u001F\u007F-\u009F]/.test(rel)
+          || !path.resolve(target).startsWith(path.resolve(dest) + path.sep)) { blockers.push(`unsafe path in the repo: ${JSON.stringify(rel)}`); continue; }
+        writes.push({ path: target, rel, blob: t.sha, mode: t.mode === '100755' ? '100755' : '100644', size: t.size || 0 });
       }
       writes.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
       if (writes.length > MAX_FILES) blockers.push(`${writes.length} files: more than ${MAX_FILES}`);
