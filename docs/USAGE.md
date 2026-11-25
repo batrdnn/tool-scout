@@ -159,7 +159,8 @@ profile uses). Lines that start with always, never, must, should, prefer or avoi
 heading like Conventions, are conventions. The stack comes from the project's dependency files
 (the same parser as the profile's stack). The domain is the most-mentioned domain topic (finance,
 iOS, ML, data and the like). Claude reads the plan too and can correct the needs list in the file,
-then match again with `--rematch`.
+then match again with `--rematch`. The needs file has a format version: `--rematch` on an older one
+derives the needs again from the saved plan text and says so.
 
 **Matching.** Each need is ranked on its own with the same ranking as the scout (`recommend`,
 unchanged), as if the user's history held only that need: its topic, the specific tools its lines

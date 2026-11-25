@@ -22,6 +22,7 @@ import { loadLog } from './installer.mjs';
 import { OFFICIAL_REPO, OFFICIAL_MARKETPLACE, loadOfficial, pickCandidate } from './kickoff-sources.mjs';
 
 export const MAX_ITEMS = 5;
+export const NEEDS_VERSION = 2; // 2: direct needs, rejects, wrapped bullets, stack headings
 const MAX_PLAN_BYTES = 200_000;
 const STALE_HOURS = 20;
 // Topics that are a project's domain (what it is about) rather than a kind of task.
@@ -274,17 +275,22 @@ function readPlan(file) {
  * (fixed topic searches) and each match gets the scout's content scan (effort and trust).
  */
 export async function runKickoff({ planFile = null, rematch = false, project = null, home, dataDir, now = Date.now(), client = null, fetchImpl, log = () => {}, platform = process.platform, scan = null }) {
-  let n;
+  let n; let reextracted = false;
   const scratch = planFile && path.resolve(planFile) === scratchPath(dataDir);
   if (rematch) {
     n = loadNeeds(dataDir);
     if (!n) throw new Error('no saved needs list: run kickoff --plan-file <path> first');
+    if ((n.v || 1) < NEEDS_VERSION) { // an older format: derive the needs again from the saved plan text
+      if (typeof n.plan?.text !== 'string') throw new Error('the saved needs list is in an older format and has no plan text: run kickoff --plan-file <path> again');
+      n = { ...n, v: NEEDS_VERSION, ...extractNeeds(n.plan.text, { project: n.project }), rejects: n.rejects };
+      reextracted = true;
+    }
     validate(n);
   } else {
     if (!planFile) throw new Error('usage: kickoff --plan-file <path> [--project DIR]');
     const text = readPlan(planFile);
     const proj = project ? path.resolve(project) : null;
-    n = { v: 1, createdAt: new Date(now).toISOString(), planFile: scratch ? 'pasted' : path.resolve(planFile), project: proj, plan: { text }, ...extractNeeds(text, { project: proj }) };
+    n = { v: NEEDS_VERSION, createdAt: new Date(now).toISOString(), planFile: scratch ? 'pasted' : path.resolve(planFile), project: proj, plan: { text }, ...extractNeeds(text, { project: proj }) };
   }
   let catalog = loadCatalog(dataDir);
   const ageH = catalog.updatedAt ? (now - Date.parse(catalog.updatedAt)) / 36e5 : Infinity;
@@ -295,6 +301,7 @@ export async function runKickoff({ planFile = null, rematch = false, project = n
   const scanner = scan || (client ? (recs) => scanRecommendations(recs, catalog, { client, dataDir, log, now, memo }).catch((e) => log(`trust scan skipped: ${e.message}`)) : null);
   const official = await loadOfficial({ client, dataDir, now, log });
   const toolkit = await buildToolkit(n, catalog, { home, project: n.project, dataDir, now, platform, scan: scanner, official });
+  if (reextracted) toolkit.notes.unshift('The saved needs list was in an older format, so the needs were derived again from the saved plan text (your earlier hand edits to the needs, other than rejects, are replaced).');
   n.toolkit = toolkit;
   n.matchedAt = new Date(now).toISOString();
   fs.mkdirSync(path.dirname(needsPath(dataDir)), { recursive: true });
