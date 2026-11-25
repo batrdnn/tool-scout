@@ -7,8 +7,8 @@
     "tool-scout": "scripts/scout.mjs"
   },
   "scripts": {
-    "test": "node --test --test-reporter=./test/reporter.mjs test/*.test.mjs",
-    "test:verbose": "node --test --test-reporter=spec test/*.test.mjs",
+    "test": "node test/run-tests.mjs",
+    "test:verbose": "node test/run-tests.mjs spec",
     "eval": "node test/eval/eval.mjs",
     "eval:e2e": "node test/eval/e2e.mjs",
     "gallery": "node test/gallery.mjs",

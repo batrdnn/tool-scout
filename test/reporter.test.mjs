@@ -30,6 +30,6 @@ test('all passing: just the summary line', () => {
 
 test('npm test uses the quiet reporter; npm run test:verbose gives the full output', () => {
   const { scripts } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-  assert.equal(scripts.test, 'node --test --test-reporter=./test/reporter.mjs test/*.test.mjs');
-  assert.equal(scripts['test:verbose'], 'node --test --test-reporter=spec test/*.test.mjs');
+  assert.equal(scripts.test, 'node test/run-tests.mjs');
+  assert.equal(scripts['test:verbose'], 'node test/run-tests.mjs spec');
 });
