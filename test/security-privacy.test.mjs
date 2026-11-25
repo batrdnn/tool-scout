@@ -85,6 +85,8 @@ test('the data folder and its files are private to the user (0700 / 0600)', () =
   const w = world();
   fs.chmodSync(w.data, 0o755);
   fs.writeFileSync(path.join(w.data, 'old-log.json'), '{}', { mode: 0o644 });
+  const outside = path.join(w.root, 'shared.txt'); fs.writeFileSync(outside, 'x', { mode: 0o644 });
+  fs.symlinkSync(outside, path.join(w.data, 'link')); // a link in the folder is never followed
   cli(w, ['profile']);
   cli(w, ['all', '--refresh']);
   const plan = cli(w, ['install', 'o/thing-mcp', '--plan']).stdout;
@@ -93,5 +95,6 @@ test('the data folder and its files are private to the user (0700 / 0600)', () =
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => [path.join(d, e.name), ...(e.isDirectory() ? walk(path.join(d, e.name)) : [])]);
   const all = [w.data, ...walk(w.data)];
   assert.ok(all.some((f) => f.endsWith('profile.json')) && all.some((f) => f.includes(`${path.sep}plans${path.sep}`)), all.join('\n'));
-  for (const f of all) assert.equal(fs.statSync(f).mode & 0o077, 0, `${f} is ${(fs.statSync(f).mode & 0o777).toString(8)}`);
+  assert.equal(fs.statSync(outside).mode & 0o777, 0o644);
+  for (const f of all.filter((f) => !f.endsWith(`${path.sep}link`))) assert.equal(fs.statSync(f).mode & 0o077, 0, `${f} is ${(fs.statSync(f).mode & 0o777).toString(8)}`);
 });

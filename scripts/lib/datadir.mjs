@@ -36,9 +36,20 @@ export function resolveDataDir({ data, env = process.env, home }) {
  */
 export function keepDataDirPrivate(dir) {
   try { fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); } catch { return; }
+  // A folder someone else owns is left alone: its contents are theirs to swap under us.
+  try { const st = fs.lstatSync(dir); if (process.getuid && !st.isSymbolicLink() && st.uid !== process.getuid()) return; } catch { return; }
   tighten(dir);
   process.once('exit', () => { const walk = (d) => { let es; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of es) { const f = path.join(d, e.name); if (e.isSymbolicLink()) continue; tighten(f); if (e.isDirectory()) walk(f); } }; tighten(dir); walk(dir); });
 }
+// chmod through a descriptor opened without following links, so a path swapped for a symlink
+// between the check and the change is never followed (no O_NOFOLLOW, e.g. Windows: lstat check only).
 function tighten(f) {
-  try { const st = fs.lstatSync(f); if (!st.isSymbolicLink() && st.mode & 0o077) fs.chmodSync(f, st.mode & 0o700); } catch { /* not ours, or gone */ }
+  const { O_RDONLY, O_NOFOLLOW, O_NONBLOCK = 0 } = fs.constants; // O_NONBLOCK: a FIFO never blocks the open
+  let fd;
+  try {
+    if (O_NOFOLLOW === undefined) { const st = fs.lstatSync(f); if (!st.isSymbolicLink() && st.mode & 0o077) fs.chmodSync(f, st.mode & 0o700); return; }
+    fd = fs.openSync(f, O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
+    const st = fs.fstatSync(fd);
+    if (st.mode & 0o077) fs.fchmodSync(fd, st.mode & 0o700);
+  } catch { /* a symlink, not ours, unreadable, or gone */ } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch { /* closed */ } }
 }
