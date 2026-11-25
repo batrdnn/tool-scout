@@ -51,3 +51,21 @@ test('tokenize: quotes and escapes without a shell; $ and backticks are refused'
   assert.deepEqual(tokenize(`claude mcp add 'a b' "c d" e\\ f`), ['claude', 'mcp', 'add', 'a b', 'c d', 'e f']);
   for (const s of ['a $HOME', 'a "$HOME"', 'a `id`', 'a "unterminated']) assert.equal(tokenize(s), null, s);
 });
+
+test('one place fetches and verifies a git blob: fetchBlob, and every blob write goes through it', () => {
+  const code = SRC.replace(/\/\/.*$/gm, '');
+  const start = code.indexOf('async function fetchBlob');
+  const fetchBlob = code.slice(start, code.indexOf('\n}', start));
+  assert.ok(start > 0);
+  assert.equal((code.match(/\/git\/blobs\//g) || []).length, 1);
+  assert.match(fetchBlob, /\/git\/blobs\//);
+  assert.equal((code.match(/\bgitBlobSha\b/g) || []).length, 2, 'its definition and one call');
+  assert.equal((code.match(/\bgitBlobSha\(/g) || []).length, 1, 'called only in fetchBlob');
+  assert.match(fetchBlob, /gitBlobSha\(buf\)/);
+  assert.equal((code.match(/Buffer\.from\([^)]*'base64'\)/g) || []).length, 1, 'base64 is decoded only in fetchBlob');
+  assert.match(fetchBlob, /base64/);
+  // Every place that takes a blob sha from a write fetches it through fetchBlob.
+  const uses = [...code.matchAll(/\.blob\b/g)].length;
+  const through = [...code.matchAll(/fetchBlob\(client, api, \w+\.blob,/g)].length;
+  assert.ok(through >= 2 && uses >= through, `${through} of ${uses}`);
+});
