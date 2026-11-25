@@ -54,8 +54,14 @@ test('marketplace and plugin names with shell or path characters are refused', a
   }
 });
 
-// Medium M2 in docs/security-review.md (documented, not fixed in 0.12.0).
-test('an http server\'s target is a URL, never an option', { todo: 'M2: the URL is placed without -- before it' }, async () => {
+// Medium M2 in docs/security-review.md (fixed in 0.12.2): an http/sse server's target must be an http(s) URL.
+test('an http server\'s target is a URL, never an option', async () => {
+  for (const line of ['claude mcp add --transport http srv -- --scope=local', 'claude mcp add -t sse srv -- -e', 'claude mcp add --transport http srv -- file:///etc/passwd', 'claude mcp add --transport http srv -- node srv.js']) {
+    assert.ok(mcp(line).rejected, line);
+  }
   const p = await planFor('```\nclaude mcp add --transport http srv -- --scope=local\n```');
-  assert.ok(p.body.blockers.length || p.body.commands.every((c) => !c.slice(3).some((a, i) => a.startsWith('--scope=') && c[i + 2] !== '--')));
+  assert.deepEqual(p.body.commands, []);
+  assert.ok(p.body.blockers.length, 'the plan is blocked');
+  const ok = await planFor('```\nclaude mcp add --transport http srv https://srv.example/mcp\n```');
+  assert.deepEqual(ok.body.commands, [['mcp', 'add', 'srv', '--transport', 'http', '--scope', 'user', 'https://srv.example/mcp']]);
 });

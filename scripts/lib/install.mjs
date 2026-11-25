@@ -146,6 +146,8 @@ export function mcpCommands(readme) {
     if (!name || !target || !NAME_OK.test(name)) { found.push({ rejected: 'no server name or command' }); continue; }
     if (SHELLS.has(basename(target).toLowerCase())) { found.push({ rejected: `runs ${basename(target)}` }); continue; }
     const url = /^https?:\/\//.test(target) || keep.includes('http') || keep.includes('sse');
+    // An http/sse server's target is placed without `--` before it, so it must be a URL, never an option.
+    if (url && !/^https?:\/\/[^\s]+$/.test(target)) { found.push({ rejected: 'an http server whose target is not an http(s) URL' }); continue; }
     found.push({ name, opts: keep, url, target, args: url ? [] : more, env, dropped });
   }
   return found;
