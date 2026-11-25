@@ -114,3 +114,12 @@ test('a clean skill still plans, and its plan says every file it writes was scan
   assert.deepEqual(p.body.blockers, []);
   assert.match(formatPlan(p), /Scanned:   all 2 files it writes/);
 });
+
+test('a text file named like an image is scanned as text; real binary files are named in the plan', async () => {
+  const p = await skillPlan({ 'SKILL.md': `${SKILL_MD('x')}Read notes.png first.\n`, 'notes.png': `${INJ}\n` });
+  assert.ok(p.body.blockers.some((b) => /prompt-injection/.test(b)), p.body.blockers.join('\n'));
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe]).toString('latin1');
+  const ok = await skillPlan({ 'SKILL.md': SKILL_MD('x'), 'logo.png': png });
+  assert.deepEqual(ok.body.blockers, []);
+  assert.match(formatPlan(ok), /Binary files, not scanned.*: logo\.png/);
+});

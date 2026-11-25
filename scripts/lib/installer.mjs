@@ -269,21 +269,22 @@ const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
  * text file the scanner can't decode (UTF-16, NUL bytes), blocks the plan.
  */
 async function scanWrites({ client, api, writes, dir, blockers, notes, extra }) {
-  const flags = []; let binary = 0;
+  const flags = []; const binary = [];
   for (const w of writes) {
-    if (BINARY.test(w.rel)) { binary++; continue; }
     const r = await client.request(`${api}/git/blobs/${w.blob}`);
     const buf = r.data?.encoding === 'base64' ? Buffer.from(r.data.content, 'base64') : null;
     if (!buf || gitBlobSha(buf) !== w.blob) { blockers.push(`${w.rel} could not be read at the pinned commit`); continue; }
     let text = null;
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
+    // Text is decided by content, not by name: a notes.png that is really text is scanned like any other.
+    if ((text == null || text.includes('\u0000')) && BINARY.test(w.rel)) { binary.push(w.rel); continue; }
     if (text == null || text.includes('\u0000')) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
     flags.push(...scanText(text, { file: `${dir}${w.rel}`, role: SCRIPT.test(w.rel) ? 'script' : 'skill' }));
   }
   const high = flags.filter((f) => f.severity === 'high');
   if (high.length) blockers.push(`the scan of the files it writes flagged ${[...new Set(high.map((f) => f.id))].join(', ')} (${[...new Set(high.map((f) => f.file))].join(', ')})`);
-  if (binary) notes.push(`${binary} binary file${binary === 1 ? '' : 's'} (images, fonts, archives) copied without a content scan.`);
-  extra({ files: writes.length - binary, flags: flags.map(({ excerpt, ...f }) => f) });
+  if (binary.length) notes.push(`Binary files, not scanned (Claude can read images and PDFs, so open them yourself if in doubt): ${binary.join(', ')}.`);
+  extra({ files: writes.length - binary.length, flags: flags.map(({ excerpt, ...f }) => f) });
 }
 
 // ---- the plan -----------------------------------------------------------------------------------
