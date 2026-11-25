@@ -180,6 +180,8 @@ says "do not install":
    pinned commit, the check verdict and coverage line, and the credentials they set themselves.
    When a "Pinned …" note says an npx or uvx package was pinned to its current version, say so and
    why (the repo isn't from a known vendor, so a new release can't change what runs).
+   When its License line says there is none, say "No license: you have no formal permission to use
+   or copy this." word for word.
    If it says "Blocked", explain why and stop: don't ask.
 3. Ask one yes/no question with AskUserQuestion for that one item: "Install <name> as planned?",
    with the options "Yes, install it" and "No". One item per question, never several in one question or

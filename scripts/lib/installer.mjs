@@ -25,6 +25,7 @@ import { OFFICIAL_ORGS } from './effort.mjs';
 export { tokenize, mcpCommands } from './install.mjs';
 
 export const PLAN_TTL_MIN = 15;
+export const NO_LICENSE = 'No license: you have no formal permission to use or copy this.';
 const MAX_FILES = 300;
 const MAX_BYTES = 5_000_000;
 const LOG = 'installs.json';
@@ -318,7 +319,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
 
   const body = {
     v: 1, repo: full, sha: pinned, method, name, part, scope,
-    check: check ? { verdict: check.verdict, reasons: check.reasons, line: check.coverage.line, notes: check.coverage.notes, flags: check.flags.map((f) => ({ severity: f.severity, id: f.id, file: f.file, line: f.line ?? null })) } : null,
+    check: check ? { verdict: check.verdict, reasons: check.reasons, line: check.coverage.line, notes: check.coverage.notes, license: check.metadata.license || null, flags: check.flags.map((f) => ({ severity: f.severity, id: f.id, file: f.file, line: f.line ?? null })) } : null,
     writes, commands, settings, managed, credentials: [...credentials].sort(), notes, blockers,
     hooks, ...(hooksWhy ? { hooksWhy } : {}),
   };
@@ -341,6 +342,7 @@ export function formatPlan(rec, { home = '' } = {}) {
     out.push(`Check:     ${b.check.verdict}${b.check.reasons.length ? ` (${b.check.reasons.join('; ')})` : ''}`, `           ${b.check.line}`);
     for (const n of b.check.notes) out.push(`           ${n}`);
     for (const f of b.check.flags.filter((x) => x.severity !== 'low')) out.push(`           ⚑ ${f.severity.toUpperCase()} ${f.id} (${f.file}${f.line ? `:${f.line}` : ''})`);
+    out.push(`License:   ${b.check.license || NO_LICENSE}`);
   }
   out.push(`Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`);
   for (const w of b.writes) out.push(`           ${t(w.path)}`);

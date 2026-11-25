@@ -78,7 +78,7 @@ function github(R, { head = {} } = {}) {
     const rest = m[2] || '';
     const ref = u.searchParams.get('ref');
     if (ref && ref !== r.sha) return undefined;
-    if (!rest) return { full_name: `o/${m[1]}`, name: m[1], owner: { login: 'o', type: 'Organization' }, html_url: `https://github.com/o/${m[1]}`, description: r.description, topics: r.topics, language: 'Python', stargazers_count: 500, forks_count: 20, license: { spdx_id: 'MIT' }, archived: false, fork: false, created_at: '2025-01-01T00:00:00Z', pushed_at: '2026-10-01T00:00:00Z', default_branch: 'main' };
+    if (!rest) return { full_name: `o/${m[1]}`, name: m[1], owner: { login: 'o', type: 'Organization' }, html_url: `https://github.com/o/${m[1]}`, description: r.description, topics: r.topics, language: 'Python', stargazers_count: 500, forks_count: 20, license: r.license === undefined ? { spdx_id: 'MIT' } : r.license, archived: false, fork: false, created_at: '2025-01-01T00:00:00Z', pushed_at: '2026-10-01T00:00:00Z', default_branch: 'main' };
     if (rest === 'commits/main' || rest === 'commits/HEAD') return { sha: head[m[1]] || r.sha };
     if (rest.startsWith('git/trees/')) {
       if (rest.split('/')[2] !== r.sha && rest.split('/')[2] !== 'HEAD') return undefined;
@@ -524,5 +524,28 @@ test('skills: the plan\'s hooks (event, matcher, what it runs) are shown next to
     const md = fs.readFileSync(new URL(`../skills/${name}/SKILL.md`, import.meta.url), 'utf8').replace(/\s+/g, ' ');
     const sec = md.slice(md.indexOf('## Installing, with consent'));
     assert.match(sec, /every hook under "Hooks:" \(event, matcher, what it runs\)[^.]*next to the (?:yes\/no )?question/, name);
+  }
+});
+
+// ---- v0.9.1: no license, no formal permission ---------------------------------------------------
+
+const NO_LICENSE = 'No license: you have no formal permission to use or copy this.';
+test('a plan for a repo without a license warns that there is no formal permission to use or copy it', async () => {
+  for (const [repo, opts] of [['o/skill-pack', { part: 'pdf' }], ['o/plugin-repo', {}], ['o/thing-mcp', {}]]) {
+    const { ctx } = setup({ patch: (R) => ({ [repo.slice(2)]: { ...R[repo.slice(2)], license: null } }) });
+    const p = await makePlan({ ...ctx(), repo, ...opts });
+    assert.equal(p.body.check.license, null);
+    assert.match(formatPlan(p), new RegExp(`^License:   ${NO_LICENSE.replace(/[.]/g, '\\.')}$`, 'm'), repo);
+  }
+  const ok = await makePlan({ ...setup().ctx(), repo: 'o/thing-mcp' });
+  assert.equal(ok.body.check.license, 'MIT');
+  assert.match(formatPlan(ok), /^License:   MIT$/m);
+  assert.ok(!formatPlan(ok).includes(NO_LICENSE));
+});
+
+test('skills: the no-license warning is said word for word with the plan', () => {
+  for (const name of ['scout', 'check']) {
+    const md = fs.readFileSync(new URL(`../skills/${name}/SKILL.md`, import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.ok(md.slice(md.indexOf('## Installing, with consent')).includes(`"${NO_LICENSE}"`), name);
   }
 });
