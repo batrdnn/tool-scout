@@ -9,6 +9,9 @@ Profile from 16 sessions across 1 projects (last 30 days)
 Stored counts only (no prompt text) in <DATA>/profile.json
 Data folder: <DATA> (--data)
 
+Shortlist (unfiltered)
+Run /tool-scout:scout in Claude Code for Claude's filtered picks.
+
 1. microsoft/playwright-mcp  [mcp-server]  40040★  ~65.3★/day  trust: high
    Playwright MCP server
    Why: you use @playwright/test in 1 project; testing in 16/16 sessions, friction in 1

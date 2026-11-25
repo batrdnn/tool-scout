@@ -14,7 +14,8 @@
 +------------------------------------------------------------------------------+
   Counts only, no prompt text: <DATA>/profile.json
 
--- 5 picks ---------------------------------------------------------------------
+-- Shortlist (unfiltered) - 5 repos --------------------------------------------
+  Run /tool-scout:scout in Claude Code for Claude's filtered picks.
 
   #  Repo                        Kind         Stars  Momentum    Trust
   1  microsoft/playwright-mcp    mcp-server  40,040  ~65.3*/day  high

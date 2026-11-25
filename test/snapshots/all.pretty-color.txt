@@ -14,7 +14,8 @@
 [36m╰──────────────────────────────────────────────────────────────────────────────╯[39m
   [2mCounts only, no prompt text: <DATA>/profile.json[22m
 
-[2m──[22m [1m5 picks[22m [2m─────────────────────────────────────────────────────────────────────[22m
+[2m──[22m [1mShortlist (unfiltered) · 5 repos[22m [2m────────────────────────────────────────────[22m
+  [2mRun /tool-scout:scout in Claude Code for Claude's filtered picks.[22m
 
   [2m#[22m  [2mRepo                      [22m  [2mKind      [22m  [2m Stars[22m  [2mMomentum  [22m  [2mTrust[22m
   [2m1[22m  [36mmicrosoft/playwright-mcp  [39m  mcp-server  [33m40,040[39m  ~65.3★/day  [32mhigh[39m

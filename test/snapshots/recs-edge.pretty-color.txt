@@ -19,7 +19,8 @@
   [33mNote[39m  1 match left out: they rest on a topic seen in a single session, with no
         friction.
 
-[2m──[22m [1m3 picks[22m [2m─────────────────────────────────────────────────────────────────────[22m
+[2m──[22m [1mShortlist (unfiltered) · 3 repos[22m [2m────────────────────────────────────────────[22m
+  [2mRun /tool-scout:scout in Claude Code for Claude's filtered picks.[22m
 
   [2m#[22m  [2mRepo                [22m  [2mKind      [22m  [2m  Stars[22m  [2mMomentum         [22m  [2mTrust[22m
   [2m1[22m  [36macme/test-runner-mcp[39m  mcp-server  [33m  1,520[39m  +84★ in 7d         [33mmedium[39m

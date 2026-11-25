@@ -3,6 +3,9 @@ Note: Limited history: 4 sessions in the last 30 days (under 10), so these picks
 
 Note: 1 match left out: they rest on a topic seen in a single session, with no friction.
 
+Shortlist (unfiltered)
+Run /tool-scout:scout in Claude Code for Claude's filtered picks.
+
 1. acme/test-runner-mcp  [mcp-server]  1520★  +84★ last 7d (12/day)  trust: medium
    Runs your test suites from Claude — with a watch mode…
    Why: you use vitest in 2 projects; testing in 3/4 sessions, friction in 2

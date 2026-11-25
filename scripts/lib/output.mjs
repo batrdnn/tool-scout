@@ -38,9 +38,13 @@ export function formatProfile(p, { dataLine, profilePath }) {
   return out.join('\n');
 }
 
+/** The CLI lists the keyword-ranked shortlist; Claude's judgment step is in the scout skill. */
+export const SHORTLIST_TITLE = 'Shortlist (unfiltered)';
+export const SHORTLIST_HINT = "Run /tool-scout:scout in Claude Code for Claude's filtered picks.";
+
 export function formatRecs(recs) {
   if (!recs.length) return 'No matches yet. Use Claude Code for a few sessions, or run `crawl` to refresh the catalog.';
-  const out = [];
+  const out = [`\n${SHORTLIST_TITLE}`, SHORTLIST_HINT];
   recs.forEach((r, i) => {
     out.push(`\n${i + 1}. ${r.name}  [${r.kind}]  ${r.stars}★  ${momentumText(r)}  trust: ${r.trust.tier}`);
     if (r.description) out.push(`   ${r.description}`);

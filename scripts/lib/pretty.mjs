@@ -2,7 +2,7 @@
 // me.mjs), drawn with colors, boxes, dividers and aligned columns. Only used when stdout is a
 // TTY (see term.mjs: detectStyle); every function takes a painter P from term.mjs.
 
-import { evidenceText, leftOutText } from './output.mjs';
+import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
 import { NBSP } from './term.mjs';
 
@@ -66,7 +66,7 @@ export function prettyRecs(recs, notes, P) {
   for (const n of notes) out.push(...P.fields([['Note', n, null, 'yellow']], { indent: 2 }));
   if (notes.length) out.push('');
   if (!recs.length) return [...out, ...indented(P, 'No matches yet. Use Claude Code for a few sessions, or run `crawl` to refresh the catalog.')];
-  out.push(P.divider(plural(recs.length, 'pick')), '');
+  out.push(P.divider(`${SHORTLIST_TITLE} · ${plural(recs.length, 'repo')}`), ...indented(P, SHORTLIST_HINT, 2, 'dim'), '');
   out.push(...P.table([
     { title: '#', align: 'right', tone: 'dim' },
     { title: 'Repo', tone: 'cyan', flex: true },

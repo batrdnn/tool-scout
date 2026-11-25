@@ -2,8 +2,9 @@
 // pretty output (colors, boxes, aligned columns) is only for a real terminal.
 //
 // Snapshots live in test/snapshots/. The *.plain.txt files were taken from the CLI before the
-// pretty output existed and must not change. Regenerate the pretty ones after a deliberate
-// design change with: UPDATE_SNAPSHOTS=1 npm test
+// pretty output existed and change only on purpose (v0.8.0: the "Shortlist (unfiltered)" title
+// and the Effort line). Regenerate the pretty ones after a design change with
+// UPDATE_SNAPSHOTS=1 npm test; plain ones need UPDATE_PLAIN_SNAPSHOTS=1, and the report says why.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -23,6 +24,7 @@ const SNAP = new URL('./snapshots/', import.meta.url).pathname;
 function snap(name, text) {
   const file = path.join(SNAP, name);
   if (process.env.UPDATE_SNAPSHOTS && !name.includes('.plain.')) fs.writeFileSync(file, text);
+  if (process.env.UPDATE_PLAIN_SNAPSHOTS && name.includes('.plain.')) fs.writeFileSync(file, text);
   assert.ok(fs.existsSync(file), `missing snapshot ${name} (UPDATE_SNAPSHOTS=1 creates pretty ones; plain ones are fixed)`);
   assert.equal(text, fs.readFileSync(file, 'utf8'), `snapshot ${name} differs`);
 }
@@ -78,6 +80,19 @@ test('Unicode only when the locale or terminal supports it; ASCII otherwise', ()
 
 test('plain `all` output is byte-for-byte the pre-pretty CLI output', () => {
   snap('all.plain.txt', `${formatAll(PROFILE, REC.notes, REC.recommendations, { dataLine: DATA_LINE, profilePath: '<DATA>/profile.json' })}\n`);
+});
+
+test('the list is titled "Shortlist (unfiltered)" and points to /tool-scout:scout (plain and pretty)', () => {
+  const HINT = "Run /tool-scout:scout in Claude Code for Claude's filtered picks.";
+  const plain = formatRecs(REC.recommendations).split('\n');
+  assert.deepEqual(plain.slice(0, 3), ['', 'Shortlist (unfiltered)', HINT]);
+  assert.match(plain[4], /^1\. microsoft\/playwright-mcp/);
+  assert.ok(!formatRecs([]).includes('Shortlist'), 'no title over an empty list');
+  for (const s of Object.keys(styles)) {
+    const text = stripAnsi(prettyAllText(s));
+    assert.match(text, /Shortlist \(unfiltered\)/, s);
+    assert.ok(text.includes(HINT), s);
+  }
 });
 
 test('plain recommendations: notes, flags, partial momentum, unscanned, README installs, no matches', () => {

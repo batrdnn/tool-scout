@@ -19,7 +19,8 @@
   Note  1 match left out: they rest on a topic seen in a single session, with no
         friction.
 
--- 3 picks ---------------------------------------------------------------------
+-- Shortlist (unfiltered) - 3 repos --------------------------------------------
+  Run /tool-scout:scout in Claude Code for Claude's filtered picks.
 
   #  Repo                  Kind          Stars  Momentum           Trust
   1  acme/test-runner-mcp  mcp-server    1,520  +84* in 7d         medium
