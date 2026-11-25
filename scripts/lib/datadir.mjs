@@ -27,3 +27,18 @@ export function resolveDataDir({ data, env = process.env, home }) {
   if (plugin) return { dir: plugin, source: 'plugin' };
   return { dir: path.join(home, '.tool-scout'), source: 'default' };
 }
+
+/**
+ * Keeps the data folder private to the user (security review M6): the folder is 0700, and on
+ * exit nothing inside it is readable or writable by group or others (owner bits kept). Files are
+ * written by several modules with the default umask; the 0700 folder covers them meanwhile.
+ * Symlinks are never followed. Best effort: a folder the user doesn't own is left as it is.
+ */
+export function keepDataDirPrivate(dir) {
+  try { fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); } catch { return; }
+  tighten(dir);
+  process.once('exit', () => { const walk = (d) => { let es; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of es) { const f = path.join(d, e.name); if (e.isSymbolicLink()) continue; tighten(f); if (e.isDirectory()) walk(f); } }; tighten(dir); walk(dir); });
+}
+function tighten(f) {
+  try { const st = fs.lstatSync(f); if (!st.isSymbolicLink() && st.mode & 0o077) fs.chmodSync(f, st.mode & 0o700); } catch { /* not ours, or gone */ }
+}

@@ -79,10 +79,19 @@ test('a full run sends no profile, plan or path data anywhere, and the token onl
   for (const f of walk(w.data)) assert.ok(!/THING_KEY=abc/.test(fs.readFileSync(f, 'utf8')), f);
 });
 
-// Medium M6 in docs/security-review.md (documented, not fixed in 0.12.0).
-test('the data folder and its files are private to the user (0700 / 0600)', { todo: 'M6: written with the default umask (0755 / 0644)' }, () => {
+// Medium M6 in docs/security-review.md (fixed in 0.12.2): the data folder is 0700 and nothing in it
+// is readable by group or others, including a folder made earlier with the default umask (--data).
+test('the data folder and its files are private to the user (0700 / 0600)', () => {
   const w = world();
+  fs.chmodSync(w.data, 0o755);
+  fs.writeFileSync(path.join(w.data, 'old-log.json'), '{}', { mode: 0o644 });
   cli(w, ['profile']);
-  assert.equal(fs.statSync(w.data).mode & 0o077, 0);
-  assert.equal(fs.statSync(path.join(w.data, 'profile.json')).mode & 0o077, 0);
+  cli(w, ['all', '--refresh']);
+  const plan = cli(w, ['install', 'o/thing-mcp', '--plan']).stdout;
+  cli(w, ['install', 'o/thing-mcp', '--confirm', idIn(plan)]);
+  cli(w, ['undo', 'thing']);
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => [path.join(d, e.name), ...(e.isDirectory() ? walk(path.join(d, e.name)) : [])]);
+  const all = [w.data, ...walk(w.data)];
+  assert.ok(all.some((f) => f.endsWith('profile.json')) && all.some((f) => f.includes(`${path.sep}plans${path.sep}`)), all.join('\n'));
+  for (const f of all) assert.equal(fs.statSync(f).mode & 0o077, 0, `${f} is ${(fs.statSync(f).mode & 0o777).toString(8)}`);
 });

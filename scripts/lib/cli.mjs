@@ -56,7 +56,7 @@ import { loadSettings, excludeProject, includeProject } from './settings.mjs';
 import { rate, ratingStats, shareText } from './ratings.mjs';
 import { checkRepo, formatCheck } from './check.mjs';
 import { auditLocal, formatAudit } from './audit.mjs';
-import { resolveDataDir, SOURCE_LABELS } from './datadir.mjs';
+import { resolveDataDir, keepDataDirPrivate, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
 import { whoAmI, formatMe, meCard } from './me.mjs';
 import { formatProfile, formatAll } from './output.mjs';
@@ -90,6 +90,7 @@ function parseArgs(argv) {
 const { cmd, opts } = parseArgs(process.argv.slice(2));
 const home = opts.home || os.homedir();
 const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, env: process.env, home });
+keepDataDirPrivate(dataDir);
 const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
 const style = detectStyle({ isTTY: process.stdout.isTTY, env: process.env, opts, platform: process.platform });
