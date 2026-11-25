@@ -225,16 +225,17 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
   const linked = (p) => tree.find((t) => (t.mode === '120000' || t.mode === '160000' || t.type === 'commit') && (fold(p) === fold(t.path) || fold(p).startsWith(`${fold(t.path)}/`)));
   if (dir && linked(dir)) return none(`${linked(dir).path} is a symlink or submodule`);
   const read = async (p) => {
-    if (linked(p)) throw new Error(`${linked(p).path} is a symlink or submodule`);
+    // Errors of its own (local: true) mean "can't be listed"; GitHub failing (rate limit, network) is rethrown.
+    if (linked(p)) throw Object.assign(new Error(`${linked(p).path} is a symlink or submodule`), { local: true });
     const found = byFold.get(fold(p));
     if (!found) return undefined;
-    if (found.length > 1) { const e = new Error(`${found.join(' and ')} differ only in case: which one Claude Code loads depends on the disk`); e.block = true; throw e; }
+    if (found.length > 1) { const e = new Error(`${found.join(' and ')} differ only in case: which one Claude Code loads depends on the disk`); e.block = true; e.local = true; throw e; }
     const real = found[0];
     const r = await client.request(`${api}/contents/${real.split('/').map(encodeURIComponent).join('/')}?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true });
     try { return JSON.parse(r.data); } catch { return null; }
   };
   let manifest;
-  try { manifest = await read(at('.claude-plugin/plugin.json')); } catch (e) { return { ...none(e.message), block: e.block }; }
+  try { manifest = await read(at('.claude-plugin/plugin.json')); } catch (e) { if (!e.local) throw e; return { ...none(e.message), block: e.block }; }
   // Each source is optional (the default files) or named (a path the plugin gives, which must be there).
   const out = { hooks: [], mcp: [] };
   const collect = async (kind, defaults, declared) => {
@@ -257,7 +258,7 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
   };
   let why;
   try { why = await collect('hooks', [at('hooks/hooks.json')], [manifest?.hooks, entry.hooks])
-    || await collect('mcp', [at('.mcp.json')], [manifest?.mcpServers, entry.mcpServers]); } catch (e) { why = e.message; if (e.block) return { ...none(why), block: true }; }
+    || await collect('mcp', [at('.mcp.json')], [manifest?.mcpServers, entry.mcpServers]); } catch (e) { if (!e.local) throw e; why = e.message; if (e.block) return { ...none(why), block: true }; }
   return why ? none(why) : out;
 }
 

