@@ -79,8 +79,8 @@ test('a huge settings file (20 MB) is handled: undo restores the key and keeps e
   assert.equal(after.history.length, 200000);
 });
 
-// Medium M8 in docs/security-review.md (documented, not fixed in 0.12.0).
-test('a concurrent edit by Claude Code during undo is not lost', { todo: 'M8: read-modify-write; the rename keeps files whole but can drop an edit made in between' }, async () => {
+// Medium M8 in docs/security-review.md: accepted in 0.12.2 (see the review for why); kept as a todo record.
+test('a concurrent edit by Claude Code during undo is not lost', { todo: 'M8 (accepted): read-modify-write; the rename keeps files whole but can drop an edit made in between' }, async () => {
   const sb = sandbox();
   const { settings } = logged(sb);
   fs.writeFileSync(settings, JSON.stringify({ enabledPlugins: { 'guard@o-tools': true } }, null, 2));
