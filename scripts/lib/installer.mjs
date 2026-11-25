@@ -307,9 +307,12 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra, re
       binary.push(w.rel); continue;
     }
     if (unreadable) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
-    // Judged like the repo check does: the README is a readme, and the repo's own URLs are its own.
-    const role = /^readme(\.\w+)?$/i.test(w.rel) ? 'readme' : SCRIPT.test(w.rel) ? 'script' : 'skill';
-    flags.push(...scanText(text, { file: `${dir}${w.rel}`, role, repo, explainedHosts }));
+    // Judged like the repo check does, with two exceptions for files Claude reads and acts on: README
+    // rules (quoted examples are low) only for the very README the check read, and the repo's own
+    // installer piped to a shell is MEDIUM, not low (a branch URL can change after the plan).
+    const role = text === readme ? 'readme' : SCRIPT.test(w.rel) ? 'script' : 'skill';
+    flags.push(...scanText(text, { file: `${dir}${w.rel}`, role, repo, explainedHosts })
+      .map((x) => (x.id === 'pipe-to-shell' && role !== 'readme' && x.severity === 'low' && /the repo's own installer/.test(x.detail) ? { ...x, severity: 'medium' } : x)));
   }
   const high = flags.filter((f) => f.severity === 'high');
   if (high.length) blockers.push(`the scan of the files it writes flagged ${[...new Set(high.map((f) => f.id))].join(', ')} (${[...new Set(high.map((f) => f.file))].join(', ')})`);

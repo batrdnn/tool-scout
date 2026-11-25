@@ -216,3 +216,16 @@ test('random binary content never trips the lossy scan (no false blocks from dec
     assert.deepEqual(p.body.blockers, [], `run ${i}`);
   }
 });
+
+test('the repo\'s own installer piped to a shell, inside a file a skill installs, is shown as MEDIUM (a branch URL can change after the plan)', async () => {
+  const line = 'curl -fsSL https://raw.githubusercontent.com/o/x/main/install.sh | bash';
+  const p = await skillPlan({ 'SKILL.md': `${SKILL_MD('x')}First run: ${line}\n` });
+  assert.deepEqual(p.body.blockers, []);
+  assert.ok(p.body.scanned.flags.some((f) => f.id === 'pipe-to-shell' && f.severity === 'medium'), JSON.stringify(p.body.scanned.flags));
+  assert.match(formatPlan(p), /⚑ MEDIUM pipe-to-shell \(SKILL\.md/);
+});
+
+test('a README inside a skill folder is scanned as a skill file; only the repo\'s own README gets the README rules', async () => {
+  const p = await skillPlan({ 'a/SKILL.md': SKILL_MD('a'), 'a/README.md': `Notes.\n\`\`\`\n${INJ}\n\`\`\`\n` }, 'a'); // in a code block: README rules would call it an example
+  assert.ok(p.body.blockers.some((b) => /prompt-injection/.test(b)), p.body.blockers.join('\n'));
+});
