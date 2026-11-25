@@ -549,3 +549,69 @@ test('skills: the no-license warning is said word for word with the plan', () =>
     assert.ok(md.slice(md.indexOf('## Installing, with consent')).includes(`"${NO_LICENSE}"`), name);
   }
 });
+
+// ---- v0.9.1: what the user had before an install survives its undo ---------------------------------
+
+function userMarketplaces(sb, entries) {
+  const dir = path.join(sb.home, '.claude', 'plugins');
+  const known = {};
+  for (const [name, repo, head] of entries) {
+    const loc = path.join(dir, 'marketplaces', name);
+    fs.mkdirSync(loc, { recursive: true });
+    fs.writeFileSync(path.join(loc, 'HEAD.txt'), head);
+    known[name] = { source: { source: 'github', repo }, installLocation: loc };
+  }
+  fs.writeFileSync(path.join(dir, 'known_marketplaces.json'), JSON.stringify(known, null, 2));
+}
+
+test('a marketplace the user had added before (the same one) survives undo, and so does its checkout', async () => {
+  const { sb, ctx, claude } = setup();
+  userMarketplaces(sb, [['o-tools', 'o/plugin-repo', SHA.plugin]]);
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.deepEqual(plan.body.commands, [['plugin', 'install', 'guard@o-tools', '--scope', 'user']], 'no marketplace add');
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  await undoInstall({ ...ctx(), name: 'guard@o-tools' });
+  assert.ok(!claude.calls.some((c) => c.includes('marketplace') && c.includes('remove')), 'never removes a marketplace it did not add');
+  const left = changed(before, snapshot(sb)).filter((p) => !p.endsWith('.last_inuse_sweep'));
+  assert.deepEqual(left.filter((p) => !p.endsWith('installed_plugins.json')), [], left.join('\n'));
+  assert.ok(JSON.parse(fs.readFileSync(path.join(sb.home, '.claude', 'plugins', 'known_marketplaces.json'), 'utf8'))['o-tools']);
+});
+
+test('another marketplace the user had survives undo; only the one this install added goes', async () => {
+  const { sb, ctx } = setup();
+  userMarketplaces(sb, [['mine', 'me/mine', 'e'.repeat(40)]]);
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  await undoInstall({ ...ctx(), name: 'guard@o-tools' });
+  const known = JSON.parse(fs.readFileSync(path.join(sb.home, '.claude', 'plugins', 'known_marketplaces.json'), 'utf8'));
+  assert.deepEqual(Object.keys(known), ['mine']);
+  const left = changed(before, snapshot(sb)).filter((p) => !p.endsWith('.last_inuse_sweep') && !p.endsWith('installed_plugins.json'));
+  assert.deepEqual(left, [], left.join('\n'));
+});
+
+test('a setting the user had for the same key (a plugin they disabled) is put back by undo, byte for byte', async () => {
+  const { sb, ctx } = setup();
+  const file = path.join(sb.home, '.claude', 'settings.json');
+  fs.writeFileSync(file, JSON.stringify({ theme: 'dark', enabledPlugins: { 'mine@mine': true, 'guard@o-tools': false }, permissions: { allow: ['Bash(ls)'] } }, null, 2));
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.deepEqual(plan.body.settings.map((s) => [s.key, s.before, s.after]), [['enabledPlugins.guard@o-tools', false, true]]);
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  await undoInstall({ ...ctx(), name: 'guard@o-tools' });
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).enabledPlugins, { 'mine@mine': true, 'guard@o-tools': false });
+  assert.deepEqual(changed(before, snapshot(sb)), [], 'the sandbox is exactly as before');
+});
+
+test("a project's own MCP servers and settings survive a project-scope install and undo", async () => {
+  const { sb, ctx } = setup();
+  const mcp = path.join(sb.cwd, '.mcp.json');
+  fs.writeFileSync(mcp, JSON.stringify({ mcpServers: { db: { command: 'db-mcp', args: ['--ro'] } } }, null, 2));
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/thing-mcp', scope: 'project' });
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(mcp, 'utf8')).mcpServers), ['db', 'thing']);
+  await undoInstall({ ...ctx(), name: 'thing' });
+  assert.deepEqual(changed(before, snapshot(sb)), []);
+});

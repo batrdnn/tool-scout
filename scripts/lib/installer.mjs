@@ -457,7 +457,8 @@ function undoSteps(entry, b, run) {
     try { run('claude', inv); } catch { /* already gone */ }
   }
   for (const s of entry.settings) {
-    if (s.before !== null && typeof s.after !== 'string' && getKey(s.file, s.key) === s.after) setKey(s.file, s.key, s.before);
+    // The user's earlier value comes back, whether the setting still has ours or the uninstall removed it.
+    if (s.before !== null && typeof s.after !== 'string' && [s.after, undefined].includes(getKey(s.file, s.key))) setKey(s.file, s.key, s.before);
     const top = s.key.split('.')[0];
     if (s.topExisted === false && fs.existsSync(s.file) && isEmptyValue(readJson(s.file)?.[top])) setKey(s.file, top, null); // e.g. an empty mcpServers left by mcp remove
     if (!s.fileExisted && fs.existsSync(s.file) && emptyJson(s.file)) fs.unlinkSync(s.file);
