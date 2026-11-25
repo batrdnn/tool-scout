@@ -238,6 +238,12 @@ export async function scanRepo(client, fullName, meta = {}) {
   return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, toolScoutInstall, effortFacts: effort, heads };
 }
 
+/**
+ * Repo text that goes inside a BEGIN/END REPO TEXT fence, with any marker of its own taken out, so
+ * the text can't close the fence and put instructions outside it.
+ */
+export const unfence = (text) => String(text).replace(/\b(BEGIN|END)(\s+)(REPO\s+TEXT)\b/gi, '[fence marker removed]');
+
 export const HEAD_LINES = 40;
 const HEAD_CHARS = 3000;
 /** First HEAD_LINES lines (at most HEAD_CHARS), without control, bidi, zero-width or tag characters. */
