@@ -17,7 +17,7 @@ async function planAndConfirm(repos, part = 'tbl') {
   const res = plan.body.blockers.length ? null : await confirmInstall({ ...s.ctx(), repo: 'o/x', id: plan.id });
   return { ...s, plan, res, diff: changed(before, snapshot(s.sb)) };
 }
-const outside = (sb, diff) => diff.filter((p) => !p.startsWith(path.join('home', '.claude', 'skills', 'tbl')));
+const outside = (sb, diff) => diff.filter((p) => !p.startsWith('home/.claude/skills/tbl')); // snapshot paths are POSIX paths (relPosix)
 
 test('../ in a file name: blocked at plan time, nothing written', async () => {
   for (const evil of ['skills/tbl/../../../evil.md', 'skills/tbl/a/../../x.md', 'skills/tbl/./x.md', 'skills/tbl//x.md']) {
