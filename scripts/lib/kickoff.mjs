@@ -19,7 +19,7 @@ import { scanRecommendations } from './scan.mjs';
 import { crawl, loadCatalog } from './crawl.mjs';
 import { dismissedSet } from './feedback.mjs';
 import { loadLog } from './installer.mjs';
-import { OFFICIAL_REPO, OFFICIAL_MARKETPLACE, loadOfficial, pickCandidate } from './kickoff-sources.mjs';
+import { OFFICIAL_REPO, OFFICIAL_MARKETPLACE, loadOfficial, pickCandidate, BUILTINS, builtinsForLine } from './kickoff-sources.mjs';
 
 export const MAX_ITEMS = 5;
 export const NEEDS_VERSION = 3; // 3: outside needs, built-ins by line, unmatched lines; 2: direct needs, rejects, wrapped bullets, stack headings
@@ -104,12 +104,14 @@ const STACK_HEADING = /\b(?:stack|tech(?:nology)?|built with)\b/i;
  * project's dependency files), the domain (the most-mentioned domain topic) and the conventions.
  */
 export function extractNeeds(text, { project = null } = {}) {
-  const tasks = {}; const conventions = []; const direct = {}; const outside = {}; const other = [];
+  const tasks = {}; const conventions = []; const direct = {}; const outside = {}; const builtins = {}; const other = [];
   for (const s of segments(text)) {
     if (CONVENTION_LINE.test(s.text) || (CONVENTION_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading))) { conventions.push(s.text); continue; }
     if (STACK_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading)) continue; // describes the stack, not a task
     const ds = DIRECT.filter((x) => x.re.test(s.text)); const os = OUTSIDE.filter((x) => x.re.test(s.text));
-    if (ds.length || os.length) { // not a tool need, whatever else the line mentions
+    const bs = builtinsForLine(s.text);
+    if (ds.length || os.length || bs.length) { // not a tool need, whatever else the line mentions
+      for (const b of bs) (builtins[b.name] ||= []).push(s.text);
       for (const d of ds) (direct[d.id] ||= []).push(s.text);
       for (const o of os) (outside[o.id] ||= []).push(s.text);
       continue;
@@ -133,6 +135,7 @@ export function extractNeeds(text, { project = null } = {}) {
     conventions: conventions.slice(0, 20),
     direct: DIRECT.filter((d) => direct[d.id]).map((d) => ({ id: d.id, label: d.label, lines: direct[d.id], how: d.how })),
     outside: OUTSIDE.filter((o) => outside[o.id]).map((o) => ({ id: o.id, label: o.label, lines: outside[o.id], how: o.how })),
+    builtins: Object.entries(builtins).map(([name, lines]) => ({ name, lines })),
     other,
     needs,
   };
@@ -153,6 +156,7 @@ function validate(n) {
   const group = (g) => (Array.isArray(g) ? g.filter((d) => d?.id && d?.how).map((d) => ({ id: String(d.id), label: String(d.label || d.id), lines: (d.lines || []).map(String), how: String(d.how) })) : []);
   n.direct = group(n.direct);
   n.outside = group(n.outside);
+  n.builtins = Array.isArray(n.builtins) ? n.builtins.filter((b) => BUILTINS.some((x) => x.name === b?.name)).map((b) => ({ name: String(b.name), lines: (b.lines || []).map(String) })) : [];
   n.other = Array.isArray(n.other) ? n.other.map(String) : [];
 }
 
@@ -267,6 +271,13 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
       item = { action: 'nothing', reason: `${said}: nothing needed: Claude handles this without a tool.` };
     }
     items.push({ topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[item.action] * (item.heavy ? HEAVY_WEIGHT : 1)).toFixed(2)), ...item });
+  }
+  for (const b of n.builtins || []) { // a built-in feature the plan names in its own words
+    const f = BUILTINS.find((x) => x.name === b.name); const lines = b.lines.length ? b.lines : [b.name];
+    if (used.has(b.name)) continue;
+    used.add(b.name);
+    items.push({ topic: f.name.slice(1), action: 'builtin', name: b.name, scope: 'project', impact: Number((lines.length * ACTION_WEIGHT.builtin).toFixed(2)),
+      reason: `Your plan has ${plural(lines.length, 'line')} ("${clip(lines[0])}"); Claude Code has ${b.name} built in: ${f.what}; you type ${b.name} yourself (${f.note}).` });
   }
   items.sort((a, b) => b.impact - a.impact);
   const all = n.conventions || [];

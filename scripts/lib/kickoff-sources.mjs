@@ -28,8 +28,13 @@ export const OFFICIAL_RULES = [
 export const BUILTINS = [
   { name: '/ultrareview', topics: ['security', 'git'], when: CODE_REVIEW, what: 'a deep multi-agent review of your branch in the cloud', note: 'it is billed, so it runs only when you start it' },
   { name: '/security-review', topics: ['security'], when: SECURITY, what: 'a security review of the pending changes on your branch', note: 'it runs in this session' },
+  // Matched by the plan's own words, not by a topic: a status line has no topic in the shared list.
+  { name: '/statusline', topics: [], line: /\bstatus ?lines?\b/i, what: 'a guided setup of a custom status line in the Claude Code footer', note: 'it runs in this session' },
   { name: '/simplify', topics: ['refactoring'], when: /\brefactor|\bsimplif|\bclean ?up\b/i, what: 'a review of the changed code for reuse and simplification, with fixes applied', note: 'it runs in this session' },
 ];
+
+/** The built-in features a plan line calls for by its own words. */
+export const builtinsForLine = (line) => BUILTINS.filter((b) => b.line?.test(line));
 
 const cachePath = (dataDir) => path.join(dataDir, 'kickoff', 'official.json');
 
