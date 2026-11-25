@@ -29,8 +29,9 @@ test('a personal hook writes .claude/settings.local.json in the project, not set
   assert.match(text, /Scope:     personal \(this project, only you\)/);
   assert.ok(text.includes(`${path.join(sb.cwd, '.claude', 'settings.local.json')}: adds that entry to hooks.PostToolUse`), text);
 
-  assert.equal((await confirmBuild({ ...ctx(sb), id: plan.id })).pending, 'hook');
-  const res = await confirmBuild({ ...ctx(sb), id: plan.id, hook: true });
+  const first = await confirmBuild({ ...ctx(sb), id: plan.id });
+  assert.equal(first.pending, 'hook');
+  const res = await confirmBuild({ ...ctx(sb), id: first.hookId, hook: true });
   assert.ok(res.ok, res.reason);
   assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')).hooks.PostToolUse, [{ matcher: 'Edit', hooks: [{ type: 'command', command: `bash "${script}"` }] }]);
   assert.equal(fs.readFileSync(path.join(sb.cwd, '.claude', 'settings.json'), 'utf8'), '{\n  "shared": true\n}\n', 'shared settings untouched');
@@ -47,8 +48,8 @@ test('personal keeps an existing settings.local.json byte for byte on undo', asy
   const raw = '{\n    "permissions": { "allow": ["Bash(ls:*)"] }\n}';
   fs.writeFileSync(local, raw);
   const plan = await makeBuildPlan({ ...ctx(sb), form: 'hook', name: 'fmt', from: draft(sb, 'fmt', HOOK), scope: 'personal' });
-  await confirmBuild({ ...ctx(sb), id: plan.id });
-  assert.ok((await confirmBuild({ ...ctx(sb), id: plan.id, hook: true })).ok);
+  const first = await confirmBuild({ ...ctx(sb), id: plan.id });
+  assert.ok((await confirmBuild({ ...ctx(sb), id: first.hookId, hook: true })).ok);
   assert.ok(JSON.parse(fs.readFileSync(local, 'utf8')).hooks);
   await undoInstall({ name: 'fmt', dataDir: sb.dataDir });
   assert.equal(fs.readFileSync(local, 'utf8'), raw);

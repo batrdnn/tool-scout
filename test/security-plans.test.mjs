@@ -99,3 +99,59 @@ test('replay: confirming the same plan twice never installs twice', async () => 
   assert.equal(again.ok, false);
   assert.deepEqual(changed(before, snapshot(s.sb)), []);
 });
+
+// ---- 0.12.1: what a data-folder writer can edit in a plan file besides its body ----------------------
+test('expiry is bound to the plan ID: moving expiresAt or createdAt in the plan file does not extend a plan', async () => {
+  const s = setup(REPOS());
+  const plan = await makePlan({ ...s.ctx(), repo: 'o/good' });
+  const late = s.ctx({ now: s.ctx().now + PLAN_TTL_MIN * 60e3 + 1000 });
+  const f = planFile(s.sb.dataDir, plan.id);
+  const rec = JSON.parse(fs.readFileSync(f, 'utf8'));
+  fs.writeFileSync(f, JSON.stringify({ ...rec, expiresAt: '2099-01-01T00:00:00.000Z' }));
+  assert.match((await confirmInstall({ ...late, repo: 'o/good', id: plan.id })).reason, /expired/);
+  fs.writeFileSync(f, JSON.stringify({ ...rec, createdAt: new Date(late.now).toISOString() }));
+  assert.match((await confirmInstall({ ...late, repo: 'o/good', id: plan.id })).reason, /changed since the plan was made/);
+});
+
+async function hookPlan(s) {
+  const dir = startDraft({ dataDir: s.sb.dataDir, form: 'hook', name: 'fmt' }).dir;
+  fs.writeFileSync(path.join(dir, 'hook.json'), JSON.stringify({ event: 'PostToolUse', matcher: 'Edit', script: 'fmt.sh' }));
+  fs.writeFileSync(path.join(dir, 'fmt.sh'), '#!/bin/sh\necho formatted\n');
+  const plan = await makeBuildPlan({ ...s.ctx(), client: null, form: 'hook', name: 'fmt', from: dir, scope: 'user' });
+  assert.deepEqual(plan.body.blockers, []);
+  return plan;
+}
+
+test('a hook\'s first confirmation cannot be forged in the plan file: --confirm-hook needs the ID the first confirm printed', async () => {
+  const s = setup(REPOS());
+  const plan = await hookPlan(s);
+  const f = planFile(s.sb.dataDir, plan.id);
+  fs.writeFileSync(f, JSON.stringify({ ...JSON.parse(fs.readFileSync(f, 'utf8')), hookFirstConfirmAt: new Date(s.ctx().now).toISOString() }));
+  const before = snapshot(s.sb);
+  const forged = await confirmBuild({ ...s.ctx(), client: null, id: plan.id, hook: true });
+  assert.equal(forged.ok, false);
+  assert.match(forged.reason, /first confirm/i);
+  assert.deepEqual(changed(before, snapshot(s.sb)), []);
+  // The real flow: the first confirm prints a new ID, unpredictable (it holds a random nonce).
+  const first = await confirmBuild({ ...s.ctx(), client: null, id: plan.id });
+  const again = await confirmBuild({ ...s.ctx(), client: null, id: plan.id });
+  assert.equal(first.pending, 'hook');
+  assert.match(first.hookId, /^[0-9a-f]{12}$/);
+  assert.notEqual(first.hookId, plan.id);
+  assert.notEqual(first.hookId, again.hookId);
+  assert.ok(first.reason.includes(`--confirm-hook ${first.hookId}`));
+  assert.ok((await confirmBuild({ ...s.ctx(), client: null, id: first.hookId, hook: true })).ok);
+});
+
+test('a hook-confirm record edited after the first confirm, or one whose plan expired, is refused', async () => {
+  const s = setup(REPOS());
+  const plan = await hookPlan(s);
+  const first = await confirmBuild({ ...s.ctx(), client: null, id: plan.id });
+  const f = planFile(s.sb.dataDir, first.hookId);
+  const rec = JSON.parse(fs.readFileSync(f, 'utf8'));
+  fs.writeFileSync(f, JSON.stringify({ ...rec, body: { ...rec.body, of: 'aaaaaaaaaaaa' } }));
+  assert.equal((await confirmBuild({ ...s.ctx(), client: null, id: first.hookId, hook: true })).ok, false);
+  fs.writeFileSync(f, JSON.stringify(rec));
+  const late = s.ctx({ now: s.ctx().now + PLAN_TTL_MIN * 60e3 + 1000 });
+  assert.match((await confirmBuild({ ...late, client: null, id: first.hookId, hook: true })).reason, /expired/);
+});

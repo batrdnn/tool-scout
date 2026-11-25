@@ -104,7 +104,7 @@ test('hook: --confirm alone writes nothing and asks for a second, separate confi
   assert.equal(first.pending, 'hook');
   assert.match(first.reason, /second, separate confirmation/);
   assert.deepEqual(changed(before, snapshot(sb)), [], 'nothing written after the first');
-  const second = await confirmBuild({ ...ctx(sb), id: p.id, hook: true });
+  const second = await confirmBuild({ ...ctx(sb), id: first.hookId, hook: true });
   assert.equal(second.ok, true, second.reason);
   const settings = JSON.parse(fs.readFileSync(path.join(sb.cwd, '.claude', 'settings.json'), 'utf8'));
   assert.deepEqual(settings.hooks.PreToolUse, [p.body.hook.entry]);

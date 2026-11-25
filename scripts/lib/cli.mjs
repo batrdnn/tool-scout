@@ -27,7 +27,7 @@
 //   scout.mjs build --form F --name N --from DIR [--scope user|project|personal] [--replace] [--source owner/repo] --plan
 //                                              personal (hooks only): this project's .claude/settings.local.json, script in ~/.claude/hooks
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
-//   scout.mjs build --confirm-hook <planId>            a hook's second, separate confirmation (after --confirm)
+//   scout.mjs build --confirm-hook <hookId>            a hook's second, separate confirmation, with the ID --confirm printed
 //   scout.mjs kickoff --plan-file <path> [--project DIR]   a project plan -> needs list (saved only in the data folder)
 //                                              -> toolkit of at most 5 items; proposes only, never installs
 //   scout.mjs kickoff --rematch | --summary    match the saved (corrected) needs again | what was installed since, with undo

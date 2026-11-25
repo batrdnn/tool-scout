@@ -30,7 +30,7 @@ const buildRules = (md, label) => {
   has(/one yes\/no question[^.]*"Build <name> as planned\?"[^.]*"Yes, build it" and "No"/, 'one yes/no');
   has(/Only after "Yes": `… build --confirm <planId> --plain`/, 'confirm after yes');
   has(/hook[^.]*second, separate yes\/no question[^.]*script[^.]*in full/i, 'a hook asks twice');
-  has(/Only after that second "Yes": `… build --confirm-hook <planId> --plain`/, 'the hook confirmation');
+  has(/Only after that second "Yes": `… build --confirm-hook <hookId> --plain`, with the\s+ID the first confirm printed/, 'the hook confirmation');
   has(/never (?:both|the two) in one question/i, 'never both at once');
   has(/`… undo <name> --plain`/, 'undo');
 };

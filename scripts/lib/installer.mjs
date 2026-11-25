@@ -424,8 +424,9 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
     ...(scanned ? { scanned } : {}), hooks, ...(hooksWhy ? { hooksWhy } : {}), ...(pluginMcp?.length ? { pluginMcp } : {}),
     ...(replace ? { replace: replacing && !replacing.error ? replacing : null } : {}),
   };
-  const id = sha256(JSON.stringify(body)).slice(0, 12);
-  const rec = { id, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + PLAN_TTL_MIN * 60e3).toISOString(), body };
+  const createdAt = new Date(now).toISOString();
+  const id = planId(createdAt, body);
+  const rec = { id, createdAt, expiresAt: new Date(now + PLAN_TTL_MIN * 60e3).toISOString(), body };
   if (save) { fs.mkdirSync(path.join(dataDir, 'plans'), { recursive: true }); fs.writeFileSync(planFile(dataDir, id), JSON.stringify(rec, null, 2)); }
   return rec;
 }
@@ -493,15 +494,23 @@ function listTree(root) {
   return out;
 }
 
-/** The plan file's body is exactly what its ID was made from: what the user was shown. */
-export const planIntact = (rec, id) => !!rec?.body && sha256(JSON.stringify(rec.body)).slice(0, 12) === id;
+/**
+ * A plan's ID is a hash of its body and the time it was made: the user approves that ID, so neither
+ * can be changed in the plan file afterwards (anything that can write the data folder could edit it).
+ */
+export const planId = (createdAt, body) => sha256(JSON.stringify({ createdAt, body })).slice(0, 12);
+/** The plan file holds exactly what its ID was made from: what the user was shown, and when. */
+export const planIntact = (rec, id) => !!rec?.body && typeof rec.createdAt === 'string' && planId(rec.createdAt, rec.body) === id;
+/** When a plan expires, worked out from its bound creation time (the file's own expiresAt is display only). */
+export const planExpiry = (rec) => Date.parse(rec.createdAt) + PLAN_TTL_MIN * 60e3;
+export const expiredReason = (rec, id) => `plan ${id} expired at ${new Date(planExpiry(rec)).toISOString().slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan`;
 
 /** `repo`: the repo the confirming command names; a plan made for another repo is refused. */
 export async function confirmInstall({ client, id, repo = null, home, cwd, dataDir, now = Date.now(), run = defaultRun, versions = latestVersion }) {
   const rec = /^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null;
   if (!rec) return { ok: false, reason: `unknown plan ID ${id}: make a plan first with --plan` };
   if (!planIntact(rec, id)) return { ok: false, reason: `plan ${id} changed since the plan was made (its file was edited): make a new plan and review it` };
-  if (now > Date.parse(rec.expiresAt)) return { ok: false, reason: `plan ${id} expired at ${rec.expiresAt.slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan` };
+  if (now > planExpiry(rec)) return { ok: false, reason: expiredReason(rec, id) };
   const b = rec.body;
   if (repo != null && normalizeRepo(repo) !== b.repo) return { ok: false, reason: `plan ${id} is for ${b.repo}, not ${normalizeRepo(repo) || repo}: nothing was installed` };
   if (b.blockers.length) return { ok: false, reason: `the plan is blocked: ${b.blockers.join('; ')}` };

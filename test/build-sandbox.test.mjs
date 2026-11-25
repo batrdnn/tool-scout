@@ -31,8 +31,9 @@ async function build(sb, form, o = {}) {
   const [name, files] = DRAFTS[form];
   const p = await makeBuildPlan({ ...ctx(sb), form, name, from: draft(sb, name, files), ...o });
   assert.deepEqual(p.body.blockers, [], `${form}: ${p.body.blockers.join('; ')}`);
-  if (form === 'hook') assert.equal((await confirmBuild({ ...ctx(sb), id: p.id })).pending, 'hook');
-  const res = await confirmBuild({ ...ctx(sb), id: p.id, hook: form === 'hook' });
+  const first = form === 'hook' ? await confirmBuild({ ...ctx(sb), id: p.id }) : null;
+  if (first) assert.equal(first.pending, 'hook');
+  const res = await confirmBuild({ ...ctx(sb), id: first ? first.hookId : p.id, hook: form === 'hook' });
   assert.equal(res.ok, true, res.reason);
   return { p, res, name };
 }
@@ -99,9 +100,10 @@ test('a hook: --confirm twice still writes nothing; --confirm-hook first is refu
   const p = await makeBuildPlan({ ...ctx(sb), form: 'hook', name, from: draft(sb, name, files) });
   const before = snapshot(sb);
   assert.equal((await confirmBuild({ ...ctx(sb), id: p.id, hook: true })).ok, false);
-  for (let i = 0; i < 2; i++) assert.equal((await confirmBuild({ ...ctx(sb), id: p.id })).pending, 'hook');
+  let first;
+  for (let i = 0; i < 2; i++) { first = await confirmBuild({ ...ctx(sb), id: p.id }); assert.equal(first.pending, 'hook'); }
   assert.deepEqual(changed(before, snapshot(sb)), []);
-  assert.equal((await confirmBuild({ ...ctx(sb), id: p.id, hook: true })).ok, true);
+  assert.equal((await confirmBuild({ ...ctx(sb), id: first.hookId, hook: true })).ok, true);
   assert.equal(listInstalled(sb.dataDir).length, 1);
 });
 
@@ -116,7 +118,7 @@ test('a hook through the CLI: --confirm, then --confirm-hook', () => {
   const first = cli('build', '--confirm', id);
   assert.match(first.stdout, /^Not built yet: first confirmation recorded; nothing was written\..*scout\.mjs build --confirm-hook [0-9a-f]{12}/m);
   assert.ok(!fs.existsSync(path.join(sb.cwd, '.claude')));
-  const second = cli('build', '--confirm-hook', id);
+  const second = cli('build', '--confirm-hook', first.stdout.match(/--confirm-hook ([0-9a-f]{12})/)[1]);
   assert.equal(second.status, 0, second.stdout + second.stderr);
   assert.match(second.stdout, /^Built hook no-force-push \(project scope\)/m);
 });

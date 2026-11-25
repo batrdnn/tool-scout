@@ -10,10 +10,11 @@
 // Nothing in a draft is ever run. Forms: skill, command, subagent, hook, memory.
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
-import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, fencePlan, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
+import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, planId, planExpiry, expiredReason, fencePlan, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
 import { currentVersion, replaceFiles, restoreReplaced, supersede, replaceLine } from './replace.mjs';
 
 export const FORMS = ['skill', 'command', 'subagent', 'hook', 'memory'];
@@ -261,8 +262,9 @@ export async function makeBuildPlan({ client = null, form, name, from, scope = n
     scan: { line: `Checked ${scanned.length} file${scanned.length === 1 ? '' : 's'}: ${scanned.join(', ') || 'none'}`, flags: flags.map(({ excerpt, ...f }) => f) },
     notes, blockers,
   };
-  const id = sha256(JSON.stringify(body)).slice(0, 12);
-  const rec = { id, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + PLAN_TTL_MIN * 60e3).toISOString(), body, ...(source ? { source } : {}) };
+  const createdAt = new Date(now).toISOString();
+  const id = planId(createdAt, body);
+  const rec = { id, createdAt, expiresAt: new Date(now + PLAN_TTL_MIN * 60e3).toISOString(), body, ...(source ? { source } : {}) };
   if (save) { fs.mkdirSync(path.join(dataDir, 'plans'), { recursive: true }); fs.writeFileSync(planFile(dataDir, id), JSON.stringify(rec, null, 2)); }
   return rec;
 }
@@ -311,7 +313,7 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
   const after = [];
   if (b.blockers.length) { out.push('Blocked:   this plan cannot be built:'); for (const x of b.blockers) out.push(`           - ${x}`); } else {
     after.push(`To build exactly this: scout.mjs build --confirm ${rec.id}`);
-    if (b.hook) after.push(`Then, because it is a hook, a second, separate confirmation: scout.mjs build --confirm-hook ${rec.id}`);
+    if (b.hook) after.push('Then, because it is a hook, a second, separate confirmation: scout.mjs build --confirm-hook <the ID the first confirmation prints>');
   }
   return fencePlan(rec.id, out, after);
 }
@@ -328,19 +330,27 @@ function writeFile(entry, w, buf) {
   entry.files.push({ path: w.path, sha256: sha256(buf) });
 }
 
+const readPlan = (dataDir, id) => (/^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null);
+
 /**
- * Build exactly the plan. A hook needs two separate calls: the first (hook: false) only records the
- * user's first yes; the second (hook: true, after showing the script again) builds it.
+ * Build exactly the plan. A hook needs two separate calls: the first (hook: false, the plan's ID)
+ * writes nothing but a hook-confirm record, whose own ID (bound to it, with a random nonce) it
+ * prints; the second (hook: true, that ID, after showing the script again) builds it. So the second
+ * can't be given without the first having run: no flag in the plan file stands for the first yes.
  */
 export async function confirmBuild({ client = null, id, home, cwd, dataDir, now = Date.now(), hook = false }) {
-  const rec = /^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null;
+  let rec = readPlan(dataDir, id);
+  if (hook) {
+    if (rec?.body?.kind === 'build') return { ok: false, reason: rec.body.hook ? `first confirm the plan with --confirm ${id}: it prints the ID that --confirm-hook takes (not the plan's)` : `plan ${id} is not a hook: use --confirm` };
+    if (rec?.body?.kind !== 'hook-confirm' || !planIntact(rec, id)) return { ok: false, reason: `unknown hook confirmation ${id}: first confirm the plan with build --confirm <planId>, which prints the ID for --confirm-hook` };
+    id = rec.body.of;
+    rec = readPlan(dataDir, id);
+  }
   if (!rec || rec.body?.kind !== 'build') return { ok: false, reason: `unknown plan ID ${id}: make a plan first with build … --plan` };
   if (!planIntact(rec, id)) return { ok: false, reason: `plan ${id} changed since the plan was made (its file was edited): make a new plan and review it` };
-  if (now > Date.parse(rec.expiresAt)) return { ok: false, reason: `plan ${id} expired at ${rec.expiresAt.slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan` };
+  if (now > planExpiry(rec)) return { ok: false, reason: expiredReason(rec, id) };
   const b = rec.body;
   if (b.blockers.length) return { ok: false, reason: `the plan is blocked: ${b.blockers.join('; ')}` };
-  if (hook && !b.hook) return { ok: false, reason: `plan ${id} is not a hook: use --confirm` };
-  if (hook && !rec.hookFirstConfirmAt) return { ok: false, reason: `first confirm the plan with --confirm ${id}; the hook confirmation is the second, separate one` };
   let fresh;
   try { fresh = await makeBuildPlan({ client, form: b.form, name: b.name, from: b.from, scope: b.scope, source: rec.source || null, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, replace: !!b.replace }); } catch (e) {
     return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was written` };
@@ -350,9 +360,10 @@ export async function confirmBuild({ client = null, id, home, cwd, dataDir, now 
     return { ok: false, reason: `changed since the plan (${diff.join(', ')}): make a new plan and review it` };
   }
   if (b.hook && !hook) {
-    rec.hookFirstConfirmAt = new Date(now).toISOString();
-    fs.writeFileSync(planFile(dataDir, id), JSON.stringify(rec, null, 2));
-    return { ok: false, pending: 'hook', reason: `first confirmation recorded; nothing was written. A hook runs automatically on every ${b.hook.event}${b.hook.matcher ? ` [${b.hook.matcher}]` : ''} event, so it needs a second, separate confirmation: build --confirm-hook ${id}` };
+    const hb = { kind: 'hook-confirm', of: id, nonce: crypto.randomBytes(16).toString('hex') };
+    const createdAt = new Date(now).toISOString(); const hookId = planId(createdAt, hb);
+    fs.writeFileSync(planFile(dataDir, hookId), JSON.stringify({ id: hookId, createdAt, body: hb }, null, 2));
+    return { ok: false, pending: 'hook', hookId, reason: `first confirmation recorded; nothing was written. A hook runs automatically on every ${b.hook.event}${b.hook.matcher ? ` [${b.hook.matcher}]` : ''} event, so it needs a second, separate confirmation: build --confirm-hook ${hookId}` };
   }
   const entry = { name: b.name, method: 'build', form: b.form, scope: b.scope, repo: null, sha: null, source: b.source, planId: id, at: new Date(now).toISOString(), files: [], dirs: [], settings: [], commands: [], credentials: [] };
   try {

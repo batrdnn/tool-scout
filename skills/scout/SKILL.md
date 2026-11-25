@@ -253,11 +253,13 @@ reference repo:
    "Yes, build it" and "No". Without AskUserQuestion, ask the same in one line and wait.
 9. Only after "Yes": `… build --confirm <planId> --plain`. If it says the plan expired or the
    draft changed, make a new plan and ask again.
-10. For a hook, that first yes only records it and nothing is written yet: then ask a second,
+10. For a hook, that first yes only records it and nothing is written yet (the first confirm prints
+    a new ID for the second one): then ask a second,
     separate yes/no question, with the script shown again in full: "Turn on the hook <name>? It runs
     automatically on every <event> event, without asking", with the options "Yes, turn it on" and
     "No". Never both in one
-    question or one answer. Only after that second "Yes": `… build --confirm-hook <planId> --plain`.
+    question or one answer. Only after that second "Yes": `… build --confirm-hook <hookId> --plain`, with the
+    ID the first confirm printed (not the plan's).
 11. Report what was written where, and how to undo it: `… undo <name> --plain`.
 
 Nothing from the reference repo is ever run, and nothing is written outside the plan.
