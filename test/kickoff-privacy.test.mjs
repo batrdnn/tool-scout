@@ -8,6 +8,12 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createClient } from '../scripts/lib/github.mjs';
 import { runKickoff, needsPath } from '../scripts/lib/kickoff.mjs';
+import { findBlindSpotTool } from '../scripts/lib/blindspot.mjs';
+import { whoAmI } from '../scripts/lib/me.mjs';
+import { scanRecommendations } from '../scripts/lib/scan.mjs';
+import { loadCatalog } from '../scripts/lib/crawl.mjs';
+import { loadOfficial } from '../scripts/lib/kickoff-sources.mjs';
+import { prof } from './helpers.mjs';
 import { mockFetch } from './helpers.mjs';
 import { sandbox, filesUnder, catalog, PLAN, NOW, MARKER } from './kickoff-helpers.mjs';
 
@@ -105,4 +111,51 @@ test('each chosen item has its own confirmation: one plan per item, and kickoff 
     /kickoff never installs or builds: confirm each item's own plan/);
   const skill = fs.readFileSync(new URL('../skills/kickoff/SKILL.md', import.meta.url), 'utf8');
   assert.match(skill, /its own yes\/no/i);
+});
+
+// v0.14.0 item 4: the blind-spot lookup sends nothing new. Matching is local; the only requests are
+// the existing content scan of the one matched repo, by name.
+test('the blind-spot lookup: the only requests are the content scan of the one matched repo, by name; nothing from the profile leaves', async () => {
+  const sb = sandbox();
+  const fetchImpl = github();
+  const logs = [];
+  const log = (m) => logs.push(m);
+  process.env.GITHUB_TOKEN ||= 'test-token';
+  const client = createClient({ fetchImpl });
+  // A profile full of things that must never be sent: a library, a project, a command and a prompt-like topic note, all marked.
+  const profile = prof({ topics: { debugging: 10, testing: 6 }, friction: { testing: 6, debugging: 3 }, stack: { [MARKER]: 3, pytest: 2 },
+    repeatedCommands: [{ command: `./deploy-${MARKER}.sh`, count: 4, sessions: 4 }], installed: { names: [`skill-${MARKER}`], repos: [] } });
+  const me = whoAmI(profile);
+  assert.equal(me.animal, 'Owl');
+  const cat = loadCatalog(sb.dataDir);
+  const scan = (recs) => scanRecommendations(recs, cat, { client, dataDir: sb.dataDir, log, now: NOW });
+  const official = await loadOfficial({ client: null, dataDir: sb.dataDir, now: NOW, log }); // cache only, as the CLI does
+  const res = await findBlindSpotTool(me, profile, cat, { home: sb.home, dataDir: sb.dataDir, now: NOW, official, scan });
+  assert.equal(res.repo, 'acme/pytest-helper');
+  assert.ok(fetchImpl.calls.length > 0, 'the test must see the content scan');
+  for (const c of fetchImpl.calls) {
+    const u = new URL(c.url);
+    assert.equal(u.hostname, 'api.github.com', c.url);
+    assert.match(u.pathname, /^\/repos\/acme\/pytest-helper(\/|$)/, `a request that is not the matched repo's scan: ${c.url}`);
+    assert.equal(u.search.includes('q='), false, 'no search query');
+    assert.deepEqual([MARKER, 'deploy-', 'skill-'].filter((x) => JSON.stringify(c).includes(x)), [], `profile data in ${c.url}`);
+  }
+  assert.ok(!fetchImpl.calls.some((c) => /claude-plugins-official|\/search\//.test(c.url)), 'no marketplace or catalog request from the lookup');
+  assert.deepEqual([MARKER, 'deploy-'].filter((x) => logs.join('\n').includes(x) || res.line.includes(x)), [], 'logs and the line');
+  // Offline (the CLI's --offline): no request at all, and the answer is the same match.
+  const quiet = github();
+  const off = await findBlindSpotTool(me, profile, cat, { home: sb.home, dataDir: sb.dataDir, now: NOW, official, scan: null });
+  assert.equal(off.repo, res.repo);
+  assert.equal(quiet.calls.length, 0);
+});
+
+test('the blind-spot CLI keeps profile data off stdout and stderr, and writes nothing outside the data folder', () => {
+  const sb = sandbox();
+  fs.writeFileSync(path.join(sb.dataDir, 'profile.json'), JSON.stringify(prof({ topics: { debugging: 10, testing: 6 }, friction: { testing: 6 }, stack: { [MARKER]: 3 } })));
+  const before = fs.readdirSync(sb.root).sort();
+  const p = spawnSync(process.execPath, [SCOUT, 'me', '--blind-spot', '--offline', '--json', '--home', sb.home, '--data', sb.dataDir], { encoding: 'utf8', cwd: sb.root });
+  assert.equal(p.status, 0, p.stderr);
+  assert.deepEqual(leaks(p.stdout + p.stderr), [], 'output');
+  assert.equal(p.stdout.includes(MARKER), false);
+  assert.deepEqual(fs.readdirSync(sb.root).sort(), before);
 });
