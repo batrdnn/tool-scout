@@ -84,12 +84,14 @@ same text without them; `--json` is for reading results.
    *Why you:* tie it to concrete evidence: the `stackNote` when there is one ("you use pytest in
    2 projects"), otherwise the topic counts ("testing came up in 10 of your 20 sessions, and you
    hit trouble with it in 2").
-   *Install:* the `install` value in a code span. When `installSource` is `readme`, it's the
+   *Install:* when `toolScoutInstall` is set, say "Tool Scout can install this for you (you'll see
+   a plan first)" and offer "Install it" in step 7; never say there is no install command for
+   these. The `install` value goes in a code span. When `installSource` is `readme`, it's the
    real Claude Code command taken from the repo's README (`installCommands` lists them in order,
    e.g. marketplace add, then plugin install; `installNote` "then choose a plugin with /plugin"
-   means the marketplace holds several plugins); say "from the README". When it's `readme-link`,
-   the README has no Claude Code command: give the README link and don't invent one. Never run
-   it yourself; the user decides.
+   means the marketplace holds several plugins); say "from the README". When it's `readme-link`
+   and `toolScoutInstall` is not set, the README has no Claude Code command: give the README link
+   and don't invent one. Never run it yourself; the user decides.
    *Build or install:* one line from `effort`: `effort.adviceLabel` (Build your own, Either,
    Install or Reference), then, unless it's Install or Reference, `effort.buildForm` and
    `effort.buildTime` in parentheses, then `effort.reason`. Say Reference as "Reference: read it,
@@ -145,9 +147,11 @@ same text without them; `--json` is for reading results.
      only instructions; `dependencies`), what it needs (`needs.credentials`, `needs.services`,
      `needs.network`), and why that gives `adviceLabel` (the thresholds: up to 300 lines of code
      and no external API is small, 3,000 or more is large, recently pushed with 1,000 or more is
-     hard to keep up with). Then end with the install steps: the pick's `install` value (or
-     `installCommands`) in a code block, as "from the README, review before running". Don't run
-     it. Without `effort`, say the repo wasn't scanned, then give the install steps.
+     hard to keep up with). Then end with the install steps: when `toolScoutInstall` is set, "Tool
+     Scout can install this for you (you'll see a plan first)" ("Install it"), and the pick's
+     `install` value (or `installCommands`) in a code block, as "from the README, review before
+     running". Don't run it. Without `effort`, say the repo wasn't scanned, then give the install
+     steps.
    - "Install it": as in Installing, with consent below (the plan includes the check's verdict and
      coverage). For a pick whose `trust.flags` has a `high` entry (its check says "do not install"), offer "Check it first" instead: run `… check <owner/repo> --json` and present it the way
      the `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't

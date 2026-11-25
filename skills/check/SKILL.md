@@ -57,9 +57,12 @@ same text without them; `--json` is for reading results.
      Give one reason line either way, e.g. "Build your own (skill, under an hour): standard commit
      message conventions you already follow." If `head` prints nothing or "Not shown", use
      `effort.judgment.ruleAdvice` and say the text wasn't read.
-   - **Install:** if `install.commands` is not empty, show them in a code block as "from the
-     README, review before running" (and `install.note` if present). Otherwise say the README
-     has no Claude Code install command and give the README link. Never run any of it.
+   - **Install:** when `install.toolScout` is set, say "Tool Scout can install this for you (you'll
+     see a plan first)" and offer "Install it" (step 4); never say there is no install command for
+     these. If `install.commands` is not empty, show them too, in a code block, as "from the README,
+     review before running" (and `install.note` if present). Only when both are empty, say the
+     README has no Claude Code install command and give the README link. Never run any README
+     command.
    - For `do not install`, say clearly not to install it. For `review`, say what to look at first
      (the flagged file and line).
 

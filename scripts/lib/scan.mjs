@@ -8,13 +8,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { RateLimitError } from './github.mjs';
-import { extractInstallHint } from './install.mjs';
+import { extractInstallHint, installMethod } from './install.mjs';
 import { effortFiles, effortFacts, advise } from './effort.mjs';
 
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 14; // bump when rules change so cached scans are redone (12: effort facts; 13: collections, heads; 14: reference)
+export const SCAN_VERSION = 15; // bump when rules change so cached scans are redone (12: effort facts; 13: collections, heads; 14: reference; 15: toolScoutInstall)
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -233,7 +233,9 @@ export async function scanRepo(client, fullName, meta = {}) {
     const text = /^readme(\.\w+)?$/i.test(p) ? readme : (texts[p] ?? await contents(p));
     if (text) heads.push({ path: p, text: headOf(text) });
   }
-  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, effortFacts: effort, heads };
+  // Whether Tool Scout's own installer supports it (a plan first); a truncated tree can't be planned.
+  const toolScoutInstall = treeRes.data?.truncated ? null : installMethod({ tree: treeRes.data?.tree, readme, kind: meta.kind });
+  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, toolScoutInstall, effortFacts: effort, heads };
 }
 
 export const HEAD_LINES = 40;
@@ -307,6 +309,7 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
       rec.installCommands = scan.install; rec.installSource = 'readme';
       if (scan.installNote) rec.installNote = scan.installNote;
     } else rec.installSource = 'readme-link';
+    if (scan?.toolScoutInstall) rec.toolScoutInstall = scan.toolScoutInstall;
   }
   if (dataDir) saveCache(dataDir, cache);
   return stats;

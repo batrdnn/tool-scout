@@ -19,11 +19,13 @@ import { execFileSync } from 'node:child_process';
 import { checkRepo } from './check.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
+import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
+
+export { tokenize, mcpCommands } from './install.mjs';
 
 export const PLAN_TTL_MIN = 15;
 const MAX_FILES = 300;
 const MAX_BYTES = 5_000_000;
-const NAME_OK = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 const LOG = 'installs.json';
 const UNPINNED_RUNNERS = new Set(['npx', 'uvx', 'pipx', 'bunx', 'pnpm', 'yarn', 'npm', 'deno', 'docker', 'podman', 'bun']);
 
@@ -61,61 +63,6 @@ function setKey(file, key, value) {
 const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
 const isEmptyValue = (v) => v != null && typeof v === 'object' && !Object.keys(v).length;
 
-// ---- README `claude mcp add` commands, tokenized without a shell -------------------------------
-
-/** Shell-like split with quotes; null when the text needs a shell ($, `, ;, |, &, <, >). */
-export function tokenize(line) {
-  const out = []; let cur = ''; let q = null; let has = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (q === "'") { if (ch === "'") q = null; else cur += ch; continue; }
-    if (q === '"') { if (ch === '"') q = null; else if (ch === '$' || ch === '`') return null; else if (ch === '\\' && i + 1 < line.length) cur += line[++i]; else cur += ch; continue; }
-    if (ch === "'" || ch === '"') { q = ch; has = true; continue; }
-    if (/[$`;|&<>(){}]/.test(ch)) return null;
-    if (ch === '\\' && i + 1 < line.length) { cur += line[++i]; has = true; continue; }
-    if (/\s/.test(ch)) { if (cur || has) out.push(cur); cur = ''; has = false; continue; }
-    cur += ch; has = true;
-  }
-  if (q) return null;
-  if (cur || has) out.push(cur);
-  return out.some((t) => /[\u0000-\u001f\u007f]/.test(t)) ? null : out;
-}
-
-// Even quoted, these mean the server line is a shell program (`sh -c "curl … | sh"`): never registered.
-const SHELLISH = /[|;&<>`$]/;
-const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'fish', 'ksh', 'csh', 'cmd', 'cmd.exe', 'powershell', 'pwsh', 'eval', 'env', 'sudo', 'curl', 'wget']);
-const VALUE_OPTS = { '-t': 'transport', '--transport': 'transport', '--callback-port': 'callback-port', '--client-id': 'client-id' };
-/** Every `claude mcp add` in the README: { name, argv (minus scope/env/header), env keys, dropped } or { rejected }. */
-export function mcpCommands(readme) {
-  const text = String(readme || '').replace(/\\\r?\n\s*/g, ' ');
-  const found = [];
-  for (const m of text.matchAll(/(?:^|[\s`$>])(claude\s+mcp\s+add(?!-json)\s[^\n`]*)/g)) {
-    const toks = tokenize(m[1].trim());
-    if (!toks || toks.some((t) => SHELLISH.test(t))) { found.push({ rejected: 'needs a shell' }); continue; }
-    const args = toks.slice(3);
-    const keep = []; const env = []; const dropped = []; const pos = []; let rest = null;
-    let bad = null;
-    for (let i = 0; i < args.length && !bad; i++) {
-      const a = args[i];
-      if (a === '--') { rest = args.slice(i + 1); break; }
-      if (a === '-e' || a === '--env') { while (i + 1 < args.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(args[i + 1])) env.push(args[++i].split('=')[0]); continue; }
-      if (a === '-H' || a === '--header') { while (i + 1 < args.length && !args[i + 1].startsWith('-')) dropped.push(`header ${args[++i].split(':')[0]}`); continue; }
-      if (a === '-s' || a === '--scope') { i++; continue; }
-      if (a === '--client-secret') { dropped.push('client secret'); continue; }
-      if (VALUE_OPTS[a]) { if (i + 1 >= args.length) bad = 'missing value'; else keep.push(a, args[++i]); continue; }
-      if (a.startsWith('-')) { bad = `unknown option ${a}`; continue; }
-      pos.push(a);
-    }
-    if (bad) { found.push({ rejected: bad }); continue; }
-    const [name, target, ...more] = [...pos, ...(rest || [])];
-    if (!name || !target || !NAME_OK.test(name)) { found.push({ rejected: 'no server name or command' }); continue; }
-    if (SHELLS.has(path.basename(target).toLowerCase())) { found.push({ rejected: `runs ${path.basename(target)}` }); continue; }
-    const url = /^https?:\/\//.test(target) || keep.includes('http') || keep.includes('sse');
-    found.push({ name, opts: keep, url, target, args: url ? [] : more, env, dropped });
-  }
-  return found;
-}
-
 // ---- the plan -----------------------------------------------------------------------------------
 
 const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
@@ -141,15 +88,11 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
   if (check?.verdict === 'do not install') blockers.push(`the check says "do not install" (${check.reasons.join('; ')})`);
   const readme = tree ? (await client.request(`${api}/readme?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true })).data : '';
   const blobs = (tree || []).filter((t) => t.type === 'blob');
-  const has = (p) => blobs.some((t) => t.path === p);
 
   const mcp = mcpCommands(typeof readme === 'string' ? readme : '');
-  const skillDirs = blobs.filter((t) => /(^|\/)SKILL\.md$/.test(t.path) && !/(^|\/)(tests?|examples?|fixtures?)\//i.test(t.path)).map((t) => t.path.replace(/SKILL\.md$/, ''));
-  const method = !tree ? null
-    : check?.kind === 'mcp-server' && mcp.length ? 'mcp'
-      : has('.claude-plugin/marketplace.json') ? 'plugin'
-        : skillDirs.length ? 'skill'
-          : mcp.length ? 'mcp' : null;
+  const skillDirs = skillDirsOf(blobs);
+  // A README whose only claude mcp add lines are refused still plans as 'mcp', so the plan says why.
+  const method = installMethod({ tree, readme, kind: check?.kind }) || (tree && mcp.length ? 'mcp' : null);
   if (tree && !method) blockers.push('no supported install method: no plugin marketplace, skill folder or claude mcp add command in the README');
 
   let name = null; const writes = []; const commands = []; const settings = []; const managed = []; const credentials = new Set();

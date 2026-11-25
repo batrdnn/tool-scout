@@ -2,7 +2,7 @@
 // me.mjs), drawn with colors, boxes, dividers and aligned columns. Only used when stdout is a
 // TTY (see term.mjs: detectStyle); every function takes a painter P from term.mjs.
 
-import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT } from './output.mjs';
+import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT, TOOL_SCOUT_INSTALL } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
 import { NBSP } from './term.mjs';
 import { effortLine } from './effort.mjs';
@@ -55,7 +55,10 @@ function pickBox(P, r, i) {
   const rows = [['Why', [r.stackNote, evidenceText(r)].filter(Boolean).join('; ') || '—']];
   if (r.trust.notes.length) rows.push(['Watch out', r.trust.notes.join(', '), 'yellow', 'yellow']);
   if (r.effort) rows.push(['Effort', effortLine(r.effort), ADVICE[r.effort.advice] || 'magenta', ADVICE[r.effort.advice] || 'magenta']);
-  rows.push(['Install', `${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`]);
+  if (r.toolScoutInstall) {
+    rows.push(['Install', TOOL_SCOUT_INSTALL]);
+    if (r.installSource === 'readme') rows.push(['README', `${r.install}  (review before running)`]);
+  } else rows.push(['Install', `${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`]);
   body.push(...P.fields(rows, { w: P.inner }));
   const flags = r.trust.flags || [];
   if (flags.length) body.push('', ...flags.flatMap((f) => flagLines(P, f, { w: P.inner })));
@@ -173,11 +176,15 @@ export function prettyCheck(r, P) {
   for (const f of r.flags) out.push(...flagLines(P, f, { indent: 2 }));
   if (r.effort) out.push('', P.divider('Build or install'), ...effortFields(r.effort, P));
   out.push('', P.divider('Install'));
+  if (r.install.toolScout) {
+    out.push(...indented(P, `${TOOL_SCOUT_INSTALL}:`, 2));
+    out.push(...indented(P, `scout.mjs install ${r.name} --plan`, 4, 'cyan'));
+  }
   if (r.install.commands.length) {
-    out.push(...indented(P, 'From the README; review before running:', 2, 'dim'));
+    out.push(...indented(P, `${r.install.toolScout ? 'Or from' : 'From'} the README; review before running:`, 2, 'dim'));
     for (const c of r.install.commands) out.push(...indented(P, c, 4, 'cyan'));
     if (r.install.note) out.push(...indented(P, r.install.note, 4, 'dim'));
-  } else out.push(...indented(P, `No Claude Code command in the README. See the README: ${r.url}#readme`));
+  } else if (!r.install.toolScout) out.push(...indented(P, `No Claude Code command in the README. See the README: ${r.url}#readme`));
   out.push('', ...indented(P, 'No flags does not mean safe: this is a heuristic scan of the README, SKILL.md files, install scripts, hooks and MCP config, not a security review.', 0, 'dim'));
   return out.join('\n');
 }

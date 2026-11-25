@@ -40,6 +40,9 @@ export function formatProfile(p, { dataLine, profilePath }) {
   return out.join('\n');
 }
 
+/** Said when Tool Scout's own installer supports a repo (check's install.toolScout, a pick's toolScoutInstall). */
+export const TOOL_SCOUT_INSTALL = "Tool Scout can install this for you (you'll see a plan first)";
+
 /** The CLI lists the keyword-ranked shortlist; Claude's judgment step is in the scout skill. */
 export const SHORTLIST_TITLE = 'Shortlist (unfiltered)';
 export const SHORTLIST_HINT = "Run /tool-scout:scout in Claude Code for Claude's filtered picks.";
@@ -55,7 +58,10 @@ export function formatRecs(recs) {
     for (const f of r.trust.flags || []) out.push(`   ${flagText(f)}`);
     if (r.trust.scanned === false && r.trust.flags) out.push('   (content not scanned)');
     if (r.effort) out.push(`   Effort: ${effortLine(r.effort)}`);
-    out.push(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
+    if (r.toolScoutInstall) {
+      out.push(`   Install: ${TOOL_SCOUT_INSTALL}`);
+      if (r.installSource === 'readme') out.push(`   README: ${r.install}  (review before running)`);
+    } else out.push(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
   });
   return out.join('\n');
 }
