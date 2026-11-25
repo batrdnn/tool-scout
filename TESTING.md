@@ -30,7 +30,7 @@ What happens on your machine:
 - Your recent Claude Code sessions (`~/.claude/projects`) and your projects' dependency files
   (`package.json`, `requirements.txt`, `go.mod`, …) are read **locally**. Only counts are kept.
 - GitHub gets fixed topic searches and public repo names. Nothing about you is sent.
-- Nothing is installed. Install commands are shown for you to review and run yourself.
+- Tool Scout installs only after you approve a plan, and every install can be undone. Without your yes to a plan, it only shows install steps for you to review.
 
 If you're working on this plugin itself, leave that project out first:
 "tool-scout: exclude the tool-scout project" (or

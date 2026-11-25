@@ -98,6 +98,8 @@ Example cards, made from synthetic profiles (`npm run gallery`).
 - GitHub gets fixed topic searches and public repo names. Nothing about you is sent.
 - Data lives in the plugin's data folder (`~/.claude/plugins/data/tool-scout-…`) and is deleted
   when you uninstall. `profile --show` shows exactly what it learned and where it's stored.
+- Tool Scout installs only after you approve a plan, and every install can be undone. It never
+  asks for, reads or stores your API keys: a plan names the environment variables you set yourself.
 
 ## Check before you install
 
@@ -115,7 +117,14 @@ README, `SKILL.md` files, install scripts, hooks and MCP config, and gives a ver
 plugins, MCP server commands, hooks) from disk, with no network at all.
 
 Both are heuristics: no flags doesn't mean safe. Skills and MCP servers run with your
-permissions, and Tool Scout never installs anything on its own.
+permissions. Tool Scout installs only after you approve a plan, and every install can be undone:
+
+- **Plan** (`install owner/repo --plan`) writes nothing. It shows the exact files and settings,
+  the commit it pins, the check verdict and the credentials you set yourself.
+- **Install** (`--confirm <planId>`, within 15 minutes) does exactly that plan, and refuses if the
+  verdict is "do not install" or anything changed. It never runs install scripts or README
+  commands.
+- **Undo** (`undo <name>`) removes exactly what was logged and restores your settings.
 
 ## Command line
 
@@ -128,6 +137,9 @@ node scripts/scout.mjs rate owner/repo useful|not|clear
 node scripts/scout.mjs dismiss owner/repo # also: undismiss, exclude-project, include-project
 node scripts/scout.mjs stats [--share]
 node scripts/scout.mjs me --card me.svg   # your Claude Code animal, plus a shareable SVG card
+node scripts/scout.mjs install owner/repo --plan            # what an install would do; writes nothing
+node scripts/scout.mjs install owner/repo --confirm <planId> # do exactly that plan
+node scripts/scout.mjs installed          # what Tool Scout installed; scout.mjs undo <name> removes one
 ```
 
 Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folder, else
@@ -147,8 +159,8 @@ Run directly in a terminal, the output has colors, boxes and aligned columns:
   `LANG=C`) the boxes are drawn in ASCII.
 - Inside Claude Code the skills always run the script with `--json` or `--plain`, so Claude never
   sees escape codes. After the picks, Claude asks what to do next with each one: why build vs
-  install (ending with the install steps), check it first, rate it, or mark it not interested.
-  Nothing is installed for you.
+  install, install it (a plan first, then one yes/no question for that one tool), rate it, or mark
+  it not interested.
 
 ## Updating
 

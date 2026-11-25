@@ -14,3 +14,17 @@ test('README has a "Check before you install" section covering check, audit and 
   assert.match(sec, /no network/i);
   assert.match(sec, /no flags[^.\n]*(doesn't|does not) mean[^.\n]*safe/i);
 });
+
+test('safety and privacy wording: installs only after you approve a plan, and every install can be undone', () => {
+  const SENTENCE = 'installs only after you approve a plan, and every install can be undone';
+  const TESTING = fs.readFileSync(new URL('../TESTING.md', import.meta.url), 'utf8');
+  for (const [name, text] of [['README.md', README], ['TESTING.md', TESTING]]) {
+    assert.doesNotMatch(text, /never installs anything|nothing is installed/i, `${name} still says nothing is installed`);
+  }
+  for (const sec of ['Privacy', 'Check before you install']) {
+    const s = README.split(/^## /m).find((x) => x.startsWith(sec));
+    assert.ok(s.replace(/\s+/g, ' ').includes(SENTENCE), `${sec}: missing "${SENTENCE}"`);
+  }
+  const cli = README.split(/^## /m).find((x) => x.startsWith('Command line'));
+  for (const c of ['install owner/repo --plan', 'install owner/repo --confirm', 'scout.mjs undo', 'scout.mjs installed']) assert.ok(cli.includes(c), c);
+});
