@@ -28,6 +28,9 @@
 //                                              personal (hooks only): this project's .claude/settings.local.json, script in ~/.claude/hooks
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
 //   scout.mjs build --confirm-hook <planId>            a hook's second, separate confirmation (after --confirm)
+//   scout.mjs kickoff --plan-file <path> [--project DIR]   a project plan -> needs list (saved only in the data folder)
+//                                              -> toolkit of at most 5 items; proposes only, never installs
+//   scout.mjs kickoff --rematch                match the saved needs list again, as Claude corrected it
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
 //                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
@@ -62,9 +65,10 @@ import { matchCollections } from './effort.mjs';
 import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
 import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
+import { runKickoff, formatKickoff } from './kickoff.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json', 'plan', 'start', 'replace']);
+const BOOLEAN = new Set(['plain', 'json', 'plan', 'start', 'replace', 'rematch', 'summary']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -311,6 +315,16 @@ async function main() {
       console.log([`${e.replaced || e.memory?.replaced ? 'Replaced' : 'Built'} ${e.form} ${e.name} (${e.scope} scope).`, e.files.length ? `Wrote: ${e.files.map((f) => f.path).join(', ')}.` : '', e.replaced || e.memory?.replaced ? `To undo (puts the previous version back): scout.mjs undo ${e.name}` : `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
       break;
     }
+    case 'kickoff': {
+      if (opts.confirm || opts.all) throw new Error("kickoff never installs or builds: confirm each item's own plan (install … --plan, build … --plan)");
+      const planFile = typeof opts['plan-file'] === 'string' ? opts['plan-file'] : null;
+      if (!planFile && !opts.rematch) throw new Error('usage: kickoff --plan-file <path> [--project DIR], or kickoff --rematch');
+      // The plan text stays in the needs file: the log gets no messages that could quote it.
+      const client = opts.offline ? null : createClient({ token: githubToken(), log });
+      const r = await runKickoff({ planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
+      console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit: r.toolkit }, null, 2) : formatKickoff(r));
+      break;
+    }
     case 'undo': {
       if (!opts._[0]) throw new Error('usage: undo <name> (see: installed)');
       const res = await undoInstall({ name: opts._[0], dataDir, home, cwd: process.cwd() });
@@ -353,7 +367,7 @@ async function main() {
         console.log(`Unknown command: ${cmd}. If a Tool Scout skill asked for it, this Tool Scout (${pkgVersion()}) is older than the skill: run claude plugin update tool-scout@tool-scout, then restart Claude Code.`);
         process.exitCode = 1;
       }
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|build|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|build|kickoff|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

@@ -22,6 +22,8 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `build --form F --name N --from DIR [--scope user\|project\|personal] [--replace] [--source owner/repo] --plan` | writes nothing: checks Claude's draft and prints the plan (files and where they go, the trust scan, any source repo's license) and its ID, valid for 15 minutes. Scope `personal` (hooks only): the hook runs in this project for you alone; its entry goes into the project's `.claude/settings.local.json` and its script into `~/.claude/hooks/<name>/`, so nothing is shared through the repo. `--replace` (skill, command, subagent, memory): swap the current version for the draft in one step; `undo` puts the previous version back |
 | `build --confirm <planId>` | writes exactly that plan, logged like an install |
 | `build --confirm-hook <planId>` | a hook's second, separate confirmation: `--confirm` alone only records the first yes and writes nothing |
+| `kickoff --plan-file <path> [--project DIR] [--json]` | a project plan becomes a needs list (tasks, stack, domain, conventions), saved only in the data folder (`kickoff/needs.json`), and a toolkit of at most 5 items; proposes only, never installs |
+| `kickoff --rematch` | matches the saved needs list again, after Claude corrected it |
 | `undo <name>` | removes exactly what an install logged and restores the logged settings; after a `--replace`, puts the previous version back |
 | `installed [--json]` | what Tool Scout installed and hasn't undone |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
