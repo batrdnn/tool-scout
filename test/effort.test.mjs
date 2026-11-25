@@ -278,3 +278,10 @@ test('"Wraps N APIs (…)" ends with … only when some are not named', () => {
   const four = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(4) } });
   assert.match(four.reason, /^Wraps 4 APIs \(SVCA, SVCB, SVCC, …\) with/);
 });
+
+test('the catalog kind "mcp-server" is a weak signal: hooks, agents or code inside a skill win', () => {
+  assert.equal(est({ kind: 'mcp-server', tree: [blob('hooks/hooks.json'), code('hooks/guard.sh', 80)] }).type, 'plugin');
+  assert.equal(est({ kind: 'mcp-server', tree: [md('skills/pdf/SKILL.md', 60), code('skills/pdf/scripts/x.py', 180)] }).type, 'skill-scripts');
+  assert.equal(est({ kind: 'mcp-server', tree: [code('server.py', 180)] }).type, 'mcp-server', 'no other structure: the kind decides');
+  assert.equal(est({ kind: 'skill', tree: [blob('package.json'), md('SKILL.md', 20), code('src/server.ts', 900)], files: { 'package.json': JSON.stringify({ dependencies: { '@modelcontextprotocol/sdk': '1' } }) } }).type, 'mcp-server', 'an MCP SDK dependency always means an MCP server');
+});

@@ -184,7 +184,9 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
   const skillDirs = blobs.filter((t) => /(^|\/)SKILL\.md$/i.test(t.path)).map((t) => t.path.replace(/SKILL\.md$/i, ''));
   const inSkill = (p) => skillDirs.some((d) => p.startsWith(d));
   const skillCodeShare = codeBytes ? codeBlobs.filter((t) => inSkill(t.path)).reduce((a, t) => a + (t.size || 0), 0) / codeBytes : 0;
-  const isMcp = (deps || []).some((d) => MCP_DEPS.has(d)) || (kind === 'mcp-server' && loc > 0);
+  // An MCP SDK dependency is proof; the catalog's kind (from topics) only decides when nothing else does.
+  const structural = parts.hooks || parts.agents || (parts.skills && skillCodeShare >= 0.5);
+  const isMcp = (deps || []).some((d) => MCP_DEPS.has(d)) || (kind === 'mcp-server' && loc > 0 && !structural);
   const type = isMcp ? 'mcp-server'
     : (parts.hooks || parts.agents) ? 'plugin'
       : loc === 0 ? 'instructions'

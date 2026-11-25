@@ -18,7 +18,7 @@ export function githubTrees(repos) {
     const [, name, rest = ''] = m;
     const r = repos[name];
     if (!r) return undefined;
-    if (rest === '') return { ...ghRepo(name, `Testing MCP server ${name}`), pushed_at: r.pushedAt || '2025-06-01T00:00:00Z' };
+    if (rest === '') return { ...ghRepo(name, r.description || `Testing MCP server ${name}`, { topics: r.topics }), pushed_at: r.pushedAt || '2025-06-01T00:00:00Z' };
     if (rest === 'readme') return r.readme ?? `# ${name}`;
     if (rest.startsWith('git/trees/')) return { tree: Object.entries(r.tree).map(([p, size]) => ({ path: p, type: 'blob', size })) };
     if (rest.startsWith('contents/')) return r.files?.[decodeURIComponent(rest.slice(9))];
