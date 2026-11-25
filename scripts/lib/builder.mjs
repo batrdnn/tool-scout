@@ -350,23 +350,88 @@ function addSection(entry, m) {
   entry.memory = { file: m.file, added, fileExisted };
 }
 
-/** Add the hook entry to hooks.<event> in settings.json, in the file's own style. */
+// ---- settings.json edited as text, so undo gives back the user's exact bytes ---------------------
+
+/** Where each value is in a JSON text: { type, start, end, members: [{ key, value }] | items }. */
+function locate(raw) {
+  let i = 0;
+  const ws = () => { while (/\s/.test(raw[i] || '')) i++; };
+  const str = () => { const a = i++; while (raw[i] !== '"') { if (raw[i] === '\\') i++; i++; if (i > raw.length) throw new Error('bad string'); } i++; return { type: 'string', start: a, end: i, value: JSON.parse(raw.slice(a, i)) }; };
+  const value = () => {
+    ws();
+    const a = i;
+    if (raw[i] === '{') {
+      i++; const members = []; ws();
+      if (raw[i] === '}') { i++; return { type: 'object', start: a, end: i, members }; }
+      for (;;) { ws(); const k = str(); ws(); if (raw[i++] !== ':') throw new Error('bad object'); const v = value(); members.push({ key: k.value, value: v }); ws(); const c = raw[i++]; if (c === '}') break; if (c !== ',') throw new Error('bad object'); }
+      return { type: 'object', start: a, end: i, members };
+    }
+    if (raw[i] === '[') {
+      i++; const items = []; ws();
+      if (raw[i] === ']') { i++; return { type: 'array', start: a, end: i, items }; }
+      for (;;) { items.push(value()); ws(); const c = raw[i++]; if (c === ']') break; if (c !== ',') throw new Error('bad array'); }
+      return { type: 'array', start: a, end: i, items };
+    }
+    if (raw[i] === '"') return str();
+    while (i < raw.length && !/[\s,\]}]/.test(raw[i])) i++;
+    return { type: 'literal', start: a, end: i };
+  };
+  const v = value(); ws();
+  if (i !== raw.length) throw new Error('trailing text');
+  return v;
+}
+
+/**
+ * The text to insert into settings.json so hooks.<event> gains `item`, as { at, text }: removing
+ * exactly `text` later gives back the file byte for byte. Null when the file has a shape we don't edit.
+ */
+function hookInsertion(raw, event, item) {
+  let root; try { root = locate(raw); } catch { return null; }
+  if (root.type !== 'object') return null;
+  const unit = raw.match(/\n([ \t]+)"/)?.[1] ?? '  ';
+  const fmt = (v, depth) => JSON.stringify(v, null, unit).split('\n').join(`\n${unit.repeat(depth)}`);
+  // After the last value of a container (before its closing bracket): ",<newline><indent>text".
+  const append = (node, depth, text) => {
+    const list = node.members || node.items;
+    if (!list.length) return { at: node.start + 1, text: `\n${unit.repeat(depth)}${text}\n${unit.repeat(depth - 1)}` };
+    const last = list.at(-1).value || list.at(-1);
+    return { at: last.end, text: `,\n${unit.repeat(depth)}${text}` };
+  };
+  const hooks = root.members.find((m) => m.key === 'hooks')?.value;
+  if (!hooks) return append(root, 1, `"hooks": ${fmt({ [event]: [item] }, 1)}`);
+  if (hooks.type !== 'object') return null;
+  const list = hooks.members.find((m) => m.key === event)?.value;
+  if (!list) return append(hooks, 2, `${JSON.stringify(event)}: ${fmt([item], 2)}`);
+  if (list.type !== 'array') return null;
+  return append(list, 3, fmt(item, 3));
+}
+
+/** Add the hook entry to hooks.<event> in settings.json as a text insertion the log keeps. */
 function addHook(entry, h) {
   const fileExisted = fs.existsSync(h.file);
-  const o = (fileExisted ? readJson(h.file) : {}) || {};
   if (fileExisted && !readJson(h.file)) throw new Error(`${h.file} is not valid JSON`);
-  const hooksExisted = o.hooks !== undefined; const eventExisted = o.hooks?.[h.event] !== undefined;
-  o.hooks = { ...(o.hooks || {}), [h.event]: [...(o.hooks?.[h.event] || []), h.entry] };
   mkdirs(entry, path.dirname(h.file));
-  writeJsonStyled(h.file, o);
-  entry.hook = { file: h.file, event: h.event, entry: h.entry, fileExisted, hooksExisted, eventExisted };
+  const raw = fileExisted ? fs.readFileSync(h.file, 'utf8') : '';
+  const ins = fileExisted ? hookInsertion(raw, h.event, h.entry) : { at: 0, text: `${JSON.stringify({ hooks: { [h.event]: [h.entry] } }, null, 2)}\n` };
+  const o = readJson(h.file) || {};
+  const hooksExisted = o.hooks !== undefined; const eventExisted = o.hooks?.[h.event] !== undefined;
+  if (ins) fs.writeFileSync(h.file, raw.slice(0, ins.at) + ins.text + raw.slice(ins.at));
+  else { o.hooks = { ...(o.hooks || {}), [h.event]: [...(o.hooks?.[h.event] || []), h.entry] }; writeJsonStyled(h.file, o); }
+  entry.hook = { file: h.file, event: h.event, entry: h.entry, fileExisted, hooksExisted, eventExisted, ...(ins ? { inserted: ins.text } : {}) };
 }
 
 /** Remove exactly what a build wrote. Files changed since are left in place and returned. */
 export function undoBuild(entry) {
   const kept = [];
-  if (entry.hook) {
-    const h = entry.hook; const o = readJson(h.file);
+  const h = entry.hook;
+  const raw = h && fs.existsSync(h.file) ? fs.readFileSync(h.file, 'utf8') : null;
+  const at = h?.inserted && raw != null ? raw.indexOf(h.inserted) : -1;
+  if (h && at >= 0 && raw.indexOf(h.inserted, at + 1) < 0) {
+    // Exactly the text the build inserted comes out: the user's file is back byte for byte.
+    const rest = raw.slice(0, at) + raw.slice(at + h.inserted.length);
+    if (!h.fileExisted && !rest.trim()) fs.unlinkSync(h.file); else fs.writeFileSync(h.file, rest);
+  } else if (h) {
+    const o = readJson(h.file);
     const list = o?.hooks?.[h.event];
     const i = Array.isArray(list) ? list.findIndex((x) => JSON.stringify(x) === JSON.stringify(h.entry)) : -1;
     if (i < 0) kept.push(`${h.file} (the hook entry was changed or removed since)`);
