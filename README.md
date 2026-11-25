@@ -129,6 +129,25 @@ permissions. Tool Scout installs only after you approve a plan, and every instal
   commands.
 - **Undo** (`undo <name>`) removes exactly what was logged and restores your settings.
 
+## Build your own
+
+When a pick's advice is Build your own, Claude offers **"Build my own"**. You can also just ask:
+"build me a skill that …". It works for a skill, slash command, subagent, hook or CLAUDE.md
+memory (a section between markers):
+
+- Claude asks at most two short questions (what exactly, and for all your projects or just this
+  one), reads the pick's SKILL.md for ideas only, and writes a draft in its own words, tailored to
+  your topics and stack. The draft goes into Tool Scout's data folder: Claude never writes
+  straight into `~/.claude` or your project.
+- **Plan** (`build --form skill --name <name> --from <draft> --plan`) writes nothing. It shows
+  each file and where it goes, the trust scan of the draft (nothing above low, no network call or
+  pipe-to-shell), and the source repo's license: with no license nothing may be copied; a
+  permissive one allows adapting with an attribution line.
+- **Build** (`build --confirm <planId>`) does exactly that plan, after your yes. A hook (a script
+  that runs automatically on Claude Code events, in this project by default) is shown in full,
+  may not use the network, and needs a second, separate confirmation (`--confirm-hook`).
+- **Undo** (`undo <name>`) removes exactly what was built; for memory, just that section.
+
 ## Command line
 
 ```bash
@@ -143,6 +162,8 @@ node scripts/scout.mjs me --card me.svg   # your Claude Code animal, plus a shar
 node scripts/scout.mjs install owner/repo --plan            # what an install would do; writes nothing
 node scripts/scout.mjs install owner/repo --confirm <planId> # do exactly that plan
 node scripts/scout.mjs installed          # what Tool Scout installed; scout.mjs undo <name> removes one
+node scripts/scout.mjs build --start --form skill --name <name>   # the draft folder, and what goes in it
+node scripts/scout.mjs build --form skill --name <name> --from <draft> --plan   # then --confirm <planId>
 ```
 
 Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folder, else

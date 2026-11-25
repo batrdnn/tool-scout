@@ -2,6 +2,21 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.10.0 (2026-11-25)
+
+- Build your own, with consent: "Build my own" for Build your own picks, or "build me a skill
+  that …" without one. Claude asks at most 2 questions, writes a draft in its own words into the
+  data folder (never straight into `~/.claude` or the project), then `build --plan` (files and
+  where they go, the trust scan, the source repo's license) → one yes → `build --confirm`, logged
+  like an install so `undo` works.
+- Forms: skill, slash command, subagent, CLAUDE.md memory (a section between markers; undo removes
+  exactly that) and hook (project scope by default, the whole script shown, no network, and a
+  second, separate confirmation with `--confirm-hook`).
+- Drafts must pass the trust scan with nothing above low, and no network call or pipe-to-shell.
+  No text from an unlicensed source repo; a permissive one allows adapting with an attribution line.
+- Privacy: the README and skills say install plans may look up package versions on npm or PyPI
+  (the package name only).
+
 ## v0.9.1 (2026-11-25)
 
 - When Tool Scout can install a pick itself (a skill folder, a plugin marketplace, a README
