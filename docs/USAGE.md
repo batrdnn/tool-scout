@@ -35,6 +35,7 @@ Options:
 | `--exclude-project a,b` | profile, recommend, all | leave these projects out for one run |
 | `--include-current` | profile, recommend, all | count the session you run it from (left out by default: it's the request, not your work) |
 | `--json` | most | machine-readable output |
+| `--plain` | all | plain text even in a terminal. Without it, output to a terminal (a TTY) has colors, boxes and aligned columns; `NO_COLOR` turns the colors off, and without a UTF-8 locale it's drawn in ASCII. Pipes, files and Claude Code always get plain text |
 | `--data DIR` | all | data folder (see below) |
 | `--home DIR` | all | home folder to read history from (default `~`) |
 

@@ -10,7 +10,8 @@
     "test": "node --test test/*.test.mjs",
     "eval": "node test/eval/eval.mjs",
     "eval:e2e": "node test/eval/e2e.mjs",
-    "gallery": "node test/gallery.mjs"
+    "gallery": "node test/gallery.mjs",
+    "screenshot": "node test/screenshot.mjs"
   },
   "engines": {
     "node": ">=18"

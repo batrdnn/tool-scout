@@ -134,6 +134,21 @@ Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folde
 `~/.tool-scout`. All options, how ranking and trust scoring work, and the eval setup:
 [docs/USAGE.md](docs/USAGE.md).
 
+## In a terminal
+
+Run directly in a terminal, the output has colors, boxes and aligned columns:
+
+<img src="docs/assets/terminal.svg" alt="node scripts/scout.mjs all in a terminal: a boxed profile summary, an aligned table of 3 picks with kind, stars, momentum and trust, then one box per pick with why and install" width="656">
+
+- It's only like this when the output goes straight to a terminal. Through a pipe or a file, and
+  always inside Claude Code, you get the plain text, unchanged from earlier versions.
+- `--plain` gives the plain text in a terminal too. `--json` is unchanged.
+- `NO_COLOR=1` turns colors off and keeps the layout. Without a UTF-8 locale (for example
+  `LANG=C`) the boxes are drawn in ASCII.
+- Inside Claude Code the skills always run the script with `--json` or `--plain`, so Claude never
+  sees escape codes. After the picks, Claude asks what to do next with each one: show install
+  steps, check it first, rate it, or mark it not interested. Nothing is installed for you.
+
 ## Updating
 
 To update to the newest version:
