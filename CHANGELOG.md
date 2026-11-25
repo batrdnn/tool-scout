@@ -2,6 +2,18 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.11.0 (2026-11-25)
+
+- Project kickoff: `/tool-scout:kickoff` takes a plan (pasted or a file) and turns it into a needs
+  list (tasks, stack, domain, conventions), kept only in the data folder and never sent anywhere.
+- It proposes at most 5 items, by impact, each with one reason tied to the plan: a catalog match
+  (same ranking, effort and trust as the scout), something to build, or "nothing needed", plus a
+  CLAUDE.md note with the plan's conventions. You choose; each item gets its own plan and yes/no,
+  and a summary lists what was set up with undo commands.
+- `--replace` swaps an installed skill, or a built skill, command, subagent or memory section, in
+  one step (never missing in between); undo puts the previous version back.
+- Hooks can be personal: the entry goes into the project's `.claude/settings.local.json`.
+
 ## v0.10.0 (2026-11-25)
 
 - Build your own, with consent: "Build my own" for Build your own picks, or "build me a skill
