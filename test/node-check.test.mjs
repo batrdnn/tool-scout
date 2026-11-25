@@ -9,13 +9,15 @@ import { createClient } from '../scripts/lib/github.mjs';
 import { fileURLToPath } from 'node:url';
 
 const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
-const MSG = (v) => `Tool Scout needs Node.js 18 or newer (you have v${v}). Install it from nodejs.org or with \`brew install node\`.`;
+const MSG = (v) => `Tool Scout needs Node.js 20 or newer (you have v${v}). Install it from nodejs.org or with \`brew install node\`.`;
 
-test('nodeProblem: below 18 gives the one-line message, 18+ gives none', () => {
-  assert.equal(MIN_NODE, 18);
+test('nodeProblem: below 20 gives the one-line message, 20+ gives none', () => {
+  assert.equal(MIN_NODE, 20);
+  assert.equal(nodeProblem('18.20.4'), MSG('18.20.4'));
+  assert.equal(nodeProblem('19.9.0'), MSG('19.9.0'));
   assert.equal(nodeProblem('16.20.2'), MSG('16.20.2'));
   assert.equal(nodeProblem('17.9.1'), MSG('17.9.1'));
-  assert.equal(nodeProblem('18.0.0'), null);
+  assert.equal(nodeProblem('20.0.0'), null);
   assert.equal(nodeProblem('24.1.0'), null);
 });
 

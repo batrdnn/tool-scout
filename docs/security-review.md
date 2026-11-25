@@ -76,7 +76,7 @@ once fixed). No critical was found.
 - **L3 README size.** The README is fetched without a size limit (memory and regex time on a huge README).
 - **L4 `node -e "<code>"`** server lines are accepted (no shell characters); the code is shown in full in the plan (red team 11).
 - **L5 Plan IDs** are 48-bit content hashes, not secrets: they bind content, not authority, which is the intent.
-- **L6 Redirects.** The token is attached per request; a cross-origin redirect relies on fetch dropping `Authorization` (Node 18+ does). All requests go to fixed api.github.com URLs.
+- **L6 Redirects.** The token is attached per request; a cross-origin redirect relies on fetch dropping `Authorization` (Node 20+ does). All requests go to fixed api.github.com URLs.
 
 ## 3. Attacks that held (regression tests)
 

@@ -1,5 +1,5 @@
 // v0.15.0 item 1: the GitHub Actions workflow runs the tests and the plugin validation on
-// ubuntu, macOS and Windows with Node 18, 20 and 22, offline, with no secrets.
+// ubuntu, macOS and Windows with Node 20, 22 and 24, offline, with no secrets.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,10 +13,10 @@ test('the workflow runs on push and on pull request', () => {
   assert.match(yml(), /^\s+pull_request:/m);
 });
 
-test('the matrix is ubuntu, macos and windows by Node 18, 20 and 22: 9 jobs, none dropped on failure', () => {
+test('the matrix is ubuntu, macos and windows by Node 20, 22 and 24: 9 jobs, none dropped on failure', () => {
   const y = yml();
   assert.match(y, /os:\s*\[\s*ubuntu-latest\s*,\s*macos-latest\s*,\s*windows-latest\s*\]/);
-  assert.match(y, /node:\s*\[\s*18\s*,\s*20\s*,\s*22\s*\]/);
+  assert.match(y, /node:\s*\[\s*20\s*,\s*22\s*,\s*24\s*\]/);
   assert.match(y, /fail-fast:\s*false/);
 });
 

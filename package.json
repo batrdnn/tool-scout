@@ -16,7 +16,7 @@
     "eval:effort": "node test/eval/effort-review.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "license": "MIT"
 }

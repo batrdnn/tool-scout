@@ -1,5 +1,5 @@
-// v0.15.0 item 2, cause 1: Node 18 is supported (package.json "engines"), so no source or test file
-// may use an API that arrived later. import.meta.dirname and import.meta.filename are Node 20.11+.
+// v0.15.0 item 2, cause 1: the minimum is Node 20.0 (package.json "engines"), so no source or test
+// file may use an API that arrived later. import.meta.dirname and import.meta.filename are Node 20.11+.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
