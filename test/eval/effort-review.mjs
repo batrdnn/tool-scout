@@ -115,9 +115,9 @@ function needsCell(e) {
   const cred = c ? (n.apis.length ? `${n.apis.join(', ')} (${c} credential${c === 1 ? '' : 's'})` : `${c} credential${c === 1 ? '' : 's'}`) : '';
   return [cred, n.services.length ? `running: ${n.services.join(', ')}` : ''].filter(Boolean).join('; ') || '—';
 }
-const LABEL = { build: 'Build your own', either: 'Either', install: 'Install' };
+const LABEL = { build: 'Build your own', either: 'Either', install: 'Install', reference: 'Reference: read it, copy what you need' };
 const scriptCell = (e) => (e.advice === 'judge' ? `Judgment needed (rules alone: ${LABEL[e.judgment.ruleAdvice]})` : e.adviceLabel);
-const finalCell = (f) => (f.advice === 'install' ? 'Install' : `${LABEL[f.advice]} (${f.form}, ${f.time})`);
+const finalCell = (f) => (f.advice === 'install' || f.advice === 'reference' ? LABEL[f.advice] : `${LABEL[f.advice]} (${f.form}, ${f.time})`);
 /** The "Final advice" cell: an answer applies only while the row still shows the advice it was given to. */
 export const finalLabel = finalCell;
 
@@ -149,7 +149,7 @@ export function renderReview(results, answers = null) {
     '**For the reviewer:** fill in the last column with `y` or `n` (and a word on why, if `n`).',
     answers
       ? [`Filled in on ${answers.reviewedAt}: ${results.repos.filter((r) => /^y\b/.test(shown(r))).length} of ${results.repos.length} agree (y). ${answers.note}`,
-        stale ? ` ${stale} answer${stale === 1 ? '' : 's'} no longer matches the advice (rerun since the review) and ${stale === 1 ? 'is' : 'are'} left out until reviewed again.` : ''].join('')
+        stale ? ` ${stale} answer${stale === 1 ? ' no longer matches' : 's no longer match'} the advice (rerun since the review) and ${stale === 1 ? 'is' : 'are'} left out until reviewed again.` : ''].join('')
       : 'It is left empty on purpose.',
     '',
     '| # | Repo | Group | What it is | Size | Needs | Script says | Final advice | Decided by | Reason | Agree? (y/n) |',
@@ -177,7 +177,7 @@ async function main() {
       const meta = (await client.request(`https://api.github.com/repos/${name}`)).data;
       if (!meta) throw new Error('repo not found');
       const repo = slim(meta);
-      const scan = await scanRepo(client, repo.full_name, { kind: classify(repo) });
+      const scan = await scanRepo(client, repo.full_name, { kind: classify(repo), description: repo.description });
       const effort = { ...scan.effortFacts, ...advise(scan.effortFacts, { pushedAt: repo.pushedAt, now }) };
       matchCollections([{ effort, evidence: [] }], REVIEW_TOPICS, TOPICS);
       let final;

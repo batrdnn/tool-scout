@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T03:03:15.321Z",
+  "generatedAt": "2026-11-25T04:05:55.245Z",
   "version": "0.8.1",
   "model": "claude-opus-5-5",
   "topics": [
@@ -47,18 +47,21 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
-        "advice": "either",
-        "adviceLabel": "Either",
-        "buildForm": "skill with a script",
-        "buildTime": "about a day",
-        "reason": "Medium-sized (~450 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "reference": {
+          "kind": "spec"
+        },
+        "advice": "reference",
+        "adviceLabel": "Reference",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "A specification (~450 lines of Python): read it and copy what you need into your own skills.",
         "judgment": null
       },
       "final": {
-        "advice": "either",
-        "form": "skill with a script",
-        "time": "about a day",
-        "reason": "Medium-sized (~450 lines of Python), no external API: building is real work; installing is quicker if it fits as it is.",
+        "advice": "reference",
+        "form": null,
+        "time": null,
+        "reason": "A specification (~450 lines of Python): read it and copy what you need into your own skills.",
         "by": "rules"
       }
     },
@@ -118,6 +121,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
@@ -171,6 +175,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "either",
         "adviceLabel": "Either",
         "buildForm": "skill with a script",
@@ -222,6 +227,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill",
@@ -282,6 +288,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill with a script",
@@ -342,6 +349,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "hook",
@@ -400,6 +408,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill",
@@ -458,6 +467,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill",
@@ -516,6 +526,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill",
@@ -577,6 +588,7 @@
         "vendor": "anthropics",
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
@@ -653,6 +665,7 @@
         "vendor": "anthropics",
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "judgment": null,
         "advice": "install",
         "adviceLabel": "Install",
@@ -733,6 +746,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "judgment": {
           "needed": true,
           "ruleAdvice": "build",
@@ -820,6 +834,7 @@
         "vendor": "awslabs",
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "judgment": null,
         "advice": "install",
         "adviceLabel": "Install",
@@ -886,36 +901,28 @@
             "loc": 0,
             "instructionLines": 321
           },
-          "hooks": false,
-          "typicalAdvice": "judge",
-          "largestAdvice": {
-            "advice": "judge",
-            "adviceLabel": "Judgment needed"
-          }
+          "hooks": false
         },
         "vendor": null,
         "wraps": null,
         "truncated": false,
-        "judgment": {
-          "needed": true,
-          "ruleAdvice": "build",
-          "heads": [
-            "skills/trend-discovery/SKILL.md"
-          ]
+        "reference": {
+          "kind": "api-companion",
+          "api": "ScrapeCreators"
         },
-        "advice": "judge",
-        "adviceLabel": "Judgment needed",
-        "buildForm": "skill",
-        "buildTime": "under an hour",
-        "reason": "Collection of 13 skills: a typical one is ~60 lines of Markdown; the largest, scrapecreators-api, ~300 lines of Markdown (Judgment needed). Take only the part you need."
+        "advice": "reference",
+        "adviceLabel": "Reference",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Companion skills for the ScrapeCreators API, which you need either way (13 skills): read them and copy what you need about its endpoints.",
+        "judgment": null
       },
       "final": {
-        "advice": "build",
-        "form": "skill",
-        "time": "under an hour",
-        "reason": "The typical part, trend-discovery, is a standard trend-research workflow: search a niche, rank the evidence, turn trends into content angles. You already know how to do that. It's also tied to a paid ScrapeCreators API key you'd need either way.",
-        "by": "Claude",
-        "hash": "065f6ebcc4b422c145898341"
+        "advice": "reference",
+        "form": null,
+        "time": null,
+        "reason": "Companion skills for the ScrapeCreators API, which you need either way (13 skills): read them and copy what you need about its endpoints.",
+        "by": "rules"
       }
     },
     {
@@ -980,6 +987,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "judgment": {
           "needed": true,
           "ruleAdvice": "build",
@@ -1059,18 +1067,22 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
-        "advice": "install",
-        "adviceLabel": "Install",
+        "reference": {
+          "kind": "examples",
+          "noun": "hook"
+        },
+        "advice": "reference",
+        "adviceLabel": "Reference",
         "buildForm": null,
         "buildTime": null,
-        "reason": "Wraps 7 APIs (Anthropic, DeepSeek, ElevenLabs, …) with ~6,100 lines of Python and more: installing saves you keeping up with it.",
+        "reason": "Examples for learning (~6,100 lines of Python and more): read them and copy the hook you want.",
         "judgment": null
       },
       "final": {
-        "advice": "install",
+        "advice": "reference",
         "form": null,
         "time": null,
-        "reason": "Wraps 7 APIs (Anthropic, DeepSeek, ElevenLabs, …) with ~6,100 lines of Python and more: installing saves you keeping up with it.",
+        "reason": "Examples for learning (~6,100 lines of Python and more): read them and copy the hook you want.",
         "by": "rules"
       }
     },
@@ -1112,6 +1124,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "either",
         "adviceLabel": "Either",
         "buildForm": "hook",
@@ -1166,6 +1179,7 @@
         "vendor": "microsoft",
         "wraps": "playwright",
         "truncated": false,
+        "reference": null,
         "advice": "install",
         "adviceLabel": "Install",
         "buildForm": null,
@@ -1222,6 +1236,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill with a script",
@@ -1282,6 +1297,7 @@
         "vendor": null,
         "wraps": null,
         "truncated": false,
+        "reference": null,
         "advice": "judge",
         "adviceLabel": "Judgment needed",
         "buildForm": "skill with a script",

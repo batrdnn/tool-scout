@@ -44,11 +44,16 @@ test('without answers the Agree column is empty: only the reviewer fills it', ()
   assert.match(renderReview(results), /It is left empty on purpose\./);
 });
 
-test('the review answers: 17 of 20 agree; the n\'s are rows 1, 14 and 16, all reference material', () => {
+test('the review answers: 17 of 20 agree; the n\'s (rows 1, 14, 16, reference material) now get Reference, so their old answers are set aside', () => {
+  const recorded = Object.values(answers.answers);
+  assert.equal(recorded.filter((a) => /^y\b/.test(a.answer)).length, 17);
+  const nRows = results.repos.map((r, i) => (/^n\b/.test(answers.answers[r.name]?.answer || '') ? i + 1 : null)).filter(Boolean);
+  assert.deepEqual(nRows, [1, 14, 16]);
+  for (const i of nRows) assert.equal(results.repos[i - 1].final.advice, 'reference', results.repos[i - 1].name);
   const cells = agreeCells(fs.readFileSync(REVIEW_MD, 'utf8'));
+  assert.deepEqual(nRows.map((i) => cells[i - 1]), ['', '', ''], 'answers given to the old advice are not shown');
   assert.equal(cells.filter((c) => /^y\b/.test(c)).length, 17);
-  assert.deepEqual(cells.map((c, i) => (/^n\b/.test(c) ? i + 1 : null)).filter(Boolean), [1, 14, 16]);
-  assert.match(fs.readFileSync(REVIEW_MD, 'utf8'), /Filled in on 2026-11-25: 17 of 20 agree \(y\)\./);
+  assert.match(fs.readFileSync(REVIEW_MD, 'utf8'), /Filled in on 2026-11-25: 17 of 20 agree \(y\)\..* 3 answers no longer match the advice/);
   for (const name of Object.keys(answers.answers)) assert.ok(results.repos.some((r) => r.name === name), `answer for a repo not in the review: ${name}`);
 });
 
@@ -57,10 +62,12 @@ test('an answer only shows while the row still has the advice it was given to (a
   const r = changed.repos.find((x) => x.name === 'microsoft/playwright-mcp');
   assert.equal(finalLabel(r.final), answers.answers[r.name].reviewed);
   r.final = { ...r.final, advice: 'build', form: 'skill', time: 'under an hour' };
+  const before = agreeCells(renderReview(results, answers)).filter((c) => c).length;
   const cells = agreeCells(renderReview(changed, answers));
   assert.equal(cells[changed.repos.indexOf(r)], '');
-  assert.equal(cells.filter((c) => c).length, 19);
-  assert.match(renderReview(changed, answers), /1 answer no longer matches the advice/);
+  assert.equal(cells.filter((c) => c).length, before - 1);
+  const only = { ...answers, answers: { [r.name]: answers.answers[r.name] } };
+  assert.match(renderReview(changed, only), /1 answer no longer matches the advice/);
 });
 
 test('every close call was decided by Claude (build or install, one reason line), from a cached run', () => {
@@ -80,7 +87,7 @@ test('collections are reported per part, never by their total', () => {
   assert.equal(colls.length, 4);
   for (const r of colls) {
     assert.equal(r.effort.type, 'collection', r.name);
-    assert.match(r.effort.reason, /^Collection of \d+ /, r.name);
+    if (r.effort.advice !== 'reference') assert.match(r.effort.reason, /^Collection of \d+ /, r.name);
   }
 });
 
@@ -90,4 +97,12 @@ test("Claude's reason is the reason only: no repeated (form, time) label in fron
   assert.equal(cleanReason('(skill, under an hour) The typical part is a standard workflow.'), 'The typical part is a standard workflow.');
   assert.equal(cleanReason('Curated rules (Chinese-specific).'), 'Curated rules (Chinese-specific).');
   for (const r of results.repos.filter((x) => x.final?.by === 'Claude')) assert.doesNotMatch(r.final.reason, /^\(/, r.name);
+});
+
+test('the stale-answers line is grammatical for one and for several', () => {
+  const changed = structuredClone(results);
+  const two = ['microsoft/playwright-mcp', 'awslabs/mcp'];
+  for (const n of two) { const r = changed.repos.find((x) => x.name === n); r.final = { ...r.final, advice: 'build', form: 'skill', time: 'under an hour' }; }
+  const only = { ...answers, answers: Object.fromEntries(two.map((n) => [n, answers.answers[n]])) };
+  assert.match(renderReview(changed, only), /2 answers no longer match the advice/);
 });

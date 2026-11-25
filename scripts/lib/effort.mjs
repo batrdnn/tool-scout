@@ -241,6 +241,32 @@ function collectionOf(blobs, codeBlobs, mdBlobs, kind) {
   };
 }
 
+// ---- reference material ------------------------------------------------------------------
+// Only the repo's own description and the README's first heading are read: what the repo says it is.
+const SPEC = /\bspec(?:ification)?s?\b/i;
+// Not "learn": a tool that helps you learn ("Learn what AI writes") is a tool, not examples to learn from.
+const EXAMPLES = /\b(?:examples?|demos?|cookbook|tutorials?|showcase|master(?:y|ing)?|playground|boilerplate|starter[- ]kit|templates?)\b/i;
+const alnum = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Something to read rather than build or install: a spec, examples for learning, or companion
+ * skills for the owner's own API (the user needs that API either way). { kind, api? } or null.
+ */
+function referenceOf({ name, description, readme, type, loc, credNames, apis, blobs }) {
+  if (type === 'mcp-server') return null; // a server is a product to run, whatever it says about specs
+  const said = `${description || ''}\n${(String(readme || '').match(/^#\s+(.+)$/m) || [])[1] || ''}`;
+  const owner = String(name || '').split('/')[0];
+  const heads = [...credNames.map((n) => n.replace(ENV_PREFIX, '').split('_')[0]), ...apis].map(alnum);
+  if (owner && heads.includes(alnum(owner)) && loc <= THRESHOLDS.SMALL_LOC) return { kind: 'api-companion', api: owner };
+  if (SPEC.test(said) && loc < THRESHOLDS.LARGE_LOC) return { kind: 'spec' };
+  if (EXAMPLES.test(said)) {
+    const noun = blobs.some((t) => /(^|\/)hooks\//.test(t.path)) ? 'hook' : blobs.some((t) => /(^|\/)agents\//.test(t.path)) ? 'agent'
+      : blobs.some((t) => /(^|\/)SKILL\.md$/i.test(t.path)) ? 'skill' : 'example';
+    return { kind: 'examples', noun };
+  }
+  return null;
+}
+
 /** The part whose name fits one of the user's topics, in their order: { name, topic } or null. */
 export function matchPart(names, topics, keywords = {}) {
   for (const topic of topics || []) {
@@ -273,7 +299,7 @@ const TYPE_LABEL = {
 };
 
 /** Everything that doesn't depend on the date: cached by the scan. */
-export function effortFacts({ tree = [], truncated = false, readme = '', files = {}, kind = null, name = '' } = {}) {
+export function effortFacts({ tree = [], truncated = false, readme = '', files = {}, kind = null, name = '', description = '' } = {}) {
   const blobs = tree.filter((t) => t.type === 'blob');
   const seen = new Set(); // identical copies (same file name and size, e.g. bundled into a "pack") count once
   const codeBlobs = blobs.filter((t) => LANG[ext(t.path)] && !NOT_CODE_DIR.test(t.path) && !NOT_CODE_FILE.test(t.path))
@@ -345,6 +371,7 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
       apis: apis.slice(0, MAX_LISTED), apiCount: apis.length, network, services,
     },
     parts, collection, vendor, wraps, truncated: !!truncated,
+    reference: referenceOf({ name, description, readme, type, loc, credNames: cred.names, apis, blobs }),
   };
 }
 
@@ -401,6 +428,14 @@ function adviseCollection(f, opts) {
 
 /** Build your own / Either / Install, with a form, a time and one plain reason. */
 export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
+  if (f.reference) {
+    const r = f.reference;
+    const size = f.collection ? `${f.collection.count} ${UNIT_PLURAL[f.collection.unit]}` : sizeText(f);
+    const reason = r.kind === 'spec' ? `A specification (${size}): read it and copy what you need into your own skills.`
+      : r.kind === 'examples' ? `Examples for learning (${size}): read them and copy the ${r.noun} you want.`
+        : `Companion skills for the ${r.api} API, which you need either way (${size}): read them and copy what you need about its endpoints.`;
+    return { advice: 'reference', adviceLabel: 'Reference', buildForm: null, buildTime: null, reason, judgment: null };
+  }
   if (f.collection) {
     const { collectionAdvice, ...rest } = adviseCollection(f, { pushedAt, now });
     return { judgment: null, ...rest, collection: { ...f.collection, typicalAdvice: collectionAdvice.typical.advice, largestAdvice: { advice: collectionAdvice.largest.advice, adviceLabel: collectionAdvice.largest.adviceLabel } } };
@@ -481,6 +516,7 @@ export function estimateEffort({ pushedAt = null, now = Date.now(), ...input } =
 
 /** One line for text output: "Build your own (skill, under an hour): …" / "Install: …". */
 export function effortLine(e, { where = '/tool-scout:scout' } = {}) {
+  if (e.advice === 'reference') return `Reference: read it, copy what you need. ${e.reason}${e.collection?.match ? ` For your ${e.collection.match.topic} work: ${e.collection.match.name}.` : ''}`;
   const extra = e.advice === 'install' ? '' : e.advice === 'judge' ? ` (${e.buildForm} if built, ${e.buildTime})` : ` (${e.buildForm}, ${e.buildTime})`;
   const match = e.collection?.match ? ` For your ${e.collection.match.topic} work: ${e.collection.match.name}.` : '';
   const judge = e.advice === 'judge' ? ` Claude decides in ${where}.` : '';

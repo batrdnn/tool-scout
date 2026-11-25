@@ -41,8 +41,8 @@ same text without them; `--json` is for reading results.
      their text, and you must not go and fetch it.
    - **Metadata:** stars, license, owner type, age, last push, archived, and any `notes`.
    - **Build or install:** one line from `effort`, when present: `effort.adviceLabel`, then,
-     unless it's Install, `effort.buildForm` and `effort.buildTime` in parentheses, then
-     `effort.reason`. If they ask why, explain what it is, its size, what it needs (`effort.needs`)
+     unless it's Install or Reference, `effort.buildForm` and `effort.buildTime` in parentheses,
+     then `effort.reason`. Say Reference as "Reference: read it, copy what you need". If they ask why, explain what it is, its size, what it needs (`effort.needs`)
      and the thresholds behind the advice. It's an estimate, not a verdict. Never offer to build
      or install it.
      **Close calls are yours.** When `effort.advice` is `judge` (instructions-only or small repos, and a

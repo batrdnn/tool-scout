@@ -90,9 +90,10 @@ same text without them; `--json` is for reading results.
    means the marketplace holds several plugins); say "from the README". When it's `readme-link`,
    the README has no Claude Code command: give the README link and don't invent one. Never run
    it yourself; the user decides.
-   *Build or install:* one line from `effort`: `effort.adviceLabel` (Build your own, Either or
-   Install), then, unless it's Install, `effort.buildForm` and `effort.buildTime` in parentheses,
-   then `effort.reason`. Example: "Build your own (skill, under an hour): Only instructions (~150
+   *Build or install:* one line from `effort`: `effort.adviceLabel` (Build your own, Either,
+   Install or Reference), then, unless it's Install or Reference, `effort.buildForm` and
+   `effort.buildTime` in parentheses, then `effort.reason`. Say Reference as "Reference: read it,
+   copy what you need" (a spec, examples for learning, or companion skills for an API). Example: "Build your own (skill, under an hour): Only instructions (~150
    lines of Markdown) and no external API, so writing your own is quick." It's an estimate from
    the repo's files, not a verdict. Leave the line out when a pick has no `effort` (not scanned).
    **Close calls are yours.** When `effort.advice` is `judge` (instructions-only or small repos, and a

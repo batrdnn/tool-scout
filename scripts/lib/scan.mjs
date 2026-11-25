@@ -14,7 +14,7 @@ import { effortFiles, effortFacts, advise } from './effort.mjs';
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 13; // bump when rules change so cached scans are redone (12: effort facts; 13: collections, heads)
+export const SCAN_VERSION = 14; // bump when rules change so cached scans are redone (12: effort facts; 13: collections, heads; 14: reference)
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -224,7 +224,7 @@ export async function scanRepo(client, fullName, meta = {}) {
   const hint = extractInstallHint(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind }, { marketplacePlugins });
   // Build-or-install facts from the same tree, plus the few small manifests not fetched above.
   for (const p of effortFiles(treeRes.data?.tree)) if (!(p in texts)) texts[p] = await contents(p);
-  const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind, name: fullName });
+  const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind, name: fullName, description: meta.description || '' });
   // The first lines of the files Claude reads for a close call (served by `scout.mjs head`, never in --json).
   const heads = [];
   for (const p of effort.judgmentHeads || []) {
@@ -287,7 +287,7 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
       stats.skipped++;
     } else {
       try {
-        scan = { ...(await scanRepo(client, rec.name, { kind: rec.kind })), v: SCAN_VERSION, pushedAt: repo.pushedAt, at: new Date(now).toISOString() };
+        scan = { ...(await scanRepo(client, rec.name, { kind: rec.kind, description: rec.description })), v: SCAN_VERSION, pushedAt: repo.pushedAt, at: new Date(now).toISOString() };
         cache[rec.name] = scan;
         stats.scanned++;
       } catch (e) {

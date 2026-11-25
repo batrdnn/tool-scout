@@ -141,7 +141,7 @@ function effortFields(e, P) {
     ['What', e.typeLabel],
     sizeRow || ['Size', `${size}${e.dependencies != null ? ` · ${e.dependencies} ${e.dependencies === 1 ? 'dependency' : 'dependencies'}` : ''}`],
     ['Needs', needs, e.needs.credentials.length || e.needs.services.length ? 'yellow' : null],
-    ['Advice', e.advice === 'install' ? e.adviceLabel : e.advice === 'judge' ? `${e.adviceLabel} (${e.buildForm} if built, ${e.buildTime}): Claude decides in /tool-scout:check` : `${e.adviceLabel} (${e.buildForm}, ${e.buildTime})`, ADVICE[e.advice] || 'magenta', ADVICE[e.advice] || 'magenta'],
+    ['Advice', e.advice === 'install' ? e.adviceLabel : e.advice === 'reference' ? 'Reference: read it, copy what you need' : e.advice === 'judge' ? `${e.adviceLabel} (${e.buildForm} if built, ${e.buildTime}): Claude decides in /tool-scout:check` : `${e.adviceLabel} (${e.buildForm}, ${e.buildTime})`, ADVICE[e.advice] || 'magenta', ADVICE[e.advice] || 'magenta'],
     ['Why', e.reason],
   ], { indent: 2 });
 }

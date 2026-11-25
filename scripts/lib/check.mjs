@@ -29,7 +29,7 @@ export async function checkRepo(client, input, { now = Date.now() } = {}) {
   const repo = slim(res.data);
   const kind = classify(repo);
   const meta = trust(repo, now);
-  const scan = await scanRepo(client, repo.full_name, { kind });
+  const scan = await scanRepo(client, repo.full_name, { kind, description: repo.description });
   const flags = scan.flags
     .map(({ excerpt, ...f }) => (NO_TEXT.has(f.id) || !excerpt ? f : { ...f, excerpt }))
     .sort((a, b) => SEV[b.severity] - SEV[a.severity]);

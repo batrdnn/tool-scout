@@ -104,6 +104,13 @@ is a "collection of N skills" (the most numerous kind decides). It is judged by 
 part's name fits one of your profile topics (e.g. `webapp-testing` for testing), the advice points
 to it.
 
+**Reference: read it, copy what you need.** Some repos are material to read rather than a tool:
+a spec (its description or title says specification), examples for learning (examples, demos,
+cookbook, tutorial, mastery, templates…), or companion skills for the owner's own API (the only
+credentials are for an API named after the repo's owner, so you need that API either way). Only the
+repo's description and the README's first heading are read for this, and MCP servers are never
+Reference.
+
 **Leaning to Install.** Two cases go to Install whatever the size: an official repo from the
 vendor (`OFFICIAL_ORGS` in effort.mjs: anthropics, microsoft, github, awslabs, …), "maintained by
 the vendor"; and a thin wrapper, at most `THIN_MAX_LOC` = 1,000 lines of its own code around one
