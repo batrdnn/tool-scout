@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { shaded, pixels, luminance } from '../scripts/lib/sprites.mjs';
+import { shaded, SPRITES } from '../scripts/lib/sprites.mjs';
 import { whoAmI, formatMe, ORDER } from '../scripts/lib/me.mjs';
 import { painter, stripAnsi } from '../scripts/lib/term.mjs';
 import { prettyMe } from '../scripts/lib/pretty.mjs';
@@ -21,26 +21,36 @@ test('shaded: 16 rows of 32 columns (each pixel is 2 characters wide), only spac
   }
 });
 
-test('shaded: empty cells are blank, drawn cells are never blank, darker colors get denser characters', () => {
+test('shaded: two tones (█ and space) plus one accent (▓); ░ and ▒ are gone', () => {
   for (const n of NAMES) {
-    const px = pixels(n);
-    const rows = shaded(n);
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const cell = rows[y].slice(2 * x, 2 * x + 2);
-      if (!px[y][x]) assert.equal(cell, '  ', `${n} (${x},${y})`);
-      else { assert.notEqual(cell.trim(), '', `${n} (${x},${y})`); assert.equal(cell[0], cell[1]); }
-    }
+    const text = shaded(n).join('');
+    assert.doesNotMatch(text, /[░▒]/, n);
+    for (const ch of '█▓') assert.ok(text.includes(ch), `${n}: uses ${ch}`);
   }
-  const density = (ch) => ' ░▒▓█'.indexOf(ch);
-  const px = pixels('Beaver');
-  const rows = shaded('Beaver');
-  const cells = [];
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (px[y][x]) cells.push([luminance(px[y][x]), density(rows[y][2 * x])]);
-  for (const [l1, d1] of cells) for (const [l2, d2] of cells) if (l1 < l2) assert.ok(d1 >= d2, 'darker is never lighter');
 });
 
-test('each sprite uses at least 3 different shades, so it reads as pixel art, not a silhouette', () => {
-  for (const n of NAMES) assert.ok(new Set(shaded(n).join('').replace(/ /g, '')).size >= 3, n);
+test('shaded: empty cells are blank, each drawn cell follows its palette key tone, and the pair repeats', () => {
+  for (const n of NAMES) {
+    const { rows, tones } = SPRITES[n];
+    assert.ok(tones.dark && tones.accent, `${n}: tones`);
+    const out = shaded(n);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const key = rows[y][x];
+      const cell = out[y].slice(2 * x, 2 * x + 2);
+      const want = key === '.' ? ' ' : tones.dark.includes(key) ? '█' : tones.accent.includes(key) ? '▓' : ' ';
+      assert.equal(cell, want.repeat(2), `${n} (${x},${y})`);
+    }
+    for (const k of tones.dark + tones.accent) assert.ok(k in SPRITES[n].palette, `${n}: tone key ${k} in palette`);
+    assert.ok(![...tones.dark].some((k) => tones.accent.includes(k)), `${n}: a key has one tone`);
+  }
+});
+
+test('each sprite shows an outline (█), an accent (▓) and some light interior, so it reads as pixel art', () => {
+  for (const n of NAMES) {
+    const { rows, tones } = SPRITES[n];
+    const light = rows.join('').split('').filter((k) => k !== '.' && !tones.dark.includes(k) && !tones.accent.includes(k)).length;
+    assert.ok(light >= 3, `${n}: light cells`);
+  }
 });
 
 test('plain `me` output shows the shaded sprite, with no escape codes and no ASCII-art lines', () => {

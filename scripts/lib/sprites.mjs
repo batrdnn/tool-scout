@@ -4,51 +4,56 @@
 
 export const SIZE = 16;
 
+// `tones` tell the plain (monochrome) version how to print each palette key: `dark` keys as █,
+// `accent` keys as ▓, everything else as blank. Two tones plus one accent, no mid-grays.
 export const SPRITES = {
-  Beaver: {
-    palette: { K: '#3b2412', B: '#8a5a2b', L: '#c99a62', N: '#1f1209', W: '#fffaf0' },
+  Beaver: { // side view, facing left, with a flat tail
+    palette: { K: '#3b2412', B: '#8a5a2b', L: '#c99a62', N: '#1f1209', W: '#fffaf0', T: '#6b4423' },
+    tones: { dark: 'KN', accent: 'BT' },
     rows: [
       '................',
-      '...KKK....KKK...',
-      '..KBBBK..KBBBK..',
-      '..KBBBKKKKBBBK..',
-      '...KBBBBBBBBBK..',
-      '..KBBBBBBBBBBBK.',
-      '..KBBKBBBBKBBBK.',
-      '..KBBBBBBBBBBBK.',
-      '..KBBBLLLLBBBBK.',
-      '..KBBLLNNLLBBBK.',
-      '...KBLLLLLLLBK..',
-      '...KBLLWWLLBK...',
-      '....KLLWWLLK....',
-      '....KKLWWLKK....',
-      '.....KKKKKK.....',
+      '................',
+      '..KKK...........',
+      '.KBBBKKKKK......',
+      '.KBBBBBBBK......',
+      'KBBBKBBBBBBK....',
+      'NLLBBBBBBBBK....',
+      'KLLBBBBBBBBK....',
+      'KWLBBBBBBBBKKKKK',
+      '.KWLLBBBBBBKTTTK',
+      '..KLLLLBBBBKTKTK',
+      '...KKLLLLLLKTTTK',
+      '.....KKKKKKKKKKK',
+      '................',
+      '................',
       '................',
     ],
   },
-  Owl: {
+  Owl: { // front view: big round eyes, round head, no ear tufts
     palette: { D: '#3a2f66', P: '#6b5a9e', C: '#e4dcf5', Y: '#ffd24a', W: '#ffffff', K: '#161025', O: '#f08a24' },
+    tones: { dark: 'DKO', accent: 'P' },
     rows: [
       '................',
-      '..DD........DD..',
-      '..DPD......DPD..',
-      '..DPPDDDDDDPPD..',
-      '..DPPPPPPPPPPD..',
-      '.DPYYYYPPYYYYPD.',
-      '.DPYWWKPPKWWYPD.',
-      '.DPYWKKPPKKWYPD.',
-      '.DPPYYYOOYYYPPD.',
-      '.DPPPPPOOPPPPPD.',
-      '.DPPCCCCCCCCPPD.',
-      '.DPPCDCDCDCDPPD.',
-      '.DPPCCCCCCCCPPD.',
-      '..DPPCCCCCCPPD..',
-      '...DDDDDDDDDD...',
+      '....KKKKKKKK....',
+      '...KPPPPPPPPK...',
+      '..KPPPPPPPPPPK..',
+      '.KPPYYYPPYYYPPK.',
+      '.KPYWWWYYWWWYPK.',
+      '.KPYWKWYYWKWYPK.',
+      '.KPYWWWYYWWWYPK.',
+      '.KPPYYYPPYYYPPK.',
+      '..KPPPPOOPPPPK..',
+      '.KDPPCCCCCCPPDK.',
+      '.KDPCDCDCDCDPDK.',
+      '.KDPCCCCCCCCPDK.',
+      '..KDPCCCCCCPDK..',
+      '...KKDDDDDDKK...',
       '....OO....OO....',
     ],
   },
   Bee: {
     palette: { K: '#2a2214', Y: '#ffcf2e', W: '#e3f1ff', B: '#7aa6d6' },
+    tones: { dark: 'K', accent: 'B' },
     rows: [
       '..K..........K..',
       '...K........K...',
@@ -68,8 +73,9 @@ export const SPRITES = {
       '.......KK.......',
     ],
   },
-  Octopus: {
+  Octopus: { // dome head and four thick tentacles that curl out to the edges
     palette: { D: '#8f2236', R: '#d6455d', L: '#f08aa0', W: '#ffffff', K: '#2b0f16' },
+    tones: { dark: 'DK', accent: 'R' },
     rows: [
       '................',
       '....DDDDDDDD....',
@@ -81,37 +87,39 @@ export const SPRITES = {
       '.DRRKKRRRRKKRRD.',
       '.DRRRRRRRRRRRRD.',
       '..DRRRRRRRRRRD..',
-      '...DRRRRRRRRD...',
-      '.DRRDRRDDRRDRRD.',
-      'DRR.DRR..RRD.RRD',
-      'DR..DR....RD..RD',
-      'D...R......R...D',
-      '................',
+      '..DRRRRRRRRRRD..',
+      '.DRRDRRDRRDRRD..',
+      '.DRRDRRDRRDRRD..',
+      'DRRD.RRDRRD.RRD.',
+      'DRD...RDRD...DRD',
+      '.D.....DD.....D.',
     ],
   },
-  Ant: {
-    palette: { K: '#2b1a14', A: '#a0452c', W: '#ffffff' },
+  Ant: { // side view, facing left: head, thorax, abdomen, six legs, two antennae
+    palette: { K: '#2b1a14', A: '#a0452c', W: '#ffffff', H: '#d98a6a' },
+    tones: { dark: 'K', accent: 'A' },
     rows: [
-      '...K........K...',
-      '....K......K....',
-      '.....K....K.....',
-      '....KKKKKKKK....',
-      '...KAAAAAAAAK...',
-      '..KAAAAAAAAAAK..',
-      '..KAWKAAAAKWAK..',
-      '..KAAAAAAAAAAK..',
-      '...KAAKKKKAAK...',
-      '....KKK..KKK....',
-      '.....KKKKKK.....',
-      '....KAAAAAAK....',
-      '..K.KAAAAAAK.K..',
-      '.K..KAAAAAAK..K.',
-      'K....KAAAAK....K',
-      '......KKKK......',
+      '................',
+      '................',
+      '.K...K..........',
+      '..K.K...........',
+      '..KKK.KKK.KKKK..',
+      '.KAAAKHAAKHAAAK.',
+      '.KAAAKAAAKHAAAK.',
+      '.KWAAKAAAKAAAAK.',
+      '.KAAAKAAAKAAAAK.',
+      '..KKK.KKK.KKKK..',
+      '...K.K.K.K.K.K..',
+      '..K..K.K.K.K..K.',
+      '.K...K.K.K.K...K',
+      '................',
+      '................',
+      '................',
     ],
   },
   Fox: {
     palette: { K: '#201510', O: '#e8731f', W: '#fff3e0' },
+    tones: { dark: 'K', accent: 'O' },
     rows: [
       '................',
       '................',
@@ -133,6 +141,7 @@ export const SPRITES = {
   },
   Turtle: {
     palette: { D: '#1d4a2b', G: '#2f7a45', L: '#6fbf73', S: '#a4d27a', K: '#10200f' },
+    tones: { dark: 'DK', accent: 'GS' },
     rows: [
       '......DDDD......',
       '.....DSSSSD.....',
@@ -152,17 +161,18 @@ export const SPRITES = {
       '................',
     ],
   },
-  Egg: {
-    palette: { D: '#7a7368', W: '#f4efe3', H: '#ffffff', S: '#cfc6b0', B: '#b58a5b' },
+  Egg: { // a zigzag crack: not hatched yet, but something is coming
+    palette: { D: '#7a7368', W: '#f4efe3', H: '#ffffff', S: '#cfc6b0', B: '#b58a5b', K: '#3a342b' },
+    tones: { dark: 'DK', accent: 'SB' },
     rows: [
       '................',
       '.....DDDDDD.....',
       '...DDWWWWWWDD...',
-      '..DWHHWWWWWWWD..',
-      '.DWHWWWWBWWWWWD.',
-      '.DWWWWWWWWWWWSD.',
-      '.DWWBWWWWWWWWSD.',
-      '.DWWWWWWWWWBWSD.',
+      '..DWHHWWWKWWWD..',
+      '.DWHWWWWKWWWWWD.',
+      '.DWWWWWWWKWWWSD.',
+      '.DWWBWWWKWWWWSD.',
+      '.DWWWWWWWKKWWSD.',
       '.DWWWWWWWWWWSSD.',
       '.DWWWBWWWWWWSSD.',
       '..DWWWWWWWWSSD..',
@@ -228,18 +238,29 @@ export function halfBlocks(name, { truecolor = true } = {}) {
   return out;
 }
 
-// ---- Plain text: monochrome shading, no escape codes ---------------------------------------
+// ---- Plain text: monochrome, no escape codes --------------------------------------------------
 
-/** Brightness of a '#rrggbb' color, 0 (black) to 1 (white). */
-export const luminance = (hex) => {
-  const [r, g, b] = rgb(hex);
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-};
-
-// Dark colors get dense characters (like ink on paper): outline █, then ▓, ▒, ░ for the lightest.
-const shade = (hex) => { const l = luminance(hex); return l < 0.3 ? '█' : l < 0.5 ? '▓' : l < 0.72 ? '▒' : '░'; };
-
-/** The sprite as 16 text rows of 32 columns: two characters per pixel, so it keeps its proportions. */
+/** The sprite as 16 text rows of 32 columns: two characters per pixel, so it keeps its proportions.
+ *  Outline and dark parts are █, the accent tone is ▓, light parts and empty cells are blank. */
 export function shaded(name) {
-  return pixels(name).map((row) => row.map((c) => (c ? shade(c).repeat(2) : '  ')).join(''));
+  const { rows, tones } = SPRITES[name];
+  const cell = (k) => (k === '.' ? '  ' : tones.dark.includes(k) ? '██' : tones.accent.includes(k) ? '▓▓' : '  ');
+  return rows.map((row) => [...row].map(cell).join(''));
+}
+
+// ---- SVG: one <rect> per horizontal run of the same color ----------------------------------
+
+/** `<rect>` lines for the sprite at (x, y), each pixel `scale` units square. Use inside shape-rendering="crispEdges". */
+export function svgRects(name, { x = 0, y = 0, scale = 1 } = {}) {
+  const out = [];
+  pixels(name).forEach((row, r) => {
+    for (let c = 0; c < SIZE;) {
+      if (!row[c]) { c++; continue; }
+      let end = c;
+      while (end + 1 < SIZE && row[end + 1] === row[c]) end++;
+      out.push(`<rect x="${x + c * scale}" y="${y + r * scale}" width="${(end - c + 1) * scale}" height="${scale}" fill="${row[c]}"/>`);
+      c = end + 1;
+    }
+  });
+  return out;
 }
