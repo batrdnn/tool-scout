@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
-import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
+import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
 import { currentVersion, replaceFiles, restoreReplaced, supersede, replaceLine } from './replace.mjs';
 
 export const FORMS = ['skill', 'command', 'subagent', 'hook', 'memory'];
@@ -334,6 +334,7 @@ function writeFile(entry, w, buf) {
 export async function confirmBuild({ client = null, id, home, cwd, dataDir, now = Date.now(), hook = false }) {
   const rec = /^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null;
   if (!rec || rec.body?.kind !== 'build') return { ok: false, reason: `unknown plan ID ${id}: make a plan first with build … --plan` };
+  if (!planIntact(rec, id)) return { ok: false, reason: `plan ${id} changed since the plan was made (its file was edited): make a new plan and review it` };
   if (now > Date.parse(rec.expiresAt)) return { ok: false, reason: `plan ${id} expired at ${rec.expiresAt.slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan` };
   const b = rec.body;
   if (b.blockers.length) return { ok: false, reason: `the plan is blocked: ${b.blockers.join('; ')}` };

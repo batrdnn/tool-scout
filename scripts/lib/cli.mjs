@@ -283,7 +283,7 @@ async function main() {
         console.log(opts.json ? JSON.stringify(rec, null, 2) : formatPlan(rec, { home }));
         break;
       }
-      const res = await confirmInstall({ ...ctx, id: opts.confirm });
+      const res = await confirmInstall({ ...ctx, repo, id: opts.confirm });
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
       if (!res.ok) { console.log(`Not installed: ${res.reason}`); process.exitCode = 1; break; }
       const e = res.entry;

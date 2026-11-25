@@ -386,11 +386,17 @@ function listTree(root) {
   return out;
 }
 
-export async function confirmInstall({ client, id, home, cwd, dataDir, now = Date.now(), run = defaultRun, versions = latestVersion }) {
+/** The plan file's body is exactly what its ID was made from: what the user was shown. */
+export const planIntact = (rec, id) => !!rec?.body && sha256(JSON.stringify(rec.body)).slice(0, 12) === id;
+
+/** `repo`: the repo the confirming command names; a plan made for another repo is refused. */
+export async function confirmInstall({ client, id, repo = null, home, cwd, dataDir, now = Date.now(), run = defaultRun, versions = latestVersion }) {
   const rec = /^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null;
   if (!rec) return { ok: false, reason: `unknown plan ID ${id}: make a plan first with --plan` };
+  if (!planIntact(rec, id)) return { ok: false, reason: `plan ${id} changed since the plan was made (its file was edited): make a new plan and review it` };
   if (now > Date.parse(rec.expiresAt)) return { ok: false, reason: `plan ${id} expired at ${rec.expiresAt.slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan` };
   const b = rec.body;
+  if (repo != null && normalizeRepo(repo) !== b.repo) return { ok: false, reason: `plan ${id} is for ${b.repo}, not ${normalizeRepo(repo) || repo}: nothing was installed` };
   if (b.blockers.length) return { ok: false, reason: `the plan is blocked: ${b.blockers.join('; ')}` };
   const api = `https://api.github.com/repos/${b.repo}`;
   if (b.method === 'plugin') {
