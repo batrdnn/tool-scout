@@ -42,30 +42,45 @@ const clip = (s, n = 70) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` 
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'project';
 
-/** The plan's lines as plain text: bullets, numbers and heading marks removed. */
+/** The plan's lines as plain text: bullets, numbers and heading marks removed; a wrapped bullet is one line. */
 function segments(text) {
   const out = [];
   let heading = '';
+  let open = null; // the last bullet, which an indented line below it continues
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line) continue;
+    if (!line) { open = null; continue; }
     const h = line.match(/^#{1,6}\s+(.*)$/);
-    if (h) { heading = h[1]; continue; }
+    if (h) { heading = h[1]; open = null; continue; }
     const body = line.replace(/^(?:[-*+]|\d+[.)])\s+/, '').replace(/^\[[ xX]\]\s+/, '');
     const bullet = body !== line;
+    if (!bullet && open && /^\s/.test(raw)) { open.text = `${open.text.replace(/[.;]$/, '')} ${body}`.replace(/[.;]$/, ''); continue; }
+    open = null;
     for (const s of bullet ? [body] : body.split(/(?<=[.!?])\s+/)) if (s.trim()) out.push({ text: s.trim().replace(/[.;]$/, ''), heading });
+    if (bullet) open = out[out.length - 1];
   }
   return out;
 }
+
+// Needs Claude meets directly, with no tool: a CI config file, an icon, a post. One line on how.
+const DIRECT = [
+  { id: 'ci', label: 'CI config', re: /\bCI\b|\bCI\/CD\b|continuous integration|GitHub Actions/i, how: 'Claude writes the workflow file (.github/workflows/*.yml) and runs the same commands locally to check them' },
+  { id: 'icon', label: 'icon', re: /\b(?:icons?|logo|favicon)\b/i, how: 'Claude draws it as an SVG, or writes a small script that renders the PNG sizes, and saves it in the repo' },
+  { id: 'post', label: 'launch post', re: /\b(?:write|draft)\b[^.]{0,40}\b(?:posts?|blog|announcement|article|newsletter|tweet|thread)\b/i, how: 'Claude drafts the text in the chat from your README and plan; you edit and publish it' },
+];
+const STACK_HEADING = /\b(?:stack|tech(?:nology)?|built with)\b/i;
 
 /**
  * Local only: the needs in a plan. Tasks by topic (the plan's lines that mention it), the stack (the
  * project's dependency files), the domain (the most-mentioned domain topic) and the conventions.
  */
 export function extractNeeds(text, { project = null } = {}) {
-  const tasks = {}; const conventions = [];
+  const tasks = {}; const conventions = []; const direct = {};
   for (const s of segments(text)) {
     if (CONVENTION_LINE.test(s.text) || (CONVENTION_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading))) { conventions.push(s.text); continue; }
+    if (STACK_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading)) continue; // describes the stack, not a task
+    const d = DIRECT.find((x) => x.re.test(s.text));
+    if (d) { (direct[d.id] ||= []).push(s.text); continue; }
     for (const t of topicsIn(s.text)) (tasks[t] ||= []).push(s.text);
   }
   const libraries = project ? [...librariesIn(project)].sort() : [];
@@ -81,6 +96,7 @@ export function extractNeeds(text, { project = null } = {}) {
     stack: { libraries, topics: libTopics },
     domain,
     conventions: conventions.slice(0, 20),
+    direct: DIRECT.filter((d) => direct[d.id]).map((d) => ({ id: d.id, label: d.label, lines: direct[d.id], how: d.how })),
     needs,
   };
 }
@@ -97,6 +113,7 @@ function validate(n) {
   n.conventions = Array.isArray(n.conventions) ? n.conventions.map(String) : [];
   if (n.rejects != null && !Array.isArray(n.rejects)) throw new Error('rejects in the needs file must be a list of owner/repo names');
   n.rejects = (n.rejects || []).map(String);
+  n.direct = Array.isArray(n.direct) ? n.direct.filter((d) => d?.id && d?.how).map((d) => ({ id: String(d.id), label: String(d.label || d.id), lines: (d.lines || []).map(String), how: String(d.how) })) : [];
 }
 
 /** The profile one need stands for: only its topic, its plan words and its libraries. */
@@ -184,7 +201,10 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
   const out = [...kept, memory].sort((a, b) => b.impact - a.impact);
   const notes = [];
   if (!Object.keys(catalog.repos || {}).length) notes.push('The local catalog is empty, so nothing could be matched: run /tool-scout:scout once (it fetches the catalog with fixed topic searches), then kickoff again.');
-  return { items: out, omitted: items.length - kept.length, notes };
+  // Needs that are not tool needs: listed apart (they are not among the items to set up).
+  const direct = (n.direct || []).map((d) => ({ id: d.id, topic: d.label, action: 'nothing', direct: true,
+    reason: `Your plan has ${plural(d.lines.length, `${d.label} line`)} ("${clip(d.lines[0], 60)}"): nothing needed: Claude does this directly: ${d.how}.` }));
+  return { items: out, direct, omitted: items.length - kept.length, notes };
 }
 
 export function loadNeeds(dataDir) {
@@ -247,6 +267,10 @@ export function formatKickoff({ needsFile, needs: n, toolkit }) {
     if (i.next) out.push(`   Next: scout.mjs ${i.next}`);
     if (i.command) out.push(`   Command: ${i.command}`);
   });
+  if (toolkit.direct?.length) {
+    out.push('', 'Claude does these directly (no tool needed):');
+    for (const d of toolkit.direct) out.push(`- ${d.topic}: ${d.reason}`);
+  }
   if (toolkit.omitted) out.push(`(${plural(toolkit.omitted, 'smaller need')} left out to keep it to ${MAX_ITEMS}.)`);
   for (const note of toolkit.notes) out.push(`Note: ${note}`);
   out.push('', `Saved locally: ${needsFile} (the only copy of the plan text; never sent anywhere).`);

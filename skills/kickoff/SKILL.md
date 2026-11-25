@@ -71,6 +71,9 @@ Below, `…` stands for running the bundled script as in the Final summary block
    (`anthropics/claude-plugins-official`): say so, and show its `command`. A `builtin` item is a
    Claude Code feature (like `/ultrareview`): nothing to install, the user types it themselves; say
    so, including any cost noted in its `reason`. Say "nothing needed: Claude handles this without a tool" for `nothing` items as given.
+   After the items, list `toolkit.direct` (CI config files, icons, posts: needs that are not tool
+   needs) as "nothing needed: Claude does this directly", each with its one line on how. They
+   are not among the 5 and not options.
    If `omitted` is above 0, say how many smaller needs were left out. Relay every entry in `notes`.
 
 6. **Selection.** With AskUserQuestion, ask "Which of these should I set up?", header `Toolkit`,
