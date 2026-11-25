@@ -82,7 +82,7 @@ test('the CLI: kickoff --plan-file <path> [--project DIR] prints the needs and t
   assert.ok(out.toolkit.items.length >= 1);
   const plain = run(sb, '--plan-file', sb.planFile, '--project', sb.project, '--plain');
   assert.match(plain, /Needs from your plan/);
-  assert.match(plain, /Saved locally: .*kickoff\/needs\.json/);
+  assert.match(plain, /Saved locally: .*kickoff[\\/]needs\.json/);
   assert.ok(!plain.includes('\u001b'));
   assert.throws(() => run(sb, '--plain'), /usage: kickoff --plan-file/);
 });

@@ -10,6 +10,7 @@ import crypto from 'node:crypto';
 import { createClient } from '../scripts/lib/github.mjs';
 import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan, latestVersion, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
 import { mockFetch } from './helpers.mjs';
+import { relPosix } from './build-helpers.mjs';
 
 const NOW = Date.parse('2026-11-25T12:00:00Z');
 const gitSha = (text) => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
@@ -35,8 +36,8 @@ function snapshot(sb) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (p === sb.dataDir) continue;
-      if (e.isDirectory()) { out[`${path.relative(sb.root, p)}/`] = 'dir'; walk(p); }
-      else out[path.relative(sb.root, p)] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+      if (e.isDirectory()) { out[`${relPosix(sb.root, p)}/`] = 'dir'; walk(p); }
+      else out[relPosix(sb.root, p)] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
     }
   };
   walk(sb.root);
@@ -213,7 +214,7 @@ for (const [label, repo, opts] of [['skill', 'o/skill-pack', { part: 'pdf' }], [
     const res = await confirmInstall({ ...ctx(), id: plan.id });
     assert.equal(res.ok, true, res.reason);
     const after = snapshot(sb);
-    const allowed = new Set([...plan.body.writes.map((w) => path.relative(sb.root, w.path)), ...plan.body.settings.map((s) => path.relative(sb.root, s.file)), ...(plan.body.managed || []).map((m) => path.relative(sb.root, m))]);
+    const allowed = new Set([...plan.body.writes.map((w) => relPosix(sb.root, w.path)), ...plan.body.settings.map((s) => relPosix(sb.root, s.file)), ...(plan.body.managed || []).map((m) => relPosix(sb.root, m))]);
     for (const p of changed(before, after)) assert.ok([...allowed].some((a) => p === a || p === `${a}/` || p.startsWith(`${a}/`) || `${a}/`.startsWith(p)), `touched outside the plan: ${p}`);
     assert.ok(changed(before, after).length > 0);
     assert.equal(listInstalled(sb.dataDir).length, 1);

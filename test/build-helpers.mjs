@@ -13,13 +13,15 @@ export function sandbox() {
   fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ theme: 'dark' }, null, 2));
   return { root, home, cwd, dataDir };
 }
+/** A path relative to root, always with forward slashes (a Windows backslash must not look like a different path). */
+export const relPosix = (root, p, pathApi = path) => pathApi.relative(root, p).split(pathApi.sep).join('/');
 export function snapshot(sb) {
   const out = {};
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (p === sb.dataDir) continue;
-      if (e.isDirectory()) { out[`${path.relative(sb.root, p)}/`] = 'dir'; walk(p); } else out[path.relative(sb.root, p)] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+      if (e.isDirectory()) { out[`${relPosix(sb.root, p)}/`] = 'dir'; walk(p); } else out[relPosix(sb.root, p)] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
     }
   };
   walk(sb.root);

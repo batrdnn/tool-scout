@@ -8,7 +8,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { makeBuildPlan, confirmBuild } from '../scripts/lib/builder.mjs';
 import { undoInstall, listInstalled } from '../scripts/lib/installer.mjs';
-import { sandbox, snapshot, changed, draft, SKILL, ctx } from './build-helpers.mjs';
+import { sandbox, snapshot, changed, draft, SKILL, ctx, relPosix } from './build-helpers.mjs';
 import { fileURLToPath } from 'node:url';
 
 const DRAFTS = {
@@ -47,7 +47,7 @@ for (const form of Object.keys(DRAFTS)) {
         if (setup === 'lived-in') lived(sb);
         const before = snapshot(sb);
         const { p, name } = await build(sb, form, { scope });
-        const allowed = [...p.body.writes.map((w) => w.path), p.body.memory?.file, p.body.hook?.file].filter(Boolean).map((x) => path.relative(sb.root, x));
+        const allowed = [...p.body.writes.map((w) => w.path), p.body.memory?.file, p.body.hook?.file].filter(Boolean).map((x) => relPosix(sb.root, x));
         const touched = changed(before, snapshot(sb));
         assert.ok(touched.length);
         for (const t of touched) assert.ok(allowed.some((a) => t === a || `${a}/`.startsWith(t)), `touched outside the plan: ${t}`);

@@ -55,5 +55,5 @@ test('profile --show and stats print the data folder in use', () => {
   assert.match(run('stats'), /Data folder: .*tool-scout-tool-scout \(installed plugin\)/);
   fs.rmSync(dir, { recursive: true });
   assert.match(run('stats'), /Data folder: .*\.tool-scout \(default\)/);
-  assert.match(run('stats', '--data', path.join(home, 'd')), /Data folder: .*\/d \(--data\)/);
+  assert.match(run('stats', '--data', path.join(home, 'd')), /Data folder: .*[\\/]d \(--data\)/);
 });
