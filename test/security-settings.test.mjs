@@ -65,3 +65,30 @@ test('undo after the user edited the same file keeps their edit', async () => {
   await undoInstall({ name: 'srv', dataDir: s.sb.dataDir, run: s.claude.run });
   assert.deepEqual(JSON.parse(fs.readFileSync(cj, 'utf8')), { numStartups: 3, theme: 'light' });
 });
+
+test('a huge settings file (20 MB) is handled: undo restores the key and keeps everything else', async () => {
+  const sb = sandbox();
+  const { settings, cj } = logged(sb);
+  const big = { theme: 'dark', enabledPlugins: { 'guard@o-tools': true }, history: Array.from({ length: 200000 }, (_, i) => `entry-${i}-${'x'.repeat(80)}`) };
+  fs.writeFileSync(settings, JSON.stringify(big, null, 2));
+  fs.writeFileSync(cj, JSON.stringify({ declinedPlugins: ['old@x'] }, null, 2));
+  assert.ok(fs.statSync(settings).size > 20e6);
+  await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
+  const after = JSON.parse(fs.readFileSync(settings, 'utf8'));
+  assert.equal(after.enabledPlugins['guard@o-tools'], false);
+  assert.equal(after.history.length, 200000);
+});
+
+// Medium M8 in docs/security-review.md (documented, not fixed in 0.12.0).
+test('a concurrent edit by Claude Code during undo is not lost', { todo: 'M8: read-modify-write; the rename keeps files whole but can drop an edit made in between' }, async () => {
+  const sb = sandbox();
+  const { settings } = logged(sb);
+  fs.writeFileSync(settings, JSON.stringify({ enabledPlugins: { 'guard@o-tools': true } }, null, 2));
+  const write = fs.writeFileSync;
+  fs.writeFileSync = (f, ...a) => { // Claude Code writes the file between Tool Scout's read and its rename
+    if (String(f).endsWith('.tmp')) { fs.writeFileSync = write; write(settings, JSON.stringify({ enabledPlugins: { 'guard@o-tools': true }, model: 'opus' })); }
+    return write(f, ...a);
+  };
+  try { await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run }); } finally { fs.writeFileSync = write; }
+  assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).model, 'opus');
+});

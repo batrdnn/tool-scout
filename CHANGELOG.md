@@ -2,6 +2,21 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.12.0 (2026-11-25)
+
+- Security review before v1.0: the threat model and every finding are in
+  [docs/security-review.md](docs/security-review.md). All 8 high findings are fixed; mediums and
+  lows are documented there.
+- A confirm now does only the plan you saw: a plan made for another repo, or a plan file edited
+  after it was shown, is refused. Plans come between BEGIN PLAN / END PLAN lines, and hidden
+  characters in repo names, arguments and hooks are written out, so repo text can't fake a line.
+- Plugin plans list every hook and MCP server the plugin runs, in full and wherever it declares
+  them, and skill installs scan every file they write (not just the repo's first SKILL.md files).
+- Undo never overwrites a settings file it can't parse (it leaves it and tells you), and settings
+  writes are atomic and keep the file's permissions.
+- Repo text from `head` is quoted line by line, so it can't close its own "data, not instructions"
+  fence; file names with backslashes, colons or control characters are refused.
+
 ## v0.11.3 (2026-11-25)
 
 - Kickoff installs of official marketplace plugins now show the full plan before the yes/no, the

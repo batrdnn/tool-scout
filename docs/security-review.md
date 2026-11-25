@@ -62,7 +62,7 @@ once fixed). No critical was found.
 - **M5 Scanner evasion.** Injection phrasing split by a soft hyphen or spelled with look-alike or full-width letters is not flagged (zero-width splits are, at medium). Display now writes such characters out, but the scan doesn't normalize. Recommend NFKC plus confusable folding before the phrase rules. Todo test in security-scan.
 - **M6 Data folder permissions.** The data folder and its files (profile, plans with local paths, install log, backups) are created with the default umask (0755/0644), so other local accounts can read them if the folder is outside the home folder (`--data`). The kickoff needs file is already 0600. Recommend 0700/0600 throughout. Todo test in security-privacy.
 - **M7 Repo descriptions unfenced in plain output.** `check --plain` and plain recommendations print the repo description as a line; skills say to treat it as data, and scout reads JSON, but it is not fenced. Recommend quoting it like `head`.
-- **M8 Concurrent edits.** Settings writes are read-modify-write: a Claude Code write to `~/.claude.json` in between can be lost (atomic rename prevents torn files, not lost updates). Recommend re-reading right before the rename and retrying on change.
+- **M8 Concurrent edits.** Settings writes are read-modify-write: a Claude Code write to `~/.claude.json` in between can be lost (atomic rename prevents torn files, not lost updates). Recommend re-reading right before the rename and retrying on change. Todo test in security-settings (it simulates Claude Code writing the file between Tool Scout's read and its rename).
 - **M9 Consent is enforced by the skill text.** The CLI binds a confirm to a plan ID, a repo, a pinned commit, the exact plan body and 15 minutes, and a hook needs a second confirm, but it cannot tell a human yes from the agent's. A prompt injection that convinces Claude could still run `--confirm`. The fences and visible characters (H4, H5) cut the known paths; no code fix closes it entirely.
 
 ### Low
@@ -78,8 +78,8 @@ once fixed). No critical was found.
 
 - Paths: `../`, `./`, empty segments, absolute paths, `..` as a skill name, non-ASCII look-alike names, symlinks and submodules (skipped), a 300-character name (write fails, full rollback), case and NFC/NFD collisions (both files land or nothing does), a destination that appears between plan and confirm (never overwritten).
 - Commands: option injection through the server name, stdio servers always after `--`, env and header values never kept or written, shell characters even quoted, shells/downloaders/`env`/`sudo` as the server, unknown options, marketplace and plugin names with shell or path characters.
-- Plan IDs: expiry (one second late), forged IDs and paths, a repo pushed between plan and confirm (the pinned files are written), replay of a used plan.
-- Settings: the user's other keys and later edits survive undo.
+- Plan IDs: expiry (one second late), forged IDs and paths, replay of a used plan, a skill or MCP repo pushed between plan and confirm (every read is pinned to the planned commit, so the pinned files are written). For plugins, the TOCTOU window is only partly closed: see M4.
+- Settings: the user's other keys and later edits survive undo; a 20 MB settings file is handled (the key restored, everything else kept). Concurrent edits are M8.
 - Privacy: a full CLI run (scout all, check, install plan/confirm, build start/plan/confirm, kickoff, undo) with every request captured: no project name, prompt, kickoff plan text, local path, username or plan ID in any URL, header or body; only GETs; the token only in `Authorization` to api.github.com, never printed or written; README example secret values never on disk.
 
 ## 4. Red team
