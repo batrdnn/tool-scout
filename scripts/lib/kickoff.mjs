@@ -137,7 +137,7 @@ function validate(n) {
 }
 
 /** The profile one need stands for: only its topic, its plan words and its libraries. */
-function needProfile(need, installed) {
+export function needProfile(need, installed) {
   const w = Math.max(1, need.lines.length) * 10;
   return {
     sessions: 10, windowDays: 30, topics: { [need.topic]: w }, topicWeights: { [need.topic]: w },
@@ -147,7 +147,7 @@ function needProfile(need, installed) {
   };
 }
 
-const goodEnough = (rec, repo, topic) => {
+export const goodEnough = (rec, repo, topic) => {
   if (rec.stackEvidence?.length) return true;
   const ev = repoTopicEvidence(repo)[topic];
   return !!ev && ev.inHead && ev.strength >= GOOD_STRENGTH;
@@ -171,7 +171,7 @@ const doubtsOf = (rec, heavy) => [...(heavy ? [`heavy setup: ${heavy}`] : []), .
 // Docs work Claude does directly (polish a README, write a FAQ or API docs) unless the plan wants a
 // repeatable docs workflow: something automated, generated or kept up to date.
 const REPEATABLE_DOCS = /\b(?:automat\w*|generat\w*|every (?:release|commit|merge|push|pr)|each (?:release|commit|merge)|on every|up to date|in sync|pipeline|workflow|repeatabl\w*|recurring)\b/i;
-const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
+export const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
 
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
 export async function buildToolkit(n, catalog, { home, project = null, dataDir, now = Date.now(), platform = process.platform, scan = null, official = null } = {}) {

@@ -18,6 +18,8 @@
 //   scout.mjs rate <owner/repo> useful|not|clear   was a shown pick useful? (local ratings.json)
 //   scout.mjs stats [--share]                  share of rated picks that were useful; --share prints
 //                                              the only text a tester is asked to share
+//   scout.mjs me --blind-spot [--json] [--offline]   one line: the best tool for the topic of your animal's blind spot
+//                                              (local matching; the only request is the content scan of the one matched repo)
 //   scout.mjs head <owner/repo> [--part NAME]  first lines of the SKILL.md(s) a close call rests on, as fenced data
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
 //   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] [--replace] --plan   writes nothing: prints the plan and its ID
@@ -59,6 +61,9 @@ import { auditLocal, formatAudit } from './audit.mjs';
 import { resolveDataDir, keepDataDirPrivate, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
 import { whoAmI, formatMe, meCard } from './me.mjs';
+import { findBlindSpotTool } from './blindspot.mjs';
+import { loadOfficial } from './kickoff-sources.mjs';
+import { scanRecommendations } from './scan.mjs';
 import { formatProfile, formatAll } from './output.mjs';
 import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettyStats } from './pretty.mjs';
 import { detectStyle, painter } from './term.mjs';
@@ -231,6 +236,16 @@ async function main() {
       let p = readJSON('profile.json');
       if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
       const r = whoAmI(p);
+      if (opts['blind-spot']) { // local lookup: the catalog on disk, the cached official list, and the content scan of the one matched repo
+        const cat = loadCatalog(dataDir);
+        if (r.blindTopic && !Object.keys(cat.repos || {}).length) log('the local catalog is empty: run /tool-scout:scout once to fetch it');
+        const client = opts.offline ? null : createClient({ token: githubToken(), log });
+        const scan = client ? (recs) => scanRecommendations(recs, cat, { client, dataDir, log }).catch((e) => log(`trust scan skipped: ${e.message}`)) : null;
+        const official = await loadOfficial({ client: null, dataDir, log }); // cache only: no marketplace request from here
+        const tool = await findBlindSpotTool(r, p, cat, { home, dataDir, official, scan });
+        console.log(opts.json ? JSON.stringify({ animal: r.animal, blindSpotTool: tool }, null, 2) : tool.line);
+        break;
+      }
       const card = typeof opts.card === 'string' ? path.resolve(opts.card) : opts.card ? path.resolve('tool-scout-me.svg') : null; // no path: ./tool-scout-me.svg
       if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); if (opts.open) openFile(card); } // --open: show the full-color card
       if (opts.json) console.log(JSON.stringify(card ? { ...r, card } : r, null, 2));

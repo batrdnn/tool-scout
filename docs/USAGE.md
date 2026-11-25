@@ -33,6 +33,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `include-project <name\|path> \| --all` | undo |
 | `rate <owner/repo> useful\|not\|clear` | was a shown pick useful? (local `ratings.json`) |
 | `me [--json] [--card [out.svg]] [--open]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG, `--open` then opens it; see [Your Claude Code animal](#your-claude-code-animal) |
+| `me --blind-spot [--json] [--offline]` | one line: the best tool for the topic of your animal's blind spot (local matching; the only request is the content scan of the one matched repo); see [The blind-spot tool](#your-claude-code-animal) |
 | `stats [--share] [--json]` | share of rated picks that were useful, and the data folder; `--share` prints the only text a tester is asked to share |
 
 Options:
@@ -284,6 +285,16 @@ text and on the card), next to "come back after 10 sessions".
 | **Turtle** | `git` |
 
 The Egg has no blind-spot tool: it keeps "come back after 10 sessions".
+
+**The blind-spot tool.** `me --blind-spot` prints one line, "Your blind spot (<topic>): <tool>
+(<why, in one line>)", with the single best tool for that topic. It ranks the local catalog as if the
+history held only that topic plus your stack (the same `recommend` the scout and kickoff use,
+unchanged), applies the content scan, and prefers Anthropic's official plugins and built-in features
+(`security-guidance` and `/security-review` for security, `/simplify` for refactoring). A repo the
+scan flags, a heavy setup or a dismissed repo is never offered. If nothing is good enough, the line
+says "nothing needed: Claude covers this directly". It never installs anything: the
+`/tool-scout:me` skill offers to look at the tool through `/tool-scout:check`, then "Install it"
+with the usual plan and one yes/no. `--json` adds the `check` and `next` commands.
 
 **What it shows:** the animal's ASCII art, its title, the time window ("Your last 30 days: N
 sessions across M projects"), up to 3 evidence lines, a
