@@ -1,0 +1,14 @@
+Checked 6 personal skills, 3 installed plugins, 2 MCP server commands and 2 hooks.
+Flags: 1 high, 1 medium, 4 low (low ones are not listed).
+
+skill evil  (~/.claude/skills/evil)
+  ⚑ HIGH prompt-injection: text tries to override the agent (SKILL.md:3)
+
+hook PreToolUse [Glob|Grep]  (user settings)
+  ⚑ MEDIUM network-call: sends data to a host (hooks/pre.sh:12)
+
+Hooks (event [matcher], where; commands are not shown):
+  PreToolUse [Glob|Grep]  user settings, runs hooks/pre.sh  ⚑ 1 flag
+  Stop  project settings (prompt hook)  no medium/high flags
+
+No network was used: everything was read from local files. No flags does not mean safe.

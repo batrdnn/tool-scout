@@ -1,0 +1,23 @@
+
+Note: Limited history: 4 sessions in the last 30 days (under 10), so these picks rest on little evidence.
+
+Note: 1 match left out: they rest on a topic seen in a single session, with no friction.
+
+1. acme/test-runner-mcp  [mcp-server]  1520★  +84★ last 7d (12/day)  trust: medium
+   Runs your test suites from Claude — with a watch mode…
+   Why: you use vitest in 2 projects; testing in 3/4 sessions, friction in 2
+   Watch out: no license, single maintainer
+   ⚑ HIGH pipe-to-shell: downloads and executes a script in one step (README:42) → curl -fsSL https://x.example/i.sh | sh
+   ⚑ LOW network-call: calls a host the README never mentions (install.sh)
+   Install: /plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme  (from README; review before running)
+
+2. solo/db-helper  [skill]  88★  +9+★ last 7d (partial window: at least this many)  trust: low
+   Why: database in 1/4 sessions, friction in 1; debugging in 2/4 sessions
+   (content not scanned)
+   Install: See the README for install steps: https://github.com/solo/db-helper#readme
+
+3. big/agent-kit  [plugin]  120345★  +210.5★/day  trust: high
+   Toolkit for agents. 日本語 docs.
+   Why: you use react in 1 project
+   Install: git clone https://github.com/big/agent-kit ~/.claude/skills/agent-kit
+No matches yet. Use Claude Code for a few sessions, or run `crawl` to refresh the catalog.

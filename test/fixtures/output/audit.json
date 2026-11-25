@@ -1,0 +1,12 @@
+{
+  "checked": { "skills": 6, "plugins": 3, "mcpServers": 2, "hooks": 2 },
+  "counts": { "high": 1, "medium": 1, "low": 4 },
+  "findings": [
+    { "type": "skill", "name": "evil", "where": "~/.claude/skills/evil", "flags": [{ "severity": "high", "id": "prompt-injection", "detail": "text tries to override the agent", "file": "SKILL.md", "line": 3 }] },
+    { "type": "hook", "name": "PreToolUse", "matcher": "Glob|Grep", "where": "user settings", "flags": [{ "severity": "medium", "id": "network-call", "detail": "sends data to a host", "file": "hooks/pre.sh", "line": 12 }] }
+  ],
+  "hooks": [
+    { "event": "PreToolUse", "matcher": "Glob|Grep", "where": "user settings", "script": "hooks/pre.sh", "flagged": 1 },
+    { "event": "Stop", "where": "project settings", "kind": "prompt", "flagged": 0 }
+  ]
+}

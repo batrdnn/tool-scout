@@ -1,0 +1,18 @@
++- Your Claude Code animal ----------------------------------------------------+
+|     .-"""-.        BEAVER                                                    |
+|    / o   o \       The Builder                                               |
+|   |   ===   |                                                                |
+|    \  |_|  /___    Your last 30 days: 16 sessions across 1 project           |
+|     `-----'|###|                                                             |
+|      /   \  `--'                                                             |
++------------------------------------------------------------------------------+
+
+-- Evidence --------------------------------------------------------------------
+  * Edits: 18 of 49 tool calls (37%)
+  * Most edited language: TypeScript (15 edits)
+
+  Superpower  You turn ideas into files fast and ship.
+  Blind spot  Building before reading: a quick look at the existing code and
+              tests can save a rebuild.
+
+Tools that fit a Beaver: run /tool-scout:scout

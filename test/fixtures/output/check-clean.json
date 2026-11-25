@@ -1,0 +1,8 @@
+{
+  "name": "big/agent-kit", "kind": "plugin", "url": "https://github.com/big/agent-kit",
+  "verdict": "safe-looking", "reasons": [],
+  "coverage": { "files": ["README", "skills/a/SKILL.md"], "line": "Checked 2 files: README, skills/a/SKILL.md", "notes": [] },
+  "metadata": { "tier": "high", "score": 91, "stars": 120345, "forks": 4100, "license": "MIT", "ownerType": "Organization", "createdAt": "2024-02-01T00:00:00Z", "pushedAt": "2026-11-24T00:00:00Z", "archived": false, "notes": [] },
+  "flags": [],
+  "install": { "commands": [] }
+}

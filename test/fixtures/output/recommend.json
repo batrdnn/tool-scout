@@ -1,0 +1,172 @@
+{
+  "limitedHistory": false,
+  "notes": [],
+  "recommendations": [
+    {
+      "name": "microsoft/playwright-mcp",
+      "url": "https://github.com/microsoft/playwright-mcp",
+      "kind": "mcp-server",
+      "description": "Playwright MCP server",
+      "stars": 40040,
+      "starsPerDay": 65.3,
+      "momentumSource": "estimated",
+      "starsLast7d": null,
+      "trust": {
+        "score": 100,
+        "tier": "high",
+        "notes": []
+      },
+      "score": 1.423,
+      "matchedTopics": [
+        "testing"
+      ],
+      "similar": [
+        "oss-invisible/playwright_mcp",
+        "Tthanh2k6/turbo-browser-mcp"
+      ],
+      "evidence": [
+        {
+          "topic": "testing",
+          "sessions": 16,
+          "ofSessions": 16,
+          "actions": 16,
+          "friction": 1
+        }
+      ],
+      "install": "See the README for install steps: https://github.com/microsoft/playwright-mcp#readme",
+      "installSource": "readme-link",
+      "stackEvidence": [
+        {
+          "library": "@playwright/test",
+          "projects": 1
+        }
+      ],
+      "stackNote": "you use @playwright/test in 1 project"
+    },
+    {
+      "name": "bytebase/dbhub",
+      "url": "https://github.com/bytebase/dbhub",
+      "kind": "mcp-server",
+      "description": "Token conscious database MCP server for Postgres, MySQL, SQL Server, Oracle, MariaDB, SQLite, ClickHouse.",
+      "stars": 3951,
+      "starsPerDay": 6.3,
+      "momentumSource": "estimated",
+      "starsLast7d": null,
+      "trust": {
+        "score": 100,
+        "tier": "high",
+        "notes": []
+      },
+      "score": 0.832,
+      "matchedTopics": [
+        "database"
+      ],
+      "similar": [
+        "t8y2/dbx"
+      ],
+      "evidence": [
+        {
+          "topic": "database",
+          "sessions": 16,
+          "ofSessions": 16,
+          "actions": 16,
+          "friction": 1
+        }
+      ],
+      "install": "See the README for install steps: https://github.com/bytebase/dbhub#readme",
+      "installSource": "readme-link"
+    },
+    {
+      "name": "htmlstreamofficial/preline",
+      "url": "https://github.com/htmlstreamofficial/preline",
+      "kind": "skill",
+      "description": "Preline UI is an open-source set of prebuilt UI components based on the utility-first Tailwind CSS framework.",
+      "stars": 6536,
+      "starsPerDay": 4,
+      "momentumSource": "estimated",
+      "starsLast7d": null,
+      "trust": {
+        "score": 85,
+        "tier": "high",
+        "notes": [
+          "no license"
+        ]
+      },
+      "score": 0.784,
+      "matchedTopics": [
+        "frontend"
+      ],
+      "evidence": [
+        {
+          "topic": "frontend",
+          "sessions": 16,
+          "ofSessions": 16,
+          "actions": 16,
+          "friction": 1
+        }
+      ],
+      "install": "See the README for install steps: https://github.com/htmlstreamofficial/preline#readme",
+      "installSource": "readme-link"
+    },
+    {
+      "name": "AhmadHassan-BTed/Jantt",
+      "url": "https://github.com/AhmadHassan-BTed/Jantt",
+      "kind": "mcp-server",
+      "description": "Create interactive Gantt charts with AI — no code required, free forever. Built-in BYOK AI Copilot (10 providers + Ollama), free cloud rooms, working-calendar CPM, 6 views, React/Vue/Svelte/Python/MCP.",
+      "stars": 6239,
+      "starsPerDay": 70.3,
+      "momentumSource": "estimated",
+      "starsLast7d": null,
+      "trust": {
+        "score": 85,
+        "tier": "high",
+        "notes": []
+      },
+      "score": 0.669,
+      "matchedTopics": [
+        "frontend"
+      ],
+      "evidence": [
+        {
+          "topic": "frontend",
+          "sessions": 16,
+          "ofSessions": 16,
+          "actions": 16,
+          "friction": 1
+        }
+      ],
+      "install": "See the README for install steps: https://github.com/AhmadHassan-BTed/Jantt#readme",
+      "installSource": "readme-link"
+    },
+    {
+      "name": "21st-dev/magic-mcp",
+      "url": "https://github.com/21st-dev/magic-mcp",
+      "kind": "mcp-server",
+      "description": "It's like v0, but in your Cursor / Claude Code / Windsurf: search 10,000+ React/Tailwind components, generate new UI with AI, and publish your own — right from your editor. Magic MCP is now the 21st MCP; this package keeps old configs working. Setup: 21st.dev/mcp",
+      "stars": 6645,
+      "starsPerDay": 10.3,
+      "momentumSource": "estimated",
+      "starsLast7d": null,
+      "trust": {
+        "score": 90,
+        "tier": "high",
+        "notes": []
+      },
+      "score": 0.645,
+      "matchedTopics": [
+        "frontend"
+      ],
+      "evidence": [
+        {
+          "topic": "frontend",
+          "sessions": 16,
+          "ofSessions": 16,
+          "actions": 16,
+          "friction": 1
+        }
+      ],
+      "install": "See the README for install steps: https://github.com/21st-dev/magic-mcp#readme",
+      "installSource": "readme-link"
+    }
+  ]
+}

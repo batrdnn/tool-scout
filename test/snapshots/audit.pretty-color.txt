@@ -1,0 +1,24 @@
+[31m╭[39m[31m─[39m [1mAudit · what is installed[22m [31m──────────────────────────────────────────────────╮[39m
+[31m│[39m Checked 6 personal skills, 3 installed plugins, 2 MCP server commands and 2  [31m│[39m
+[31m│[39m hooks.                                                                       [31m│[39m
+[31m│[39m                                                                              [31m│[39m
+[31m│[39m [31m1 high[39m   [33m1 medium[39m   [2m4 low (not listed)[22m                                       [31m│[39m
+[31m╰──────────────────────────────────────────────────────────────────────────────╯[39m
+
+[2m──[22m [1mFindings[22m [2m────────────────────────────────────────────────────────────────────[22m
+
+  [2mskill[22m [1mevil[22m  [2m~/.claude/skills/evil[22m
+    [31m⚑ HIGH prompt-injection: text tries to override the agent (SKILL.md:3)[39m
+
+  [2mhook[22m [1mPreToolUse[22m [Glob|Grep]  [2muser settings[22m
+    [33m⚑ MEDIUM network-call: sends data to a host (hooks/pre.sh:12)[39m
+
+[2m──[22m [1mHooks[22m [2m───────────────────────────────────────────────────────────────────────[22m
+  [2mCommands are not shown.[22m
+
+  [2mEvent     [22m  [2mMatcher  [22m  [2mWhere           [22m  [2mRuns         [22m  [2mFlags[22m
+  [1mPreToolUse[22m  Glob|Grep  user settings     hooks/pre.sh   [31m⚑ 1[39m
+  [1mStop      [22m             project settings  (prompt hook)  [2mnone[22m
+
+[2mNo network was used: everything was read from local files. No flags does not[22m
+[2mmean safe.[22m

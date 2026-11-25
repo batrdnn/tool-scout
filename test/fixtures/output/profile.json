@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-11-25T01:37:46.187Z",
+  "windowDays": 30,
+  "sessions": 16,
+  "prompts": 16,
+  "projects": 1,
+  "excludedCurrentSession": false,
+  "excludedProjects": 0,
+  "excludedProjectSessions": 0,
+  "topics": {
+    "frontend": 16,
+    "database": 16,
+    "testing": 16,
+    "git": 4,
+    "browser": 3,
+    "devops": 3,
+    "debugging": 1,
+    "design": 1,
+    "backend": 1
+  },
+  "topicSources": {
+    "actions": {
+      "frontend": 16,
+      "database": 16,
+      "testing": 16,
+      "git": 4,
+      "browser": 3,
+      "devops": 3
+    },
+    "mentions": {
+      "database": 4,
+      "testing": 4,
+      "frontend": 3,
+      "git": 2,
+      "devops": 2,
+      "debugging": 1,
+      "design": 1,
+      "backend": 1
+    }
+  },
+  "topicWeights": {
+    "database": 17.2,
+    "testing": 17.2,
+    "frontend": 16.9,
+    "git": 4.6,
+    "devops": 3.6,
+    "browser": 3,
+    "debugging": 0.3,
+    "design": 0.3,
+    "backend": 0.3
+  },
+  "friction": {
+    "frontend": 1,
+    "debugging": 1,
+    "testing": 1,
+    "database": 1,
+    "devops": 1
+  },
+  "toolKeywords": {
+    "playwright": 3,
+    "github": 3,
+    "git": 3,
+    "prisma": 2,
+    "postgres": 2,
+    "vercel": 2,
+    "vitest": 2,
+    "react": 1,
+    "tailwind": 1,
+    "next.js": 1,
+    "error": 1,
+    "pull request": 1,
+    "figma": 1,
+    "mockup": 1,
+    "merge conflict": 1,
+    "commit": 1,
+    "shadcn": 1,
+    "supabase": 1
+  },
+  "languages": {
+    "TypeScript": 15
+  },
+  "tools": {
+    "Bash": 31,
+    "Edit": 18
+  },
+  "repeatedCommands": [
+    {
+      "command": "npm run",
+      "count": 7,
+      "sessions": 6
+    },
+    {
+      "command": "playwright test",
+      "count": 4,
+      "sessions": 3
+    }
+  ],
+  "installed": {
+    "names": [
+      "@modelcontextprotocol/server-github",
+      "github",
+      "npx"
+    ],
+    "repos": []
+  },
+  "stack": {
+    "next": 1,
+    "react": 1,
+    "react-dom": 1,
+    "@prisma/client": 1,
+    "@supabase/supabase-js": 1,
+    "stripe": 1,
+    "tailwindcss": 1,
+    "prisma": 1,
+    "@playwright/test": 1,
+    "vitest": 1,
+    "typescript": 1,
+    "eslint": 1
+  }
+}
