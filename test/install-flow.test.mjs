@@ -311,7 +311,7 @@ test('a blob whose content does not match its git hash is never written', async 
   const before = snapshot(sb);
   const res = await confirmInstall({ ...ctx(), id: plan.id });
   assert.equal(res.ok, false);
-  assert.match(res.reason, /does not match its git hash/);
+  assert.match(res.reason, /does not match its git hash|changed since the plan/); // the re-plan's scan reads the blobs first
   assert.deepEqual(changed(before, snapshot(sb)), [], 'the partial install was rolled back');
 });
 

@@ -17,6 +17,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { checkRepo } from './check.mjs';
+import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
 import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
@@ -252,6 +253,34 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
 
 const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every time)'}: ${h.type === 'command' ? `runs ${h.runs}` : h.type === 'prompt' || h.type === 'agent' ? `asks the model "${h.runs}"` : h.type === 'http' ? `sends the event to ${h.runs}` : `${h.type} ${h.runs}`}`;
 
+// ---- a skill's files, scanned as they will be written ------------------------------------------------
+
+const BINARY = /\.(?:png|jpe?g|gif|webp|ico|bmp|pdf|zip|gz|tgz|woff2?|ttf|otf|mp[34]|wav|ogg)$/i;
+const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
+
+/**
+ * The repo check reads at most three SKILL.md files and none over 300 KB; Claude reads every text file
+ * a skill installs. So the plan fetches each one at the pinned commit and scans it: a high flag, or a
+ * text file the scanner can't decode (UTF-16, NUL bytes), blocks the plan.
+ */
+async function scanWrites({ client, api, writes, dir, blockers, notes, extra }) {
+  const flags = []; let binary = 0;
+  for (const w of writes) {
+    if (BINARY.test(w.rel)) { binary++; continue; }
+    const r = await client.request(`${api}/git/blobs/${w.blob}`);
+    const buf = r.data?.encoding === 'base64' ? Buffer.from(r.data.content, 'base64') : null;
+    if (!buf || gitBlobSha(buf) !== w.blob) { blockers.push(`${w.rel} could not be read at the pinned commit`); continue; }
+    let text = null;
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
+    if (text == null || text.includes('\u0000')) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
+    flags.push(...scanText(text, { file: `${dir}${w.rel}`, role: SCRIPT.test(w.rel) ? 'script' : 'skill' }));
+  }
+  const high = flags.filter((f) => f.severity === 'high');
+  if (high.length) blockers.push(`the scan of the files it writes flagged ${[...new Set(high.map((f) => f.id))].join(', ')} (${[...new Set(high.map((f) => f.file))].join(', ')})`);
+  if (binary) notes.push(`${binary} binary file${binary === 1 ? '' : 's'} (images, fonts, archives) copied without a content scan.`);
+  extra({ files: writes.length - binary, flags: flags.map(({ excerpt, ...f }) => f) });
+}
+
 // ---- the plan -----------------------------------------------------------------------------------
 
 export const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
@@ -284,7 +313,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
   const method = installMethod({ tree, readme, kind: check?.kind }) || (tree && mcp.length ? 'mcp' : null);
   if (tree && !method) blockers.push('no supported install method: no plugin marketplace, skill folder or claude mcp add command in the README');
 
-  let hooks = []; let hooksWhy = null; let pluginMcp; let replacing;
+  let hooks = []; let hooksWhy = null; let pluginMcp; let replacing; let scanned;
   let name = null; const writes = []; const commands = []; const settings = []; const managed = []; const credentials = new Set();
   for (const c of check?.effort?.needs?.credentials || []) if (/^[A-Z][A-Z0-9_]+$/.test(c)) credentials.add(c);
   if (check?.effort?.needs?.credentials?.includes('OAuth')) notes.push('It may ask you to sign in (OAuth) the first time it runs.');
@@ -318,6 +347,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       if (writes.length > MAX_FILES) blockers.push(`${writes.length} files: more than ${MAX_FILES}`);
       if (writes.reduce((a, w) => a + w.size, 0) > MAX_BYTES) blockers.push('more than 5 MB');
       if (writes.some((w) => w.mode === '100755')) notes.push('Some files are marked executable. They are copied, never run.');
+      if (!blockers.length) await scanWrites({ client, api, writes, dir, blockers, notes, extra: (scan) => { scanned = scan; } });
     }
   } else if (method === 'plugin') {
     let mk = null;
@@ -380,7 +410,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
     v: 1, repo: full, sha: pinned, method, name, part, scope,
     check: check ? { verdict: check.verdict, reasons: check.reasons, line: check.coverage.line, notes: check.coverage.notes, license: check.metadata.license || null, flags: check.flags.map((f) => ({ severity: f.severity, id: f.id, file: f.file, line: f.line ?? null })) } : null,
     writes, commands, settings, managed, credentials: [...credentials].sort(), notes, blockers,
-    hooks, ...(hooksWhy ? { hooksWhy } : {}), ...(pluginMcp?.length ? { pluginMcp } : {}),
+    ...(scanned ? { scanned } : {}), hooks, ...(hooksWhy ? { hooksWhy } : {}), ...(pluginMcp?.length ? { pluginMcp } : {}),
     ...(replace ? { replace: replacing && !replacing.error ? replacing : null } : {}),
   };
   const id = sha256(JSON.stringify(body)).slice(0, 12);
@@ -413,6 +443,10 @@ export function formatPlan(rec, { home = '' } = {}) {
     for (const n of b.check.notes) out.push(`           ${n}`);
     for (const f of b.check.flags.filter((x) => x.severity !== 'low')) out.push(`           ⚑ ${f.severity.toUpperCase()} ${f.id} (${f.file}${f.line ? `:${f.line}` : ''})`);
     out.push(`License:   ${b.check.license || NO_LICENSE}`);
+  }
+  if (b.scanned) {
+    out.push(`Scanned:   all ${b.scanned.files} file${b.scanned.files === 1 ? '' : 's'} it writes${b.scanned.files < b.writes.length ? ' (but the binary ones)' : ''}`);
+    for (const f of b.scanned.flags.filter((x) => x.severity !== 'low')) out.push(`           ⚑ ${f.severity.toUpperCase()} ${f.id} (${f.file}${f.line ? `:${f.line}` : ''})`);
   }
   out.push(`Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`);
   for (const w of b.writes) out.push(`           ${t(w.path)}`);
