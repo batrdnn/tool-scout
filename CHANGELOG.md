@@ -2,6 +2,19 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.8.1 (2026-11-25)
+
+- Collections (3+ skills, agents, MCP servers or plugins) are judged per part: "collection of 20
+  skills", the typical part and the largest, never the total. The advice points to the part that
+  fits your topics when one does.
+- Credentials: only secret-looking names count (not settings like `…_MAX_…_PER_TOKEN`, passwords or
+  keys shipped with a working default). APIs are named only when known; otherwise "needs N
+  credentials".
+- Thin wrappers around one big library, and official vendor repos, lean to Install.
+- Close calls (instructions-only and small repos) are Claude's: the script flags "Judgment needed",
+  Claude reads the head of the SKILL.md (`scout.mjs head`) and decides Build your own or Install.
+- New 20-repo review with Claude's decisions in `docs/eval/effort-review.md`. Ranking is unchanged.
+
 ## v0.8.0 (2026-11-25)
 
 - Build-or-install advice for each pick and for `check`: what the repo is (instructions-only
