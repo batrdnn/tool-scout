@@ -2,6 +2,17 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.7.0 (2026-11-25)
+
+- Run in a terminal, output has colors, boxes, dividers and aligned columns (`all`, `recommend`,
+  `profile`, `me`, `check`, `audit`, `stats`). Pipes, files, `--json` and Claude Code get the plain
+  text, unchanged. `--plain` forces it; `NO_COLOR` turns colors off; ASCII without a UTF-8 locale.
+- Skills always run the script with `--json` or `--plain`, so Claude never sees escape codes.
+- After the picks, Claude asks a multiple-choice question per pick: show install steps, check it
+  first, rate useful / not, or not interested. `/tool-scout:me` offers "See recommendations" and
+  "Save my card". Nothing is installed.
+- README "In a terminal" section with a screenshot (`npm run screenshot`). Ranking is unchanged.
+
 ## v0.6.1 (2026-11-24)
 
 - `/tool-scout:me`: evidence lines must support the animal (no zero values, the 3 strongest).
