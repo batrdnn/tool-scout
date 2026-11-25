@@ -2,6 +2,21 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.9.1 (2026-11-25)
+
+- When Tool Scout can install a pick itself (a skill folder, a plugin marketplace, a README
+  `claude mcp add`), check and scout say "Tool Scout can install this for you (you'll see a plan
+  first)" and offer "Install it", never "no install command".
+- An outdated plugin: the skills say to run `claude plugin update tool-scout@tool-scout` and
+  restart, never to use a working copy of the repo; the CLI says so for an unknown command.
+- MCP servers not from a known vendor: npx/uvx packages are pinned to their current version in the
+  plan (`@latest` becomes `@1.2.3`), with the reason.
+- Plugin plans list each hook (event, matcher, what it runs), shown next to the yes/no question.
+- Plans warn "No license: you have no formal permission to use or copy this."
+- Undo now puts back a setting the user had for the same key (a plugin they had disabled); tested
+  with marketplaces and settings that existed before the install.
+- `npm test` prints only failures and a one-line summary; `npm run test:verbose` prints everything.
+
 ## v0.9.0 (2026-11-25)
 
 - Install with consent: `install owner/repo --plan` writes nothing and shows the exact files,
