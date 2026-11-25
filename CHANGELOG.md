@@ -2,6 +2,17 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.9.0 (2026-11-25)
+
+- Install with consent: `install owner/repo --plan` writes nothing and shows the exact files,
+  settings, commands, scope, pinned commit, check verdict and the credentials you set yourself.
+  `--confirm <planId>` (within 15 minutes) does exactly that plan, and refuses on "do not install"
+  or any change. Skills are copied from the pinned commit; plugins and MCP servers go through the
+  claude CLI. Nothing from the repo is ever run, and API keys are never asked for.
+- Every install is logged; `undo <name>` removes exactly that, `installed` lists them.
+- Claude offers "Install it" per pick (plan, plain words, one yes/no question, then confirm).
+- New advice "Reference: read it, copy what you need" for specs, examples and API companions.
+
 ## v0.8.1 (2026-11-25)
 
 - Collections (3+ skills, agents, MCP servers or plugins) are judged per part: "collection of 20
