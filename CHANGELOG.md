@@ -14,6 +14,9 @@ One short entry per release. Details, numbers and commits are in [docs/reports](
   ranked down and labeled "heavy setup".
 - The CLAUDE.md note holds only conventions not already in CLAUDE.md (none is offered when all are
   covered), and an item with doubts gets "Skip (recommended)" first in its yes/no.
+- Polishing docs or writing a post is "nothing needed" unless the plan asks for a repeatable docs
+  workflow. Saved needs files have a format version: `--rematch` on an older one derives the needs
+  again from the saved plan text and says so. The README and USAGE describe all of this.
 
 ## v0.11.0 (2026-11-25)
 
