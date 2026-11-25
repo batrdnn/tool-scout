@@ -37,6 +37,24 @@ const HEAVY_WEIGHT = 0.6; // a heavy setup ranks below a light one of the same i
 const ACTION_WEIGHT = { install: 1, builtin: 0.9, build: 0.9, nothing: 0.4 };
 const FORM_OF = { hook: 'hook', subagent: 'subagent', 'slash command': 'command', 'CLAUDE.md note': 'memory', skill: 'skill', 'skill with a script': 'skill' };
 
+const FILLER = new Set('a an the to of for in on at and or with without when is are be it its that this every each always never must should dont do not prefer avoid only use keep write add one two by as from into all any more most per than then so'.split(' '));
+const COVERED_SHARE = 0.6; // of a convention's words found in one paragraph of CLAUDE.md
+const words = (t) => [...new Set(String(t).toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).filter((w) => w && !FILLER.has(w)).map((w) => w.replace(/(?:ing|ed|es|s)$/, '')))].filter(Boolean);
+
+/** The conventions the project's CLAUDE.md doesn't already say: a convention is covered when most of its words are in one paragraph. */
+export function uncoveredConventions(conventions, claudeText) {
+  const paras = String(claudeText || '').split(/\n\s*\n/).map((p) => new Set(words(p)));
+  return conventions.filter((c) => {
+    const w = words(c);
+    return !w.length || !paras.some((p) => w.filter((x) => p.has(x)).length / w.length >= COVERED_SHARE);
+  });
+}
+
+function claudeMdOf(project) {
+  if (!project) return '';
+  return ['CLAUDE.md', path.join('.claude', 'CLAUDE.md')].map((f) => { try { return fs.readFileSync(path.join(project, f), 'utf8'); } catch { return ''; } }).join('\n\n');
+}
+
 export const needsPath = (dataDir) => path.join(dataDir, 'kickoff', 'needs.json');
 const scratchPath = (dataDir) => path.join(dataDir, 'kickoff', 'plan.md');
 const clip = (s, n = 70) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
@@ -217,15 +235,18 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
     items.push({ topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[item.action] * (item.heavy ? HEAVY_WEIGHT : 1)).toFixed(2)), ...item });
   }
   items.sort((a, b) => b.impact - a.impact);
-  const kept = items.slice(0, MAX_ITEMS - 1);
-  const c = n.conventions || [];
-  const memory = { topic: 'conventions', action: 'memory', form: 'memory', name: `${name}-conventions`, scope: 'project', conventions: c,
+  const all = n.conventions || [];
+  const c = uncoveredConventions(all, claudeMdOf(project));
+  const covered = all.length > 0 && c.length === 0;
+  const kept = items.slice(0, covered ? MAX_ITEMS : MAX_ITEMS - 1);
+  const memory = covered ? null : { topic: 'conventions', action: 'memory', form: 'memory', name: `${name}-conventions`, scope: 'project', conventions: c,
     impact: c.length + 1, next: `build --start --form memory --name ${name}-conventions`,
     reason: c.length
-      ? `Your plan sets ${plural(c.length, 'convention')} ("${clip(c[0], 50)}"): a CLAUDE.md note keeps them in front of Claude in every session.`
+      ? `Your plan sets ${c.length < all.length ? `${c.length} of ${plural(all.length, 'convention')} that are not in your CLAUDE.md yet` : plural(c.length, 'convention')} ("${clip(c[0], 50)}"): a CLAUDE.md note keeps ${c.length === 1 ? 'it' : 'them'} in front of Claude in every session.`
       : `Your plan states no conventions; a CLAUDE.md note with its stack${libsHere.length ? ` (${libsHere.slice(0, 4).join(', ')})` : ''}${n.domain ? ` and domain (${n.domain})` : ''} still helps every session.` };
-  const out = [...kept, memory].sort((a, b) => b.impact - a.impact);
+  const out = [...kept, ...(memory ? [memory] : [])].sort((a, b) => b.impact - a.impact);
   const notes = [];
+  if (covered) notes.push(`Every convention in your plan is already in CLAUDE.md, so no CLAUDE.md note is offered.`);
   if (!Object.keys(catalog.repos || {}).length) notes.push('The local catalog is empty, so nothing could be matched: run /tool-scout:scout once (it fetches the catalog with fixed topic searches), then kickoff again.');
   // Needs that are not tool needs: listed apart (they are not among the items to set up).
   const direct = (n.direct || []).map((d) => ({ id: d.id, topic: d.label, action: 'nothing', direct: true,

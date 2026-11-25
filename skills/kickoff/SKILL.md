@@ -108,10 +108,12 @@ next. Never in bulk: never one plan, one question or one confirmation for severa
   question ("Build <name> as planned?", "Yes, build it" and "No"), and only after "Yes" run
   `… build --confirm <planId> --plain`. A hook also needs its second, separate confirmation.
 - **The CLAUDE.md note**: a memory build. Start it with the item's `next` command, write the
-  section with the plan's `conventions` (one short bullet each, in the plan's own terms) plus one
+  section with only the conventions in the item's `conventions` (the ones not already in the
+  project's CLAUDE.md; one short bullet each, in the plan's own terms) plus one
   line on the stack and domain, then plan it with `--scope project`, show the section text in plain
   words, ask one yes/no question, and only after "Yes" confirm it. If the project's CLAUDE.md
-  already has that section, plan with `--replace`.
+  already has that section, plan with `--replace`. When there is no CLAUDE.md note item, every
+  convention is already in CLAUDE.md: relay that from `notes` and offer no note.
 
 Each item gets its own yes/no, after its own plan. If an item's plan says "Blocked", explain why
 and go on to the next item. If the user says "No" to one, skip it and go on. Never pass --confirm
