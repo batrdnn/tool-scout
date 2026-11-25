@@ -324,7 +324,8 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra, re
 // ---- the plan -----------------------------------------------------------------------------------
 
 export const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
-export const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(home.length)}` : p);
+/** A path under home as ~/..., always with forward slashes (the same on every system); other paths as they are. */
+export const tilde = (p, home, sep = path.sep) => (p.startsWith(home + sep) ? `~${p.slice(home.length).split(sep).join('/')}` : p);
 
 /**
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.
