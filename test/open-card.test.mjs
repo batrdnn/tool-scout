@@ -10,10 +10,11 @@ import { openCommand, openFile } from '../scripts/lib/open.mjs';
 import { prof } from './helpers.mjs';
 import { fileURLToPath } from 'node:url';
 
-test('openCommand: open on macOS, xdg-open on Linux, nothing elsewhere', () => {
+test('openCommand: open on macOS, xdg-open on Linux, cmd.exe (start) on Windows, nothing elsewhere', () => {
   assert.equal(openCommand('darwin'), 'open');
   assert.equal(openCommand('linux'), 'xdg-open');
-  assert.equal(openCommand('win32'), null);
+  assert.equal(openCommand('win32'), 'cmd.exe');
+  assert.equal(openCommand('freebsd'), null);
 });
 
 const fakeSpawn = (log, { fail = false, throws = false } = {}) => (cmd, args, opts) => {
@@ -35,9 +36,24 @@ test('openFile launches the opener with the file path, detached, and reports it'
   assert.equal(log[1].cmd, 'xdg-open');
 });
 
+test('openFile on Windows runs `start` through cmd.exe, with the file in an environment variable, never in the command line', () => {
+  const log = [];
+  const file = 'C:\\Users\\a & b\\100%\\card.svg';
+  assert.equal(openFile(file, { platform: 'win32', spawn: fakeSpawn(log), env: { PATH: 'x' } }), true);
+  const [c] = log;
+  assert.equal(c.cmd, 'cmd.exe');
+  assert.deepEqual(c.args, ['/d', '/c', 'start "" "%SCOUT_CARD%"']);
+  assert.equal(c.opts.env.SCOUT_CARD, file);
+  assert.equal(c.opts.env.PATH, 'x');
+  assert.equal(c.opts.windowsVerbatimArguments, true);
+  assert.equal(c.opts.detached, true);
+  assert.equal(c.opts.windowsHide, true);
+  assert.ok(!c.args.join(' ').includes('card.svg'), 'the path is not parsed by cmd.exe');
+});
+
 test('openFile skips quietly: unsupported system, a missing opener (async error) or a throwing spawn', async () => {
   const log = [];
-  assert.equal(openFile('/tmp/c.svg', { platform: 'win32', spawn: fakeSpawn(log) }), false);
+  assert.equal(openFile('/tmp/c.svg', { platform: 'freebsd', spawn: fakeSpawn(log) }), false);
   assert.equal(log.length, 0);
   assert.equal(openFile('/tmp/c.svg', { platform: 'linux', spawn: fakeSpawn(log, { fail: true }) }), true);
   await new Promise((r) => setImmediate(r)); // the 'error' event must be handled, or the process would crash
