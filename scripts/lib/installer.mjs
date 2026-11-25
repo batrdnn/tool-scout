@@ -215,12 +215,17 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
   if (dir.startsWith('..')) return none("the plugin's files are not in this repo");
   const at = (rel) => path.posix.normalize(path.posix.join(dir, rel)).replace(/^\.\//, '');
   // Claude Code follows a symlink (or a submodule) git can't show us: what's behind it can't be listed.
-  const linked = (p) => tree.find((t) => (t.mode === '120000' || t.mode === '160000' || t.type === 'commit') && (p === t.path || p.startsWith(`${t.path}/`)));
+  // Paths compare as macOS's file system resolves them (case and Unicode normalization folded): Claude Code
+  // there loads Hooks/HOOKS.json for hooks/hooks.json, so the plan must list it too.
+  const fold = (p) => p.normalize('NFC').toLowerCase();
+  const byFold = new Map(blobs.map((t) => [fold(t.path), t.path]));
+  const linked = (p) => tree.find((t) => (t.mode === '120000' || t.mode === '160000' || t.type === 'commit') && (fold(p) === fold(t.path) || fold(p).startsWith(`${fold(t.path)}/`)));
   if (dir && linked(dir)) return none(`${linked(dir).path} is a symlink or submodule`);
   const read = async (p) => {
     if (linked(p)) throw new Error(`${linked(p).path} is a symlink or submodule`);
-    if (!blobs.some((t) => t.path === p)) return undefined;
-    const r = await client.request(`${api}/contents/${p.split('/').map(encodeURIComponent).join('/')}?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true });
+    const real = byFold.get(fold(p));
+    if (!real) return undefined;
+    const r = await client.request(`${api}/contents/${real.split('/').map(encodeURIComponent).join('/')}?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true });
     try { return JSON.parse(r.data); } catch { return null; }
   };
   let manifest;

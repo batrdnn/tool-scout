@@ -65,3 +65,13 @@ test('a plugin folder or hooks file that is a symlink in the tree: hooks could n
   assert.equal(p.body.hooks, null);
   assert.match(p.body.hooksWhy, /symlink/);
 });
+
+test('a hooks file or plugin folder that differs only in case (Hooks/hooks.json) is still found, as on macOS', async () => {
+  const { p, text } = await plan({}, { more: { 'guard/Hooks/HOOKS.json': JSON.stringify({ hooks: hook('case-hidden') }), 'guard/.MCP.json': JSON.stringify({ mcpServers: { q: { command: 'node', args: ['q.js'] } } }) } });
+  assert.deepEqual(p.body.blockers, []);
+  assert.match(text, /case-hidden/);
+  assert.match(text, /q: node q\.js/);
+  const s = setup({ p: { readme: '# p', topics: ['claude-code-plugin'], files: { '.claude-plugin/marketplace.json': JSON.stringify({ name: 'p-tools', plugins: [{ name: 'guard', source: './guard' }] }) },
+    extra: [{ path: 'Guard', type: 'blob', mode: '120000', sha: 'f'.repeat(40), size: 4 }] } });
+  assert.match((await makePlan({ ...s.ctx(), repo: 'o/p' })).body.hooksWhy || '', /symlink/, 'a symlink differing only in case');
+});
