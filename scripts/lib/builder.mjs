@@ -301,7 +301,7 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
   }
   out.push(`Scan:      ${b.scan.line}`);
   const shown = b.scan.flags.filter((f) => f.severity !== 'low' || ['pipe-to-shell', 'network-call'].includes(f.id));
-  out.push(shown.length ? shown.map((f) => `           ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})`).join('\n') : '           flags: none above low');
+  out.push(...(shown.length ? shown.map((f) => `           ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})`) : ['           flags: none above low']));
   if (b.source) {
     out.push(b.source.license
       ? `Source:    ${b.source.repo} (${b.source.license})${PERMISSIVE.has(b.source.license) ? ': adapting is allowed with the attribution line.' : ': its license has conditions, so the draft is in its own words.'}`
