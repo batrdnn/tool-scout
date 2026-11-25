@@ -1,0 +1,33 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # The tests are offline: they use a mock GitHub, so no token or secret is passed in.
+      - name: Tests
+        run: npm test
+      # The Claude Code CLI is installed for this step only; it is not a dependency of the project.
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate the plugin
+        run: claude plugin validate .
