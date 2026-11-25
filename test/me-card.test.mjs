@@ -154,7 +154,7 @@ test('CLI: --card with no path saves ./tool-scout-me.svg in the current folder a
 
 test('the me skill makes the card with plain --card and tells the user the printed path', () => {
   const skill = fs.readFileSync(new URL('../skills/me/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skill, /scout\.mjs" me --card --data/);
+  assert.match(skill, /scout\.mjs" me --card (--plain )?--data/); // no path after --card
   assert.match(skill, /tool-scout-me\.svg/);
   assert.match(skill, /full path/i);
 });

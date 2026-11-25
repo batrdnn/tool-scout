@@ -18,6 +18,12 @@ user's own work.
 - GitHub is queried with fixed topic searches. Nothing about the user is sent anywhere.
 - Do not read the user's session transcripts yourself. Work only from the script's output.
 
+## Running the script
+
+Always pass `--json` or `--plain` when you run the script. Run by a person in a terminal it draws
+colors and boxes, and its escape codes would show up here as garbage like `[31m`. `--plain` is the
+same text without them; `--json` is for reading results.
+
 ## Steps
 
 1. Run the scout (add `--refresh` if the user said "refresh" or the catalog is over a day old):
@@ -128,21 +134,21 @@ say it needs internet access to api.github.com, and behind a proxy to run it wit
 When the user rates picks (by number, name, 👍/👎, "useful"/"not", "yes"/"no"), record each one:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --plain --data "${CLAUDE_PLUGIN_DATA}"
 ```
 
 - Resolve numbers and names to the exact `owner/repo` you showed. Skip any pick they didn't rate.
 - Confirm in one short line. Don't ask follow-up questions about the ratings.
 - A `not` rating is not a dismissal. If they also say "never show it again", dismiss it too.
-- `… stats` prints the share of rated picks that were useful. For "share stats", run
+- `… stats --plain` prints the share of rated picks that were useful. For "share stats", run
 
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" stats --share --data "${CLAUDE_PLUGIN_DATA}"
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" stats --share --plain --data "${CLAUDE_PLUGIN_DATA}"
   ```
 
   and show its output verbatim in a code block. It's the only text a tester is asked to share
   (counts and rated repo names). Never send it anywhere yourself.
-- To correct a rating: `… rate <owner/repo> clear`, then rate again.
+- To correct a rating: `… rate <owner/repo> clear --plain`, then rate again.
 
 ## Feedback: "not interested"
 
@@ -150,7 +156,7 @@ When the user says they don't want a pick ("not interested in X", "skip X", "nev
 "dismiss X"), dismiss it so it never comes back:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --plain --data "${CLAUDE_PLUGIN_DATA}"
 ```
 
 - Resolve X to the exact `owner/repo` from the results you just showed (X may be a number like
@@ -158,7 +164,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --data "${CL
 - If X is a category ("not interested in trading tools"), dismissal is per repo: dismiss the
   shown picks in that category, list them, and say the profile itself is unchanged.
 - Confirm in one line, mention undo, and offer the next-best pick from the shortlist.
-- Undo: `… undismiss <owner/repo>` (or `undismiss --all`). List: `… dismiss` with no repo.
+- Undo: `… undismiss <owner/repo> --plain` (or `undismiss --all --plain`). List: `… dismiss --plain` with no repo.
 - `dismissedCount` in the JSON says how many repos are hidden.
 
 ## Leaving a project out
@@ -167,10 +173,10 @@ If the user wants a project left out of their profile ("ignore my tool-scout ses
 count project X", typical while developing this plugin), persist it:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" exclude-project <folder name or path> --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" exclude-project <folder name or path> --plain --data "${CLAUDE_PLUGIN_DATA}"
 ```
 
-Then re-run the scout. Undo: `… include-project <name>` (or `--all`); list: `… exclude-project`.
+Then re-run the scout. Undo: `… include-project <name> --plain` (or `--all`); list: `… exclude-project --plain`.
 For a single run only, add `--exclude-project <name>` to the scout command instead.
 `profile.excludedProjects` in the JSON says how many projects were left out.
 

@@ -9,12 +9,18 @@ A bundled script maps the user's local profile (counts only, built from their re
 sessions) to one animal. The mapping is fixed: the same profile always gives the same animal.
 Nothing leaves the machine.
 
+## Running the script
+
+Always pass `--json` or `--plain` when you run the script. Run by a person in a terminal it draws
+colors and boxes, and its escape codes would show up here as garbage like `[31m`. `--plain` is the
+same text without them; `--json` is for reading results.
+
 ## Steps
 
 1. Run:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --data "${CLAUDE_PLUGIN_DATA}"
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --plain --data "${CLAUDE_PLUGIN_DATA}"
    ```
 
 2. Show the output exactly as printed, in a `text` code block, so the ASCII art keeps its shape.
@@ -31,7 +37,7 @@ When the user asks for a card, image or something to share, add `--card`. With n
 `tool-scout-me.svg` in the current folder; if the user names a path, put it right after `--card`.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card --data "${CLAUDE_PLUGIN_DATA}"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --card --plain --data "${CLAUDE_PLUGIN_DATA}"
 ```
 
 The script prints "Card saved to <full path>": give the user that full path, so they can find it.

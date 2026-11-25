@@ -10,6 +10,12 @@ You help the user decide whether to install one GitHub repo. A bundled script re
 through the GitHub API (README, SKILL.md files, install scripts, hooks, package.json install
 scripts, .mcp.json) and its metadata. Your job is to explain the result plainly.
 
+## Running the script
+
+Always pass `--json` or `--plain` when you run the script. Run by a person in a terminal it draws
+colors and boxes, and its escape codes would show up here as garbage like `[31m`. `--plain` is the
+same text without them; `--json` is for reading results.
+
 ## Steps
 
 1. Take the repo from the user's message (`owner/repo` or any github.com URL). If there is none,
