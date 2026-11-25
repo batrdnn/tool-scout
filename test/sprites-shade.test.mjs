@@ -1,4 +1,4 @@
-// Item 3: monochrome shading (░▒▓█) for plain output, NO_COLOR and Claude Code: no escape codes.
+// Item 3: monochrome shading (█ and ▓ on blank, two tones plus one accent) for plain output, NO_COLOR and Claude Code: no escape codes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -13,11 +13,11 @@ import { prof } from './helpers.mjs';
 
 const NAMES = [...ORDER, 'Egg'];
 
-test('shaded: 16 rows of 32 columns (each pixel is 2 characters wide), only space and ░▒▓█', () => {
+test('shaded: 16 rows of 32 columns (each pixel is 2 characters wide), only space, ▓ and █', () => {
   for (const n of NAMES) {
     const rows = shaded(n);
     assert.equal(rows.length, 16);
-    for (const r of rows) assert.match(r, /^[ ░▒▓█]{32}$/, n);
+    for (const r of rows) assert.match(r, /^[ ▓█]{32}$/, n);
   }
 });
 
@@ -78,7 +78,7 @@ test('`me --plain` and `me --json` from the CLI: shading in the text, art stays 
   const cli = new URL('../scripts/scout.mjs', import.meta.url).pathname;
   const run = (...a) => execFileSync(process.execPath, [cli, 'me', ...a, '--data', dir], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: dir, CLAUDECODE: '1' } });
   const plain = run('--plain');
-  assert.match(plain, /[░▒▓█]{2}/);
+  assert.match(plain, /[▓█]{2}/);
   assert.doesNotMatch(plain, /\u001b/);
   const j = JSON.parse(run('--json'));
   assert.ok(j.art.every((l) => /^[\x20-\x7e]*$/.test(l)));
