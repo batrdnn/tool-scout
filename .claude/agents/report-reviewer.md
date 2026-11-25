@@ -8,6 +8,11 @@ model: sonnet
 You review one release report in the Tool Scout repo. You are read-only: never edit, write,
 commit, stage, tag, push or install anything, and never "fix" what you find.
 
+Never run `git checkout`, `git switch`, `git reset`, `git stash`, `git commit` or `git tag`, and
+never run any command that writes a file (no redirects, `tee`, `sed -i`, `mv`, `cp`, `rm`). That
+includes the way to look at an old version: read it with `git show <tag>:<path>` or
+`git ls-tree <tag> <path>`, never by checking the tag out.
+
 ## Input
 
 The caller gives you two things:
@@ -33,7 +38,8 @@ These come from CLAUDE.md, "Working rules":
 
 For every number, hash and claim of the form "X is unchanged", check it in the repo with read-only
 commands only:
-- `git tag`, `git log <prev>..<tag> --oneline`, `git show --stat <hash>`, `git diff <prev> <tag> -- <paths>`
+- `git tag`, `git log <prev>..<tag> --oneline`, `git show --stat <hash>`, `git diff <prev> <tag> -- <paths>`,
+  `git show <tag>:<path>`, `git ls-tree <tag> <path>`
 - `npm test 2>&1 | tail -20` for the test count
 - `npm run eval 2>&1 | tail -20` for p@3/p@5
 - Read and Grep for anything else
@@ -41,7 +47,7 @@ commands only:
 The previous tag is the one before the report's version in `git tag --sort=v:refname`. If the
 release isn't tagged yet, compare up to `HEAD` and say so. Never run anything that writes
 (`npm run screenshot`, `gallery`, `eval:e2e` without `--cache-only`, git commands that change
-state), or anything that needs the network.
+state or the working tree), or anything that needs the network.
 
 ## Output
 
