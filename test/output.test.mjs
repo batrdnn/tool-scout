@@ -57,10 +57,21 @@ test('pretty only on a TTY; --plain, --json, TERM=dumb and Claude Code always ge
 });
 
 test('NO_COLOR (any non-empty value) turns colors off but keeps the layout', () => {
-  const s = detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '1' }, opts: {} });
+  const s = detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '1' }, opts: {}, platform: 'linux' });
   assert.deepEqual(s, { pretty: true, color: false, unicode: true });
-  assert.equal(detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '' }, opts: {} }).color, true);
-  assert.equal(detectStyle({ isTTY: true, env: UTF8, opts: {} }).color, true);
+  assert.equal(detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '' }, opts: {}, platform: 'linux' }).color, true);
+  assert.equal(detectStyle({ isTTY: true, env: UTF8, opts: {}, platform: 'linux' }).color, true);
+});
+
+// v0.15.0: Windows. Windows Terminal (WT_SESSION) draws boxes and colors; the legacy console gets
+// colors but ASCII boxes; NO_COLOR is honored there too.
+test('detectStyle on Windows: Windows Terminal is unicode and color, a legacy console is color with ASCII', () => {
+  const win = (env) => detectStyle({ isTTY: true, env, opts: {}, platform: 'win32' });
+  assert.deepEqual(win({ WT_SESSION: 'abc' }), { pretty: true, color: true, unicode: true });
+  assert.deepEqual(win({ WT_SESSION: 'abc', NO_COLOR: '1' }), { pretty: true, color: false, unicode: true });
+  assert.deepEqual(win({ TERM_PROGRAM: 'vscode' }), { pretty: true, color: true, unicode: true });
+  assert.deepEqual(win({}), { pretty: true, color: true, unicode: false });
+  assert.equal(detectStyle({ isTTY: true, env: { WT_SESSION: 'abc', CLAUDECODE: '1' }, opts: {}, platform: 'win32' }).pretty, false, 'inside Claude Code: plain');
 });
 
 test('Unicode only when the locale or terminal supports it; ASCII otherwise', () => {
