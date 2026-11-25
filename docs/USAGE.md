@@ -170,6 +170,9 @@ network, the match then gets the scout's content scan: a high trust flag rules i
 effort estimate decides Install or Build your own (Build your own and Reference picks become a
 build, with the repo as the idea's source).
 
+**Docs work** (polish the README, write a FAQ or API docs, a post) is "nothing needed", never a docs
+tool, unless the plan asks for a repeatable docs workflow (generated, automated, kept up to date).
+
 **Without a good match:** everyday work (git, docs, testing, debugging, refactoring, frontend,
 backend, database, data, security, planning) is "nothing needed: Claude handles this without a
 tool"; other work that takes two or more lines of the plan is a proposal to build a small skill.

@@ -168,6 +168,9 @@ export function heavySetup(rec, planText) {
 }
 /** What the script itself has doubts about; Claude adds its own from the judgment step. */
 const doubtsOf = (rec, heavy) => [...(heavy ? [`heavy setup: ${heavy}`] : []), ...(rec.trust?.tier && rec.trust.tier !== 'high' ? [`trust tier is ${rec.trust.tier}`] : [])];
+// Docs work Claude does directly (polish a README, write a FAQ or API docs) unless the plan wants a
+// repeatable docs workflow: something automated, generated or kept up to date.
+const REPEATABLE_DOCS = /\b(?:automat\w*|generat\w*|every (?:release|commit|merge|push|pr)|each (?:release|commit|merge)|on every|up to date|in sync|pipeline|workflow|repeatabl\w*|recurring)\b/i;
 const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
 
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
@@ -208,7 +211,8 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
       }
       return { match, heavy };
     };
-    let { match, heavy } = await pick(exclude);
+    const direct = need.topic === 'docs' && !need.lines.some((l) => REPEATABLE_DOCS.test(l));
+    let { match, heavy } = direct ? { match: null, heavy: null } : await pick(exclude);
     if (match && heavy) { // the ranking keeps one repo per job: look for a lighter one past it
       const other = await pick(new Set([...exclude, match.name.toLowerCase()]));
       if (other.match && !other.heavy) ({ match, heavy } = other);

@@ -66,3 +66,14 @@ test('run 1 plan: a rematch gives the same toolkit', async () => {
   const b = await runKickoff({ rematch: true, home: sb.home, dataDir: sb.dataDir, now: NOW, client: null });
   assert.deepEqual(b.toolkit, a.toolkit);
 });
+
+test('run 1 plan: polishing the README is "nothing needed", not a docs skill to build', async () => {
+  const sb = launchSandbox();
+  const f = path.join(sb.dataDir, 'catalog.json'); const c = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const r = catalogRepo('agentskills/agentskills', 'Agent Skills: a format for writing documentation and instructions skills', { stars: 5000 });
+  c.repos[r.full_name] = r; fs.writeFileSync(f, JSON.stringify(c));
+  const { toolkit } = await kick(sb);
+  const docs = toolkit.items.find((i) => i.topic === 'docs');
+  assert.ok(!docs || docs.action === 'nothing', `got ${docs?.action}`);
+  assert.ok(!toolkit.items.some((i) => i.action === 'build' && /docs/.test(i.name || '')));
+});
