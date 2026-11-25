@@ -200,6 +200,12 @@ nodejs.org or with `brew install node`, then try again. If it says it could not 
 say it needs internet access to api.github.com, and behind a proxy to run it with
 `NODE_USE_ENV_PROXY=1` in front. Don't try to install Node yourself.
 
+If the script says `Unknown command`, or prints its usage line instead of a result, for a command
+this skill describes, the installed Tool Scout is older than this skill. Tell the user to run
+`claude plugin update tool-scout@tool-scout` and then restart Claude Code. Never run another copy
+of `scout.mjs` instead, such as a working copy of the repo: it isn't what they installed or
+approved.
+
 ## Ratings
 
 When the user rates picks (by number, name, 👍/👎, "useful"/"not", "yes"/"no"), record each one:

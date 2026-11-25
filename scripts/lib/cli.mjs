@@ -96,6 +96,7 @@ function readJSON(name) {
   try { return JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8')); } catch { return null; }
 }
 
+const pkgVersion = () => JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 const profilePath = () => path.join(dataDir, 'profile.json');
 function showProfile(p) {
   console.log(style.pretty ? prettyProfile(p, { profilePath: profilePath() }, P).join('\n') : formatProfile(p, { dataLine: dataLine(), profilePath: profilePath() }));
@@ -196,7 +197,7 @@ async function main() {
     }
     case 'stats': {
       if (opts.share) {
-        const version = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+        const version = pkgVersion();
         console.log('This is everything that would be shared: aggregate counts, the rated repo names and your Claude Code animal.');
         console.log('No profile, topics, libraries, projects or prompts. Nothing is sent: copy it yourself if you agree.\n');
         console.log(shareText(dataDir, { version }));
@@ -312,6 +313,11 @@ async function main() {
       break;
     }
     default:
+      // A skill newer than this script asks for a command it doesn't have: say how to update.
+      if (cmd !== 'help') {
+        console.log(`Unknown command: ${cmd}. If a Tool Scout skill asked for it, this Tool Scout (${pkgVersion()}) is older than the skill: run claude plugin update tool-scout@tool-scout, then restart Claude Code.`);
+        process.exitCode = 1;
+      }
       console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
