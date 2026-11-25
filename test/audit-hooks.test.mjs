@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { auditLocal, formatAudit } from '../scripts/lib/audit.mjs';
+import { fileURLToPath } from 'node:url';
 
 const w = (f, body) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, typeof body === 'string' ? body : JSON.stringify(body, null, 2)); };
 const SECRET = 'zz-hook-secret-value';
@@ -81,7 +82,7 @@ test('CLI audit with hooks runs with networking disabled', () => {
   const { home } = fakeHome();
   const pre = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'scout-nonet-')), 'nonet.mjs');
   fs.writeFileSync(pre, "import net from 'node:net'; import tls from 'node:tls';\nconst no = () => { throw new Error('NETWORK USED'); };\nglobalThis.fetch = no; net.connect = no; net.createConnection = no; tls.connect = no; net.Socket.prototype.connect = no;\n");
-  const out = execFileSync(process.execPath, ['--import', pre, new URL('../scripts/scout.mjs', import.meta.url).pathname, 'audit', '--json', '--home', home, '--data', path.join(home, 'd')], { cwd: home, encoding: 'utf8' });
+  const out = execFileSync(process.execPath, ['--import', pre, fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'audit', '--json', '--home', home, '--data', path.join(home, 'd')], { cwd: home, encoding: 'utf8' });
   const r = JSON.parse(out);
   assert.equal(r.checked.hooks, 4);
   assert.ok(r.counts.high >= 2);

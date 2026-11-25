@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { buildProfile } from '../scripts/lib/profile.mjs';
 import { recommend } from '../scripts/lib/rank.mjs';
 import { sessionProjectDirs, detectProjectInstalls, withProjectInstalls } from '../scripts/lib/installed.mjs';
+import { fileURLToPath } from 'node:url';
 
 const w = (f, body) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, typeof body === 'string' ? body : JSON.stringify(body)); };
 const user = (text, cwd) => ({ type: 'user', cwd, message: { role: 'user', content: text } });
@@ -65,6 +66,6 @@ test('a skill installed only at project level (graphify) counts as installed and
 
 test('CLI profile includes project-level installs', () => {
   const { home } = fakeHome();
-  const out = execFileSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, 'profile', '--json', '--home', home, '--data', path.join(home, 'd')], { cwd: home, encoding: 'utf8' });
+  const out = execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'profile', '--json', '--home', home, '--data', path.join(home, 'd')], { cwd: home, encoding: 'utf8' });
   assert.ok(JSON.parse(out).installed.names.includes('graphify'));
 });

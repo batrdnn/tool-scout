@@ -8,8 +8,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const PRELOAD = new URL('./fixtures/security/capture-fetch.mjs', import.meta.url).href;
 const TOKEN = 'ghp_SENTINELtoken0123456789abcdef';
 const PROJECT = 'okapi-ledger-5150'; // project folder name: in the profile only

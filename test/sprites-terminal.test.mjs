@@ -6,6 +6,7 @@ import { painter, stripAnsi, strWidth } from '../scripts/lib/term.mjs';
 import { prettyMe } from '../scripts/lib/pretty.mjs';
 import { whoAmI, ORDER, ANIMALS } from '../scripts/lib/me.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const NAMES = [...ORDER, 'Egg'];
 const ESC = '\u001b';
@@ -104,7 +105,7 @@ test('the CLI picks 24-bit from COLORTERM and otherwise 256 colors (pretty TTY o
   const { join } = await import('node:path');
   // A child without a TTY is never pretty: no sprite escape codes at all.
   const data = mkdtempSync(join(tmpdir(), 'ts-sprite-'));
-  const run = (env) => spawnSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, 'me', '--data', data], { env: { PATH: process.env.PATH, HOME: data, ...env }, encoding: 'utf8' });
+  const run = (env) => spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'me', '--data', data], { env: { PATH: process.env.PATH, HOME: data, ...env }, encoding: 'utf8' });
   const out = run({ COLORTERM: 'truecolor', LANG: 'en_US.UTF-8' }).stdout;
   assert.doesNotMatch(out, /\u001b\[/);
 });

@@ -7,6 +7,7 @@ import net from 'node:net';
 import tls from 'node:tls';
 import { execFileSync } from 'node:child_process';
 import { auditLocal } from '../scripts/lib/audit.mjs';
+import { fileURLToPath } from 'node:url';
 
 const w = (f, body) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, body); };
 
@@ -66,10 +67,10 @@ test('CLI audit runs with networking disabled in the process', () => {
   const { home, cwd } = fakeHome();
   const pre = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'scout-nonet-')), 'nonet.mjs');
   fs.writeFileSync(pre, "import net from 'node:net'; import tls from 'node:tls';\nconst no = () => { throw new Error('NETWORK USED'); };\nglobalThis.fetch = no; net.connect = no; net.createConnection = no; tls.connect = no; net.Socket.prototype.connect = no;\n");
-  const out = execFileSync(process.execPath, ['--import', pre, new URL('../scripts/scout.mjs', import.meta.url).pathname, 'audit', '--json', '--home', home, '--data', path.join(home, 'data')], { cwd, encoding: 'utf8' });
+  const out = execFileSync(process.execPath, ['--import', pre, fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'audit', '--json', '--home', home, '--data', path.join(home, 'data')], { cwd, encoding: 'utf8' });
   const r = JSON.parse(out);
   assert.equal(r.findings.length, 4);
-  const text = execFileSync(process.execPath, ['--import', pre, new URL('../scripts/scout.mjs', import.meta.url).pathname, 'audit', '--home', home, '--data', path.join(home, 'data')], { cwd, encoding: 'utf8' });
+  const text = execFileSync(process.execPath, ['--import', pre, fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'audit', '--home', home, '--data', path.join(home, 'data')], { cwd, encoding: 'utf8' });
   assert.match(text, /HIGH prompt-injection/);
   assert.match(text, /No network was used/);
 });

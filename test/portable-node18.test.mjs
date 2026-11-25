@@ -23,3 +23,9 @@ test('no file uses import.meta.dirname or import.meta.filename (Node 20.11+)', (
   const bad = sources().filter((f) => /import\.meta\.(?:dirname|filename)\b/.test(fs.readFileSync(f, 'utf8')));
   assert.deepEqual(bad.map((f) => path.relative(ROOT, f)), []);
 });
+
+// v0.15.0 item 2, cause 2: a file URL's .pathname is "/D:/a/x" on Windows, not a path.
+test('no file URL is turned into a path with .pathname: use fileURLToPath', () => {
+  const bad = sources().filter((f) => /(?:import\.meta\.url\)|new URL\(f\))\.pathname\b/.test(fs.readFileSync(f, 'utf8')));
+  assert.deepEqual(bad.map((f) => path.relative(ROOT, f)), []);
+});

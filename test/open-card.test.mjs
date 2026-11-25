@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { openCommand, openFile } from '../scripts/lib/open.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 test('openCommand: open on macOS, xdg-open on Linux, nothing elsewhere', () => {
   assert.equal(openCommand('darwin'), 'open');
@@ -47,7 +48,7 @@ test('CLI: --card <file> --open saves the card, survives a missing opener and sa
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-open-'));
   fs.writeFileSync(path.join(dir, 'profile.json'), JSON.stringify(prof({ sessions: 30 })));
   const card = path.join(dir, 'out', 'me.svg');
-  const cli = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+  const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
   const bin = path.join(dir, 'emptybin'); fs.mkdirSync(bin);
   const r = spawnSync(process.execPath, [cli, 'me', '--plain', '--card', card, '--open', '--data', dir], { encoding: 'utf8', env: { PATH: bin, HOME: dir } });
   assert.equal(r.status, 0, r.stderr);
@@ -61,7 +62,7 @@ test('without --open nothing is launched', () => {
   const bin = path.join(dir, 'bin'); fs.mkdirSync(bin);
   const marker = path.join(dir, 'launched');
   for (const name of ['open', 'xdg-open']) { fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho x > "${marker}"\n`); fs.chmodSync(path.join(bin, name), 0o755); }
-  const cli = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+  const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
   spawnSync(process.execPath, [cli, 'me', '--plain', '--card', path.join(dir, 'c.svg'), '--data', dir], { encoding: 'utf8', env: { PATH: bin, HOME: dir } });
   assert.equal(fs.existsSync(marker), false);
   spawnSync(process.execPath, [cli, 'me', '--plain', '--card', path.join(dir, 'c.svg'), '--open', '--data', dir], { encoding: 'utf8', env: { PATH: bin, HOME: dir } });

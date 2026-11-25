@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { resolveDataDir } from '../scripts/lib/datadir.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const tmpHome = () => fs.mkdtempSync(path.join(os.tmpdir(), 'scout-home-'));
 const mk = (...p) => { const d = path.join(...p); fs.mkdirSync(d, { recursive: true }); return d; };
 

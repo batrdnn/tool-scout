@@ -9,8 +9,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { judgeInstructions } from './eval/e2e.mjs';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const skills = Object.fromEntries(fs.readdirSync(path.join(ROOT, 'skills')).map((d) => [d, fs.readFileSync(path.join(ROOT, 'skills', d, 'SKILL.md'), 'utf8')]));
 
 /** Every full script call (`node … scout.mjs …`) in a skill's code blocks and inline code. */

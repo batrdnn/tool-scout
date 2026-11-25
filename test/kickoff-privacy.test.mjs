@@ -16,8 +16,9 @@ import { loadOfficial } from '../scripts/lib/kickoff-sources.mjs';
 import { prof } from './helpers.mjs';
 import { mockFetch } from './helpers.mjs';
 import { sandbox, filesUnder, catalog, PLAN, NOW, MARKER } from './kickoff-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 // Every line of the plan with some substance: none of them may show up outside the needs file.
 const PLAN_LINES = PLAN.split('\n').map((l) => l.replace(/^[-#\s]+/, '').trim()).filter((l) => l.length >= 12);
 const leaks = (text) => [MARKER, ...PLAN_LINES].filter((l) => String(text).toLowerCase().includes(l.toLowerCase()));

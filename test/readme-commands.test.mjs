@@ -6,11 +6,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const README = read('README.md');
 const CLI = read('scripts/lib/cli.mjs');
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const section = (name) => README.split(/^## /m).find((s) => s.startsWith(name)) || '';
 const skills = Object.fromEntries(fs.readdirSync(new URL('../skills', import.meta.url))
   .map((d) => [d, read(`skills/${d}/SKILL.md`)]));

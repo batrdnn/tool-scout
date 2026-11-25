@@ -10,6 +10,7 @@ import { estimateEffort, effortLine, BYTES_PER_LINE as L, BYTES_PER_MD_LINE as M
 import { scanRepo } from '../scripts/lib/scan.mjs';
 import { createClient } from '../scripts/lib/github.mjs';
 import { githubTrees } from './effort-scan.test.mjs';
+import { fileURLToPath } from 'node:url';
 
 const blob = (p, size = 1000) => ({ path: p, type: 'blob', size });
 const est = (o) => estimateEffort({ readme: '', files: {}, kind: 'skill', name: 'someone/x', pushedAt: '2025-06-01T00:00:00Z', now: Date.parse('2026-11-25T00:00:00Z'), ...o });
@@ -63,7 +64,7 @@ test('the scan caches the heads to read: at most 40 lines, control and invisible
 
 // ---- the `head` command ---------------------------------------------------------------------
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 function withCache(entry) {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-head-'));
   fs.writeFileSync(path.join(data, 'trust-cache.json'), JSON.stringify({ 'o/skill-x': entry }));

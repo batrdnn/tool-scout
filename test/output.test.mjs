@@ -18,9 +18,10 @@ import { formatCheck } from '../scripts/lib/check.mjs';
 import { formatAudit } from '../scripts/lib/audit.mjs';
 import { whoAmI, formatMe } from '../scripts/lib/me.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const fx = (f) => JSON.parse(fs.readFileSync(new URL(`./fixtures/output/${f}`, import.meta.url), 'utf8'));
-const SNAP = new URL('./snapshots/', import.meta.url).pathname;
+const SNAP = fileURLToPath(new URL('./snapshots/', import.meta.url));
 function snap(name, text) {
   const file = path.join(SNAP, name);
   if (process.env.UPDATE_SNAPSHOTS && !name.includes('.plain.')) fs.writeFileSync(file, text);
@@ -228,7 +229,7 @@ test('strWidth: escape codes take no room, CJK takes two columns', () => {
 
 // ---- CLI ------------------------------------------------------------------------------
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 function cliEnv() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-out-home-'));
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-out-data-'));

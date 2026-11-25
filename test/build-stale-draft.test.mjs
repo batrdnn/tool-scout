@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startDraft, makeBuildPlan, formatBuildPlan } from '../scripts/lib/builder.mjs';
 import { sandbox, draft, SKILL, ctx, NOW } from './build-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 test('start refuses an existing draft folder that has files, says so, and names --fresh', () => {
   const sb = sandbox();
@@ -30,7 +31,7 @@ test('an empty or missing draft folder starts without --fresh', () => {
 test('the CLI refuses a stale draft and accepts --fresh', () => {
   const sb = sandbox();
   draft(sb, 'fx', { 'SKILL.md': SKILL('fx') });
-  const cli = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+  const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
   const run = (...a) => spawnSync(process.execPath, [cli, 'build', '--start', '--form', 'skill', '--name', 'fx', ...a, '--plain', '--data', sb.dataDir], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: sb.home } });
   const r = run();
   assert.notEqual(r.status, 0);

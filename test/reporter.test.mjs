@@ -5,8 +5,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const FX = path.join(ROOT, 'test', 'fixtures', 'reporter');
 const run = (files) => spawnSync(process.execPath, ['--test', '--test-reporter=./test/reporter.mjs', ...files.map((f) => path.join(FX, f))], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } });
 

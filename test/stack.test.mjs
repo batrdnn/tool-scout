@@ -8,6 +8,7 @@ import { librariesIn, parseManifest, stackMatches } from '../scripts/lib/stack.m
 import { buildProfile } from '../scripts/lib/profile.mjs';
 import { recommend } from '../scripts/lib/rank.mjs';
 import { mergeRepos } from '../scripts/lib/crawl.mjs';
+import { fileURLToPath } from 'node:url';
 
 test('manifest parsers return library names only', () => {
   assert.deepEqual(parseManifest('package.json', JSON.stringify({ name: 'app', dependencies: { next: '15', '@prisma/client': '6' }, devDependencies: { '@playwright/test': '1', '@types/node': '22' } })).sort(),
@@ -80,7 +81,7 @@ test('CLI: library names reach stdout and profile.json, never last-recommendatio
   mergeRepos(cat, [{ full_name: 'o/pytest-mcp', name: 'pytest-mcp', owner: { login: 'o', type: 'Organization' }, html_url: 'https://github.com/o/pytest-mcp', description: 'pytest MCP server',
     topics: ['mcp-server'], language: 'Python', stargazers_count: 900, forks_count: 9, license: { spdx_id: 'MIT' }, archived: false, fork: false, created_at: '2025-06-01T00:00:00Z', pushed_at: new Date().toISOString() }]);
   fs.writeFileSync(path.join(data, 'catalog.json'), JSON.stringify(cat));
-  const out = execFileSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, 'all', '--json', '--offline', '--include-current', '--home', home, '--data', data], { encoding: 'utf8' });
+  const out = execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), 'all', '--json', '--offline', '--include-current', '--home', home, '--data', data], { encoding: 'utf8' });
   assert.match(out, /you use pytest in 1 project/);
   for (const f of fs.readdirSync(data)) {
     const body = fs.readFileSync(path.join(data, f), 'utf8');

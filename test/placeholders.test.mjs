@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SKIP = new Set(['.git', 'node_modules']);
 
 /** Every Markdown file in the repo (README, TESTING.md, docs/, skills/, test READMEs). */

@@ -1,8 +1,9 @@
 // The `npm test` reporter: prints each failure (name, where, message) and one summary line, and
 // nothing about passing tests. `npm run test:verbose` uses the built-in spec reporter instead.
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const rel = (f) => (f ? path.relative(process.cwd(), f.startsWith('file:') ? new URL(f).pathname : f) : '');
+const rel = (f) => (f ? path.relative(process.cwd(), f.startsWith('file:') ? fileURLToPath(new URL(f)) : f) : '');
 const indent = (s, n = 4) => String(s).split('\n').map((l) => ' '.repeat(n) + l).join('\n');
 
 export default async function* quiet(source) {

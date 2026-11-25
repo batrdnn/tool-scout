@@ -6,8 +6,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { MIN_NODE, nodeProblem } from '../scripts/lib/node-check.mjs';
 import { createClient } from '../scripts/lib/github.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const MSG = (v) => `Tool Scout needs Node.js 18 or newer (you have v${v}). Install it from nodejs.org or with \`brew install node\`.`;
 
 test('nodeProblem: below 18 gives the one-line message, 18+ gives none', () => {

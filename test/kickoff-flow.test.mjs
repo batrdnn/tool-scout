@@ -9,9 +9,10 @@ import { execFileSync } from 'node:child_process';
 import { runKickoff, kickoffSummary } from '../scripts/lib/kickoff.mjs';
 import { saveLog, loadLog } from '../scripts/lib/installer.mjs';
 import { sandbox, NOW } from './kickoff-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const SKILL = fs.readFileSync(new URL('../skills/kickoff/SKILL.md', import.meta.url), 'utf8');
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 
 test('the skill asks one multi-select question to choose items (4 options at most per question)', () => {
   assert.match(SKILL, /AskUserQuestion/);

@@ -11,8 +11,9 @@ import { whoAmI, BLIND_TOPICS } from '../scripts/lib/me.mjs';
 import { OFFICIAL_RULES, BUILTINS } from '../scripts/lib/kickoff-sources.mjs';
 import { sandbox, catalog, catalogRepo, NOW, installPlugins } from './kickoff-helpers.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const owl = whoAmI(prof({ topics: { debugging: 10, testing: 6 }, friction: { testing: 6, debugging: 3 } }));
 const as = (animal) => whoAmI(prof(), { as: animal });
 const find = (r, o = {}) => { const sb = sandbox(); return findBlindSpotTool(r, prof(), o.catalog || catalog(), { home: sb.home, dataDir: sb.dataDir, now: NOW, ...o }); };
