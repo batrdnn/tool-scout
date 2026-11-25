@@ -188,3 +188,12 @@ test('effortLine: "Build your own (skill, under an hour): …"', () => {
   const i = est({ kind: 'app', tree: Array.from({ length: 200 }, (_, n) => code(`src/f${n}.rs`, 100)) });
   assert.match(effortLine(i), /^Install: \S/);
 });
+
+test('docs/USAGE.md documents every threshold with the value the code uses', async () => {
+  const fs = await import('node:fs');
+  const usage = fs.readFileSync(new URL('../docs/USAGE.md', import.meta.url), 'utf8');
+  const sec = usage.split(/^## /m).find((s) => s.startsWith('Build or install'));
+  assert.ok(sec, 'docs/USAGE.md needs a "## Build or install" section');
+  for (const [k, v] of Object.entries(THRESHOLDS)) assert.match(sec, new RegExp(`\`${k}\` = ${v.toLocaleString('en-US')}\\b`), k);
+  assert.match(sec, new RegExp(`÷ ${BYTES_PER_LINE}\\b`));
+});

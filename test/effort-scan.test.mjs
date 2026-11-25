@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { runPipeline } from '../scripts/lib/pipeline.mjs';
+import { checkRepo } from '../scripts/lib/check.mjs';
 import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
 import { NOW, profile, ghRepo, catalogOf } from './pipeline.test.mjs';
@@ -12,11 +13,12 @@ import { NOW, profile, ghRepo, catalogOf } from './pipeline.test.mjs';
 /** Mock GitHub serving per-repo trees with real sizes, and file contents. */
 export function githubTrees(repos) {
   return mockFetch((url) => {
-    const m = url.match(/repos\/o\/([^/]+)\/(.*)$/);
+    const m = url.match(/repos\/o\/([^/]+)(?:\/(.*))?$/);
     if (!m) return undefined;
-    const [, name, rest] = m;
+    const [, name, rest = ''] = m;
     const r = repos[name];
     if (!r) return undefined;
+    if (rest === '') return { ...ghRepo(name, `Testing MCP server ${name}`), pushed_at: r.pushedAt || '2025-06-01T00:00:00Z' };
     if (rest === 'readme') return r.readme ?? `# ${name}`;
     if (rest.startsWith('git/trees/')) return { tree: Object.entries(r.tree).map(([p, size]) => ({ path: p, type: 'blob', size })) };
     if (rest.startsWith('contents/')) return r.files?.[decodeURIComponent(rest.slice(9))];
@@ -65,4 +67,13 @@ test('a second run reuses the cache: no tree or file requests, same effort', asy
 test('without a client (offline) there is no effort, and nothing breaks', async () => {
   const { recs } = await runPipeline(profile(), cat(), { top: 2, client: null, now: NOW });
   assert.ok(recs.length && recs.every((r) => r.effort === undefined));
+});
+
+test('check returns the same estimate in its JSON, with advice', async () => {
+  const r = await checkRepo(createClient({ fetchImpl: githubTrees(REPOS) }), 'o/a-test-mcp', { now: NOW });
+  assert.equal(r.effort.type, 'mcp-server');
+  assert.equal(r.effort.advice, 'either');
+  assert.match(r.effort.reason, /ACME/);
+  const b = await checkRepo(createClient({ fetchImpl: githubTrees(REPOS) }), 'o/b-test-mcp', { now: NOW });
+  assert.equal(b.effort.adviceLabel, 'Build your own');
 });

@@ -2,6 +2,8 @@
 // Moved out of cli.mjs unchanged; test/snapshots/*.plain.txt pin it byte for byte.
 // The pretty terminal version of the same facts is in pretty.mjs.
 
+import { effortLine } from './effort.mjs';
+
 /** "+84★ last 7d (12/day)", "+9+★ last 7d (partial window: …)", "+210.5★/day" or "~4★/day". */
 export function momentumText(r) {
   return r.starsLast7d != null
@@ -52,6 +54,7 @@ export function formatRecs(recs) {
     if (r.trust.notes.length) out.push(`   Watch out: ${r.trust.notes.join(', ')}`);
     for (const f of r.trust.flags || []) out.push(`   ${flagText(f)}`);
     if (r.trust.scanned === false && r.trust.flags) out.push('   (content not scanned)');
+    if (r.effort) out.push(`   Effort: ${effortLine(r.effort)}`);
     out.push(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
   });
   return out.join('\n');

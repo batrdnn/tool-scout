@@ -6,6 +6,7 @@ import { normalizeRepo } from './feedback.mjs';
 import { scanRepo } from './scan.mjs';
 import { slim, classify } from './crawl.mjs';
 import { trust } from './rank.mjs';
+import { advise, effortLine } from './effort.mjs';
 
 const NO_TEXT = new Set(['prompt-injection', 'hidden-instructions', 'invisible-unicode', 'exfiltration', 'obfuscated-exec']);
 const SEV = { high: 3, medium: 2, low: 1 };
@@ -46,6 +47,7 @@ export async function checkRepo(client, input, { now = Date.now() } = {}) {
     coverage: coverageOf(scan.scannedFiles, kind, scan.install || []),
     metadata: { stars: repo.stars, forks: repo.forks, license: repo.license, ownerType: repo.ownerType, createdAt: repo.createdAt, pushedAt: repo.pushedAt, archived: repo.archived, score: meta.score, tier: meta.tier, notes: meta.notes },
     install: { commands: scan.install || [], ...(scan.installNote ? { note: scan.installNote } : {}) },
+    effort: scan.effortFacts ? { ...scan.effortFacts, ...advise(scan.effortFacts, { pushedAt: repo.pushedAt, now }) } : null,
   };
 }
 
@@ -60,6 +62,7 @@ export function formatCheck(r) {
   ];
   if (!r.flags.length) lines.push('Flags: none.');
   for (const f of r.flags) lines.push(`  ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
+  if (r.effort) lines.push(`Effort: ${effortLine(r.effort)}`);
   lines.push(r.install.commands.length
     ? `Install (from the README; review before running): ${r.install.commands.join(' then ')}${r.install.note ? `, ${r.install.note}` : ''}`
     : `Install: no Claude Code command in the README. See the README: ${r.url}#readme`);

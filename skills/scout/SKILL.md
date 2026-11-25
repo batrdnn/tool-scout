@@ -90,6 +90,11 @@ same text without them; `--json` is for reading results.
    means the marketplace holds several plugins); say "from the README". When it's `readme-link`,
    the README has no Claude Code command: give the README link and don't invent one. Never run
    it yourself; the user decides.
+   *Build or install:* one line from `effort`: `effort.adviceLabel` (Build your own, Either or
+   Install), then, unless it's Install, `effort.buildForm` and `effort.buildTime` in parentheses,
+   then `effort.reason`. Example: "Build your own (skill, under an hour): Only instructions (~150
+   lines of Markdown) and no external API, so writing your own is quick." It's an estimate from
+   the repo's files, not a verdict. Leave the line out when a pick has no `effort` (not scanned).
    *Check first:* any `trust.notes`, and every `trust.flags` entry as
    "⚑ severity id: detail (file:line)". Example: "⚑ medium pipe-to-shell: downloads and
    executes a script in one step (README:42)". If `trust.scanned` is false, say the content
@@ -121,8 +126,14 @@ same text without them; `--json` is for reading results.
    pick, all in one call (it takes up to 4 questions; with 5 picks, ask about picks 1 to 4, then
    pick 5 in a second call). Each question: "What next for owner/repo?", header `Pick N`,
    `multiSelect: true`, and exactly these options, each mapped to something that already exists:
-   - "Show install steps": show the pick's `install` value (or `installCommands`) in a code block,
-     as "from the README, review before running", as in step 5. Don't run it.
+   - "Why build vs install?": explain the pick's `effort` estimate in a few plain lines: what it is
+     (`typeLabel`), its size (`codeFiles`, `loc` and `languages`, or `instructionLines` when it's
+     only instructions; `dependencies`), what it needs (`needs.credentials`, `needs.services`,
+     `needs.network`), and why that gives `adviceLabel` (the thresholds: up to 300 lines of code
+     and no external API is small, 3,000 or more is large, recently pushed with 1,000 or more is
+     hard to keep up with). Then end with the install steps: the pick's `install` value (or
+     `installCommands`) in a code block, as "from the README, review before running". Don't run
+     it. Without `effort`, say the repo wasn't scanned, then give the install steps.
    - "Check it first": run the trust check, `… check <owner/repo> --json`, and present it the way
      the `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't
      mean safe").
@@ -131,7 +142,7 @@ same text without them; `--json` is for reading results.
    - "Not interested": dismiss it as in Feedback: "not interested" below, and mention undo.
 
    None of these installs anything, and you never install, clone or build anything from these
-   answers. When several are picked, do them in the order above. A typed "Other" answer is a
+   answers. Never offer to build or install a pick: the advice is for the user to act on. When several are picked, do them in the order above. A typed "Other" answer is a
    normal message: handle it as you would in chat. If the user skips a question, do nothing for
    that pick. If AskUserQuestion isn't available, ask for a rating in one line instead, for
    example: "Was each pick useful? Reply like `1 useful, 2 not, 3 useful`, or skip." Either way,

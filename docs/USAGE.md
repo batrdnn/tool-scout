@@ -71,6 +71,32 @@ stargazer lists only to a repo's owner, so when that's refused it counts `WatchE
 repo's public events feed instead. The feed holds the newest 300 events, so for very busy repos the
 window can be shorter than 7 days; that's shown as `+N+★`.
 
+## Build or install
+
+For each final pick (and for `check`), the content scan also reads the repo's file tree and up to
+6 small manifests (`package.json`, `pyproject.toml`, `requirements.txt`, `go.mod`, `Cargo.toml`,
+`.env.example`, a compose file, `.mcp.json`). `scripts/lib/effort.mjs` turns them into:
+
+- **What it is:** instructions-only skill (just `.md` files), skill with scripts, plugin with hooks
+  or agents, MCP server, or app.
+- **Size:** files, approximate lines of code (file bytes ÷ 35; docs, tests, examples, vendored and
+  generated code, lockfiles and assets don't count), main languages, runtime dependencies.
+- **Needs:** credentials (ALL_CAPS env names like `STRIPE_API_KEY`, or "API key" / "OAuth" in the
+  README, unless negated), network, and running services (a compose file or `docker run`, a
+  database driver or image).
+
+| advice | when |
+|---|---|
+| Build your own | instructions only, or at most `SMALL_LOC` = 300 lines of code, and no external API or service |
+| Either | medium size (301 to 2,999 lines), or small but tied to one API or service |
+| Install | at least `LARGE_LOC` = 3,000 lines; or over 300 lines wrapping an API or needing a service; or pushed in the last `ACTIVE_DAYS` = 14 days with at least `ACTIVE_MIN_LOC` = 1,000 lines; or an app over 300 lines |
+
+"Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
+for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a
+time. The facts are cached with the scan; the advice is worked out when read. It's advice only:
+Tool Scout never builds or installs anything. Results are in `effort` in the JSON, an "Effort"
+line in the text output, and `check`.
+
 ## How trust scoring works
 
 Trust has two parts. Metadata (maintenance, license, age, archived) for every candidate, and a

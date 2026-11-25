@@ -95,6 +95,20 @@ test('the list is titled "Shortlist (unfiltered)" and points to /tool-scout:scou
   }
 });
 
+test('Effort line in plain and pretty output, only for picks with an estimate, and in check', () => {
+  const plain = formatRecs(EDGE.recommendations);
+  assert.match(plain, /\n   Effort: Install: Wraps the ACME API[^\n]*\n   Install: /, 'right before Install');
+  assert.match(plain, /\n   Effort: Build your own \(skill, under an hour\): Only instructions/);
+  assert.equal((plain.match(/Effort:/g) || []).length, 2, 'only picks with an estimate');
+  const pretty = stripAnsi(prettyAll(PROFILE, EDGE.notes, EDGE.recommendations, { profilePath: '<DATA>/profile.json' }, P('nocolor', 100)));
+  assert.match(pretty, /Effort\s+Install: Wraps the ACME API/);
+  assert.match(pretty, /Effort\s+Build your own \(skill, under an hour\)/);
+  assert.match(formatCheck(fx('check.json')), /^Effort: Install: Wraps the ACME API/m);
+  assert.ok(!formatCheck(fx('check-clean.json')).includes('Effort'), 'no estimate, no line');
+  const pc = stripAnsi(prettyCheck(fx('check.json'), P('nocolor', 100)));
+  for (const s of ['Build or install', 'MCP server', '~4,500 lines of TypeScript', 'ACME_API_KEY', 'Install']) assert.ok(pc.includes(s), s);
+});
+
 test('plain recommendations: notes, flags, partial momentum, unscanned, README installs, no matches', () => {
   const text = [...EDGE.notes.map((n) => `\nNote: ${n}`), formatRecs(EDGE.recommendations), formatRecs([])].join('\n');
   snap('recs-edge.plain.txt', `${text}\n`);

@@ -33,6 +33,8 @@
 │ Why        you use vitest in 2 projects; testing in 3/4 sessions, friction   │
 │            in 2                                                              │
 │ Watch out  no license, single maintainer                                     │
+│ Effort     Install: Wraps the ACME API with ~4,500 lines of TypeScript:      │
+│            installing saves you keeping up with it.                          │
 │ Install    /plugin marketplace add acme/test-runner-mcp then /plugin install │
 │            runner@acme (from README; review before running)                  │
 │                                                                              │
@@ -53,6 +55,9 @@
 │ Toolkit for agents. 日本語 docs.                                             │
 │                                                                              │
 │ Why      you use react in 1 project                                          │
+│ Effort   Build your own (skill, under an hour): Only instructions (~150      │
+│          lines of Markdown) and no external API, so writing your own is      │
+│          quick.                                                              │
 │ Install  git clone https://github.com/big/agent-kit                          │
 │          ~/.claude/skills/agent-kit                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯

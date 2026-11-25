@@ -5,10 +5,12 @@
 import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
 import { NBSP } from './term.mjs';
+import { effortLine } from './effort.mjs';
 
 const SEV = { high: 'red', medium: 'yellow', low: 'dim' };
 const TRUST = { high: 'green', medium: 'yellow', low: 'red' };
 const VERDICT = { 'safe-looking': 'green', review: 'yellow', 'do not install': 'red' };
+const ADVICE = { build: 'green', either: 'yellow', install: 'cyan' };
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const num = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : String(n ?? '—'));
 /** Short momentum for the picks table: "+84★ in 7d", "at least 9★ in 7d", "+210.5★/day", "~4★/day". */
@@ -52,6 +54,7 @@ function pickBox(P, r, i) {
   if (r.description) body.push(...P.wrap(r.description, P.inner), '');
   const rows = [['Why', [r.stackNote, evidenceText(r)].filter(Boolean).join('; ') || '—']];
   if (r.trust.notes.length) rows.push(['Watch out', r.trust.notes.join(', '), 'yellow', 'yellow']);
+  if (r.effort) rows.push(['Effort', effortLine(r.effort), ADVICE[r.effort.advice], ADVICE[r.effort.advice]]);
   rows.push(['Install', `${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`]);
   body.push(...P.fields(rows, { w: P.inner }));
   const flags = r.trust.flags || [];
@@ -119,6 +122,25 @@ export function prettyMe(r, P) {
 
 // ---- check ------------------------------------------------------------------------------
 
+/** What it is, how big, what it needs, and the advice: one aligned block. */
+function effortFields(e, P) {
+  const size = e.loc
+    ? `${e.truncated ? 'at least ' : ''}${num(e.codeFiles)} code files, ~${num(e.loc)} lines of ${e.languages.join(', ') || 'code'}`
+    : `~${num(e.instructionLines)} lines of Markdown, no code`;
+  const needs = [
+    e.needs.credentials.length ? `credentials: ${e.needs.credentials.join(', ')}` : null,
+    e.needs.services.length ? `running: ${e.needs.services.join(', ')}` : null,
+    e.needs.network ? 'network' : null,
+  ].filter(Boolean).join(' · ') || 'nothing external';
+  return P.fields([
+    ['What', e.typeLabel],
+    ['Size', `${size}${e.dependencies != null ? ` · ${e.dependencies} ${e.dependencies === 1 ? 'dependency' : 'dependencies'}` : ''}`],
+    ['Needs', needs, e.needs.credentials.length || e.needs.services.length ? 'yellow' : null],
+    ['Advice', e.advice === 'install' ? e.adviceLabel : `${e.adviceLabel} (${e.buildForm}, ${e.buildTime})`, ADVICE[e.advice], ADVICE[e.advice]],
+    ['Why', e.reason],
+  ], { indent: 2 });
+}
+
 export function prettyCheck(r, P) {
   const m = r.metadata;
   const tone = VERDICT[r.verdict] || 'yellow';
@@ -144,6 +166,7 @@ export function prettyCheck(r, P) {
   out.push(P.divider(r.flags.length ? `Flags (${r.flags.length})` : 'Flags'));
   if (!r.flags.length) out.push(`  ${P.green('none')}`);
   for (const f of r.flags) out.push(...flagLines(P, f, { indent: 2 }));
+  if (r.effort) out.push('', P.divider('Build or install'), ...effortFields(r.effort, P));
   out.push('', P.divider('Install'));
   if (r.install.commands.length) {
     out.push(...indented(P, 'From the README; review before running:', 2, 'dim'));

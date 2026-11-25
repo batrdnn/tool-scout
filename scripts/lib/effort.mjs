@@ -228,14 +228,14 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
     advice = 'install'; reason = `A standalone app with ${size}: install it rather than rebuild it.`;
   } else if ((f.type === 'instructions' || f.loc <= T.SMALL_LOC) && !apis.length && !services.length) {
     advice = 'build';
-    reason = `${what} (${size}), no external API: a ${buildForm(f)} of your own takes ${buildTime(f)}.`;
+    reason = `${what} (${size}) and no external API, so writing your own is quick.`;
   } else if (apis.length || services.length) {
     advice = 'either';
     const need = credText.length ? ` (needs ${credText.join(', ')})` : services.length ? ` (needs ${list(services)})` : '';
     reason = `Small (${size}) but tied to ${apis.length ? list(apiText) : list(services)}${need}: build it if you need only a little of it, install it to get fixes.`;
   } else {
     advice = 'either';
-    reason = `Medium-sized (${size}): building takes ${buildTime(f)}; installing is quicker if it fits as it is.`;
+    reason = `Medium-sized (${size}), no external API: building is real work; installing is quicker if it fits as it is.`;
   }
   const label = { build: 'Build your own', either: 'Either', install: 'Install' }[advice];
   return {

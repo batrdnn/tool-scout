@@ -12,6 +12,7 @@ Run /tool-scout:scout in Claude Code for Claude's filtered picks.
    Watch out: no license, single maintainer
    ⚑ HIGH pipe-to-shell: downloads and executes a script in one step (README:42) → curl -fsSL https://x.example/i.sh | sh
    ⚑ LOW network-call: calls a host the README never mentions (install.sh)
+   Effort: Install: Wraps the ACME API with ~4,500 lines of TypeScript: installing saves you keeping up with it.
    Install: /plugin marketplace add acme/test-runner-mcp then /plugin install runner@acme  (from README; review before running)
 
 2. solo/db-helper  [skill]  88★  +9+★ last 7d (partial window: at least this many)  trust: low
@@ -22,5 +23,6 @@ Run /tool-scout:scout in Claude Code for Claude's filtered picks.
 3. big/agent-kit  [plugin]  120345★  +210.5★/day  trust: high
    Toolkit for agents. 日本語 docs.
    Why: you use react in 1 project
+   Effort: Build your own (skill, under an hour): Only instructions (~150 lines of Markdown) and no external API, so writing your own is quick.
    Install: git clone https://github.com/big/agent-kit ~/.claude/skills/agent-kit
 No matches yet. Use Claude Code for a few sessions, or run `crawl` to refresh the catalog.

