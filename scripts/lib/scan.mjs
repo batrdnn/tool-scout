@@ -9,11 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { RateLimitError } from './github.mjs';
 import { extractInstallHint } from './install.mjs';
+import { effortFiles, effortFacts, advise } from './effort.mjs';
 
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 11; // bump when rules change so cached scans are redone
+export const SCAN_VERSION = 12; // bump when rules change so cached scans are redone (12: effort facts)
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -205,9 +206,12 @@ export async function scanRepo(client, fullName, meta = {}) {
   const explained = explainedHostsOf(readme);
   const flags = readme ? scanText(readme, { file: 'README', role: 'readme', explainedHosts: explained, repo: fullName }) : [];
   const scanned = readme ? ['README'] : [];
+  const texts = {}; // what was fetched, reused by the effort estimate
+  const contents = (p) => fetchRaw(client, `${api}/contents/${p.split('/').map(encodeURIComponent).join('/')}`);
   for (const f of files) {
-    const text = await fetchRaw(client, `${api}/contents/${f.path.split('/').map(encodeURIComponent).join('/')}`);
+    const text = await contents(f.path);
     if (text == null) continue;
+    texts[f.path] = text;
     scanned.push(f.path);
     flags.push(...scanText(text, { file: f.path, role: f.role, explainedHosts: explained, repo: fullName }));
   }
@@ -218,7 +222,10 @@ export async function scanRepo(client, fullName, meta = {}) {
     try { marketplacePlugins = (JSON.parse(await fetchRaw(client, `${api}/contents/.claude-plugin/marketplace.json`) || '{}').plugins || []).length; } catch { /* malformed: ignore */ }
   }
   const hint = extractInstallHint(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind }, { marketplacePlugins });
-  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note };
+  // Build-or-install facts from the same tree, plus the few small manifests not fetched above.
+  for (const p of effortFiles(treeRes.data?.tree)) if (!(p in texts)) texts[p] = await contents(p);
+  const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind });
+  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, effortFacts: effort };
 }
 
 function dedupe(flags) {
@@ -276,6 +283,8 @@ export async function scanRecommendations(recs, catalog, { client, dataDir, rese
     }
     if (memo && scan) memo.set(rec.name, scan);
     rec.trust = applyFlags(rec.trust, scan);
+    // Advice is worked out now, from cached facts, so "actively maintained" is never stale.
+    if (scan?.effortFacts) rec.effort = { ...scan.effortFacts, ...advise(scan.effortFacts, { pushedAt: repo.pushedAt, now }) };
     // Real install command from the README when there is one (display only, never run).
     if (scan?.install?.length) {
       rec.install = [scan.install.join(' then '), scan.installNote].filter(Boolean).join(', ');
