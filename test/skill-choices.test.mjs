@@ -1,0 +1,87 @@
+// Interactive choices in Claude Code: after the picks (and after /tool-scout:me) the skill asks
+// multiple-choice questions with AskUserQuestion. Every option maps to an action that already
+// exists; none of them installs or builds anything.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const SCOUT = read('skills/scout/SKILL.md');
+const ME = read('skills/me/SKILL.md');
+const CLI = read('scripts/lib/cli.mjs');
+const cliCommands = new Set([...CLI.matchAll(/case '([a-z-]+)':/g)].map((m) => m[1]));
+
+/** The "Ask what's next" part of a skill: from its heading or step to the next step or section. */
+function choices(md, start) {
+  const i = md.search(start);
+  assert.ok(i >= 0, `no section matching ${start}`);
+  const rest = md.slice(i);
+  const end = rest.slice(1).search(/\n(?:## |\d+\. \*\*)/);
+  return end < 0 ? rest : rest.slice(0, end + 1);
+}
+const flat = (s) => s.replace(/\s+/g, ' ');
+/** Option items: `- "Label": what it does`, possibly over several lines. */
+const options = (sec) => [...sec.matchAll(/^\s*- "([^"]+)":\s*([\s\S]*?)(?=\n\s*- "|\n\s*\n|(?![\s\S]))/gm)].map((m) => ({ label: m[1], does: flat(m[2]) }));
+/** Script commands an option runs (`… cmd …`) or skill it hands over to. */
+const commandsIn = (s) => [...s.matchAll(/`… ([a-z-]+)[^`]*`/g)].map((m) => m[1]);
+
+const SCOUT_RAW = choices(SCOUT, /^7\. \*\*Ask what's next/m);
+const ME_RAW = choices(ME, /^## Ask what's next/m);
+const SCOUT_SEC = flat(SCOUT_RAW);
+const ME_SEC = flat(ME_RAW);
+
+test('scout: after the picks, one multiple-choice question per pick with exactly the four existing actions', () => {
+  assert.match(SCOUT_SEC, /AskUserQuestion/);
+  assert.match(SCOUT_SEC, /one question per pick/i);
+  assert.match(SCOUT_SEC, /multiSelect: true/);
+  const opts = options(SCOUT_RAW);
+  assert.deepEqual(opts.map((o) => o.label), ['Show install steps', 'Check it first', 'Rate useful / not', 'Not interested']);
+  assert.ok(opts.length <= 4, 'AskUserQuestion takes at most 4 options');
+  for (const o of opts) assert.ok(o.label.split(/\s+/).length <= 5, `label too long: ${o.label}`);
+});
+
+test('scout: each option maps to something that already exists', () => {
+  const by = Object.fromEntries(options(SCOUT_RAW).map((o) => [o.label, o.does]));
+  assert.match(by['Show install steps'], /`install`/);
+  assert.match(by['Show install steps'], /don't run/i);
+  assert.deepEqual(commandsIn(by['Check it first']), ['check']);
+  assert.match(by['Check it first'], /--json/);
+  assert.match(by['Rate useful / not'], /"Useful".*"Not useful"/);
+  assert.match(by['Rate useful / not'], /Ratings/);
+  assert.match(by['Not interested'], /Feedback: "not interested"/);
+  assert.match(SCOUT, /^## Ratings$/m);
+  assert.match(SCOUT, /^## Feedback: "not interested"$/m);
+  for (const c of commandsIn(SCOUT_SEC)) assert.ok(cliCommands.has(c), `no CLI command "${c}"`);
+});
+
+test('scout: question shape fits AskUserQuestion (≤4 questions per call, headers ≤12 characters)', () => {
+  assert.match(SCOUT_SEC, /up to 4 questions/i);
+  assert.match(SCOUT_SEC, /5 picks/);
+  const headers = [...SCOUT_SEC.matchAll(/header `([^`]+)`/g)].map((m) => m[1]);
+  assert.ok(headers.length >= 1);
+  for (const h of headers) assert.ok(h.replace('N', '5').length <= 12, `header too long: ${h}`);
+});
+
+test('scout: nothing is installed or built, and there is a text fallback', () => {
+  assert.match(SCOUT_SEC, /none of these installs/i);
+  assert.match(SCOUT_SEC, /never (?:install|run an install)/i);
+  assert.ok(!/\b(?:npm|pip|brew) install\b|\/plugin install|git clone/.test(SCOUT_SEC), 'an install command in the choices');
+  assert.match(SCOUT_SEC, /without (?:the )?AskUserQuestion|AskUserQuestion isn't available/i);
+  assert.match(SCOUT_SEC, /1 useful, 2 not, 3 useful/, 'the one-line rating fallback stays');
+});
+
+test('me: one question with "See recommendations" and "Save my card", mapped to existing actions', () => {
+  assert.match(ME_SEC, /AskUserQuestion/);
+  const by = Object.fromEntries(options(ME_RAW).map((o) => [o.label, o.does]));
+  assert.deepEqual(Object.keys(by), ['See recommendations', 'Save my card']);
+  assert.match(by['See recommendations'], /\/tool-scout:scout/);
+  assert.match(by['Save my card'], /Shareable card/);
+  assert.match(ME, /^## Shareable card$/m);
+  assert.match(ME, /scout\.mjs" me --card --plain/);
+  assert.match(ME_SEC, /without (?:the )?AskUserQuestion|AskUserQuestion isn't available/i);
+  assert.ok(!/\b(?:npm|pip|brew) install\b|\/plugin install|git clone/.test(ME_SEC));
+});
+
+test('me: the scout runs only when the user picks "See recommendations"', () => {
+  assert.match(flat(ME), /Don't run the scout yourself unless they pick "See recommendations"/);
+});

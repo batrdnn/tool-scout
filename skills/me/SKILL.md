@@ -27,9 +27,21 @@ same text without them; `--json` is for reading results.
    Don't change the animal, the evidence lines or the counts, and don't add a different animal.
    You may add one short sentence afterwards in your own words about what the evidence says.
 3. Keep the last line ("Tools that fit a … : run /tool-scout:scout") as it is. Don't run the
-   scout yourself or suggest specific tools here; the animal doesn't change recommendations.
+   scout yourself unless they pick "See recommendations" below, and don't suggest specific tools
+   here; the animal doesn't change recommendations.
 4. If it is the Egg (under 10 sessions), say they can come back after 10 sessions. If it shows
    "Hatching into… <animal>?", present that as an early hint, not their animal yet.
+
+## Ask what's next
+
+After the animal, ask one multiple-choice question with the AskUserQuestion tool: "What next?",
+header `Next`, single choice, with these options:
+- "See recommendations": run the `/tool-scout:scout` skill and follow its steps.
+- "Save my card": make the card as in Shareable card below and give the user the full path.
+
+Skip this question if the user already asked for the card. If they skip it, do nothing more. A
+typed "Other" answer is a normal message. If AskUserQuestion isn't available, don't ask: the last
+line already points to `/tool-scout:scout`. Neither option installs anything.
 
 ## Shareable card
 

@@ -117,8 +117,25 @@ same text without them; `--json` is for reading results.
    Skim the repo (especially `SKILL.md`, install scripts and any network calls) before
    installing. Never install anything yourself unless the user explicitly asks.
 
-7. **Ask for a rating, in one line.** For example: "Was each pick useful? Reply like
-   `1 useful, 2 not, 3 useful`, or skip." This is how the scout learns whether it helps.
+7. **Ask what's next, as multiple choice.** With the AskUserQuestion tool, ask one question per
+   pick, all in one call (it takes up to 4 questions; with 5 picks, ask about picks 1 to 4, then
+   pick 5 in a second call). Each question: "What next for owner/repo?", header `Pick N`,
+   `multiSelect: true`, and exactly these options, each mapped to something that already exists:
+   - "Show install steps": show the pick's `install` value (or `installCommands`) in a code block,
+     as "from the README, review before running", as in step 5. Don't run it.
+   - "Check it first": run the trust check, `… check <owner/repo> --json`, and present it the way
+     the `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't
+     mean safe").
+   - "Rate useful / not": ask one follow-up question per such pick with the options "Useful" and
+     "Not useful", then record each answer as in Ratings below.
+   - "Not interested": dismiss it as in Feedback: "not interested" below, and mention undo.
+
+   None of these installs anything, and you never install, clone or build anything from these
+   answers. When several are picked, do them in the order above. A typed "Other" answer is a
+   normal message: handle it as you would in chat. If the user skips a question, do nothing for
+   that pick. If AskUserQuestion isn't available, ask for a rating in one line instead, for
+   example: "Was each pick useful? Reply like `1 useful, 2 not, 3 useful`, or skip." Either way,
+   this is how the scout learns whether it helps.
 
 ## If the script fails
 
