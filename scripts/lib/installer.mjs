@@ -17,7 +17,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { checkRepo } from './check.mjs';
-import { scanText } from './scan.mjs';
+import { scanText, explainedHostsOf } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
 import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
@@ -276,7 +276,8 @@ const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
  * a skill installs. So the plan fetches each one at the pinned commit and scans it: a high flag, or a
  * text file the scanner can't decode (UTF-16, NUL bytes), blocks the plan.
  */
-async function scanWrites({ client, api, writes, dir, blockers, notes, extra }) {
+async function scanWrites({ client, api, writes, dir, blockers, notes, extra, repo, readme }) {
+  const explainedHosts = explainedHostsOf(typeof readme === 'string' ? readme : '');
   const flags = []; const binary = [];
   for (const w of writes) {
     const r = await client.request(`${api}/git/blobs/${w.blob}`);
@@ -288,7 +289,9 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra }) 
     const unreadable = text == null || text.includes('\u0000');
     if (unreadable && !TEXT_LIKE.test(w.rel) && !utf16Bom(buf)) { binary.push(w.rel); continue; }
     if (unreadable) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
-    flags.push(...scanText(text, { file: `${dir}${w.rel}`, role: SCRIPT.test(w.rel) ? 'script' : 'skill' }));
+    // Judged like the repo check does: the README is a readme, and the repo's own URLs are its own.
+    const role = /^readme(\.\w+)?$/i.test(w.rel) ? 'readme' : SCRIPT.test(w.rel) ? 'script' : 'skill';
+    flags.push(...scanText(text, { file: `${dir}${w.rel}`, role, repo, explainedHosts }));
   }
   const high = flags.filter((f) => f.severity === 'high');
   if (high.length) blockers.push(`the scan of the files it writes flagged ${[...new Set(high.map((f) => f.id))].join(', ')} (${[...new Set(high.map((f) => f.file))].join(', ')})`);
@@ -362,7 +365,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       if (writes.length > MAX_FILES) blockers.push(`${writes.length} files: more than ${MAX_FILES}`);
       if (writes.reduce((a, w) => a + w.size, 0) > MAX_BYTES) blockers.push('more than 5 MB');
       if (writes.some((w) => w.mode === '100755')) notes.push('Some files are marked executable. They are copied, never run.');
-      if (!blockers.length) await scanWrites({ client, api, writes, dir, blockers, notes, extra: (scan) => { scanned = scan; } });
+      if (!blockers.length) await scanWrites({ client, api, writes, dir, blockers, notes, repo: full, readme, extra: (scan) => { scanned = scan; } });
     }
   } else if (method === 'plugin') {
     let mk = null;
