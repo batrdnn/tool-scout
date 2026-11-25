@@ -18,6 +18,7 @@ import { detectInstalled } from './profile.mjs';
 import { scanRecommendations } from './scan.mjs';
 import { crawl, loadCatalog } from './crawl.mjs';
 import { dismissedSet } from './feedback.mjs';
+import { loadLog } from './installer.mjs';
 
 export const MAX_ITEMS = 5;
 const MAX_PLAN_BYTES = 200_000;
@@ -232,4 +233,16 @@ export function formatKickoff({ needsFile, needs: n, toolkit }) {
   for (const note of toolkit.notes) out.push(`Note: ${note}`);
   out.push('', `Saved locally: ${needsFile} (the only copy of the plan text; never sent anywhere).`);
   return out.join('\n');
+}
+
+/** What was installed or built since the kickoff, with undo commands. */
+export function kickoffSummary(dataDir) {
+  const n = loadNeeds(dataDir);
+  if (!n) return { done: [], text: 'No kickoff yet: run kickoff --plan-file <path> first.' };
+  const since = Date.parse(n.createdAt);
+  const done = loadLog(dataDir).installs.filter((e) => Date.parse(e.at) >= since && !e.undoneAt && !e.replacedBy);
+  const line = (e) => e.method === 'build'
+    ? `Built ${e.name} (${e.form}, ${e.scope} scope). Undo: scout.mjs undo ${e.name}`
+    : `Installed ${e.name} (${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope) from ${e.repo}. Undo: scout.mjs undo ${e.name}`;
+  return { done, text: done.length ? [`Since the kickoff (${n.createdAt.slice(0, 16).replace('T', ' ')} UTC):`, ...done.map((e) => `- ${line(e)}`)].join('\n') : 'Nothing installed or built since the kickoff.' };
 }

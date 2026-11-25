@@ -28,8 +28,8 @@ Always pass `--json` or `--plain` when you run the script. Run by a person in a 
 colors and boxes, and its escape codes would show up here as garbage like `[31m`. `--plain` is the
 same text without them; `--json` is for reading results.
 
-Below, `…` stands for running the bundled script: node, `${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs`,
-the command, and `--data "${CLAUDE_PLUGIN_DATA}"` at the end.
+Below, `…` stands for running the bundled script as in the Final summary block: node,
+`${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs`, the command, and `--data "${CLAUDE_PLUGIN_DATA}"` at the end.
 
 ## Steps
 
@@ -59,9 +59,53 @@ the command, and `--data "${CLAUDE_PLUGIN_DATA}"` at the end.
    repo. Say "nothing needed: Claude handles this without a tool" for `nothing` items as given.
    If `omitted` is above 0, say how many smaller needs were left out. Relay every entry in `notes`.
 
-5. **Next.** Each item names its own plan command in `next`. Offer to take the items the user wants
-   through "Installing, with consent" or "Building your own, with consent" in the scout skill, one at
-   a time, each with its own plan and its own yes/no.
+5. **Selection.** With AskUserQuestion, ask "Which of these should I set up?", header `Toolkit`,
+   `multiSelect: true`, one option per item, labeled like "1. Install owner/repo".
+   "Nothing needed" items are not options. A question takes at most 4 options: with 5 items, ask about items 1 to 4,
+   then item 5 in a second question in the same call. If the user picks nothing, stop: say they can
+   run the kickoff again later. Without AskUserQuestion, ask in one line ("Reply with the numbers,
+   like `1, 3`") and wait.
+
+## Each chosen item, one item at a time
+
+Take the chosen items in toolkit order, one item at a time, and finish each before starting the
+next. Never in bulk: never one plan, one question or one confirmation for several items.
+
+- **Install** items: follow "Installing, with consent" in the scout skill (`/tool-scout:scout`):
+  make the plan with the item's `next` command (`… install <owner/repo> --scope project --plan --plain`),
+  show it in plain words (what gets written or run and where, settings, the pinned commit, the check
+  verdict and coverage, credentials to set yourself, and the license line), ask one yes/no question
+  for that item only ("Install <name> as planned?", options "Yes, install it" and "No"), and only
+  after "Yes" run `… install <owner/repo> --confirm <planId> --plain`.
+- **Build** items: follow "Building your own, with consent" in the scout skill. Start the draft with
+  the item's `next` command (`… build --start --form <form> --name <name> --plain`), write it in your
+  own words, tailored to the plan's needs and stack, then make the plan with
+  `… build --form <form> --name <name> --from <folder> --scope project --plan --plain` (add
+  `--source <owner/repo>` when the item has a `source`), show it in plain words, ask one yes/no
+  question ("Build <name> as planned?", "Yes, build it" and "No"), and only after "Yes" run
+  `… build --confirm <planId> --plain`. A hook also needs its second, separate confirmation.
+- **The CLAUDE.md note**: a memory build. Start it with the item's `next` command, write the
+  section with the plan's `conventions` (one short bullet each, in the plan's own terms) plus one
+  line on the stack and domain, then plan it with `--scope project`, show the section text in plain
+  words, ask one yes/no question, and only after "Yes" confirm it. If the project's CLAUDE.md
+  already has that section, plan with `--replace`.
+
+Each item gets its own yes/no, after its own plan. If an item's plan says "Blocked", explain why
+and go on to the next item. If the user says "No" to one, skip it and go on. Never pass --confirm
+without that item's yes for that exact plan ID.
+
+## Final summary
+
+When every chosen item is done, run:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" kickoff --summary --plain --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+and show what was installed or built, each with its undo command (`… undo <name> --plain`), and
+which chosen items were skipped or blocked, in a few lines. Mention credentials to set by name
+only. Remind them that the needs file (`kickoff/needs.json` in the data folder) holds the plan
+text, and they can delete it.
 
 ## If the script fails
 

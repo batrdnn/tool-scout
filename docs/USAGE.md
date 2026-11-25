@@ -24,6 +24,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `build --confirm-hook <planId>` | a hook's second, separate confirmation: `--confirm` alone only records the first yes and writes nothing |
 | `kickoff --plan-file <path> [--project DIR] [--json]` | a project plan becomes a needs list (tasks, stack, domain, conventions), saved only in the data folder (`kickoff/needs.json`), and a toolkit of at most 5 items; proposes only, never installs |
 | `kickoff --rematch` | matches the saved needs list again, after Claude corrected it |
+| `kickoff --summary [--json]` | what was installed or built since the kickoff, each with its undo command |
 | `undo <name>` | removes exactly what an install logged and restores the logged settings; after a `--replace`, puts the previous version back |
 | `installed [--json]` | what Tool Scout installed and hasn't undone |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
