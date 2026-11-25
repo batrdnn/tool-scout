@@ -50,20 +50,22 @@ const INJECTION = [
   /\byou\s+are\s+now\s+(?:in\s+)?(?:developer|dan|jailbreak|unrestricted|god)\s*mode/i,
   /\b(?:new|updated|override)\s+system\s+prompt\b/i,
 ];
-// Text as the phrase rules read it: soft hyphens and zero-width characters taken out, NFKC
-// (full-width and mathematical letters become ASCII), and Cyrillic/Greek look-alikes folded to
-// Latin. `at[i]` is the index in the original text of folded character i, so flags keep their line.
-const FOLD_DROP = /[\u00AD\u034F\u180E\u200B-\u200F\u2060-\u2064\uFEFF]/;
+// Text as the phrase rules read it: every format character (soft hyphen, zero-width, bidi, tag),
+// combining mark, variation selector and Hangul filler taken out; NFKD (full-width, mathematical
+// and accented letters become ASCII); Cyrillic/Greek/Armenian look-alikes folded to Latin. `at[i]`
+// is the index in the original text of folded character i, so flags keep their line.
+const FOLD_DROP = /[\p{Cf}\p{Mn}\p{Me}\u115F\u1160\u3164\uFFA0]/u;
 const LOOKALIKE = Object.fromEntries([
-  ...[...'аеорсухіјѕԁһԛԝԜвкмнт'].map((c, i) => [c, 'aeopcyxijsdhqwWbkmht'[i]]),
-  ...[...'АВЕЗКМНОРСТХІЈЅУ'].map((c, i) => [c, 'ABE3KMHOPCTXIJSY'[i]]),
+  ...[...'аеорсухіјѕԁһԛԝԜвкмнтӏ'].map((c, i) => [c, 'aeopcyxijsdhqwWbkmhtl'[i]]),
+  ...[...'АВЕЗКМНОРСТХІЈЅУӀ'].map((c, i) => [c, 'ABE3KMHOPCTXIJSYI'[i]]),
   ...[...'αεικνορτυχΑΒΕΖΗΙΚΜΝΟΡΤΥΧ'].map((c, i) => [c, 'aeiknoptuxABEZHIKMNOPTYX'[i]]),
+  ...[...'օսոհցզ'].map((c, i) => [c, 'ounhgq'[i]]),
 ]);
 export function foldForRules(text) {
   if (!/[^\x00-\x7F]/.test(text)) return { text, at: null };
   let out = ''; const at = []; let i = 0;
   for (const ch of text) {
-    if (!FOLD_DROP.test(ch)) for (const c of ch.normalize('NFKC')) { const f = LOOKALIKE[c] ?? c; out += f; for (let k = 0; k < f.length; k++) at.push(i); }
+    if (!FOLD_DROP.test(ch)) for (const c of ch.normalize('NFKD')) { if (FOLD_DROP.test(c)) continue; const f = LOOKALIKE[c] ?? c; out += f; for (let k = 0; k < f.length; k++) at.push(i); }
     i += ch.length;
   }
   return { text: out, at };
