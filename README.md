@@ -179,7 +179,8 @@ the installed plugin. What changed in each release: [CHANGELOG.md](CHANGELOG.md)
 ## Development
 
 ```bash
-npm test     # node --test, no dependencies
+npm test                # node --test, no dependencies: only failures and a one-line summary
+npm run test:verbose    # every test, with the full output
 ```
 
 Testers: see [TESTING.md](TESTING.md). Eval setup: [docs/USAGE.md](docs/USAGE.md#eval-setup).

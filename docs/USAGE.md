@@ -218,7 +218,8 @@ profile can't put other text on it. A test fails if any other profile string app
 ## Eval setup
 
 ```bash
-npm test                                   # unit and CLI tests, no network
+npm test                                   # unit and CLI tests, no network: failures and a one-line summary
+npm run test:verbose                       # the same, with every test listed
 npm run eval                               # shortlist precision on frozen personas and catalog
 npm run eval -- --set holdout              # blind-labeled holdout set (reporting only)
 npm run eval:e2e -- --samples 3            # end-to-end with Claude as judge; cached per sample
