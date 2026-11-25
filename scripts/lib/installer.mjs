@@ -218,18 +218,21 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
   // Paths compare as macOS's file system resolves them (case and Unicode normalization folded): Claude Code
   // there loads Hooks/HOOKS.json for hooks/hooks.json, so the plan must list it too.
   const fold = (p) => p.normalize('NFC').toLowerCase();
-  const byFold = new Map(blobs.map((t) => [fold(t.path), t.path]));
+  const byFold = new Map();
+  for (const t of blobs) byFold.set(fold(t.path), [...(byFold.get(fold(t.path)) || []), t.path]);
   const linked = (p) => tree.find((t) => (t.mode === '120000' || t.mode === '160000' || t.type === 'commit') && (fold(p) === fold(t.path) || fold(p).startsWith(`${fold(t.path)}/`)));
   if (dir && linked(dir)) return none(`${linked(dir).path} is a symlink or submodule`);
   const read = async (p) => {
     if (linked(p)) throw new Error(`${linked(p).path} is a symlink or submodule`);
-    const real = byFold.get(fold(p));
-    if (!real) return undefined;
+    const found = byFold.get(fold(p));
+    if (!found) return undefined;
+    if (found.length > 1) { const e = new Error(`${found.join(' and ')} differ only in case: which one Claude Code loads depends on the disk`); e.block = true; throw e; }
+    const real = found[0];
     const r = await client.request(`${api}/contents/${real.split('/').map(encodeURIComponent).join('/')}?ref=${pinned}`, { accept: 'application/vnd.github.raw+json', raw: true });
     try { return JSON.parse(r.data); } catch { return null; }
   };
   let manifest;
-  try { manifest = await read(at('.claude-plugin/plugin.json')); } catch (e) { return none(e.message); }
+  try { manifest = await read(at('.claude-plugin/plugin.json')); } catch (e) { return { ...none(e.message), block: e.block }; }
   // Each source is optional (the default files) or named (a path the plugin gives, which must be there).
   const out = { hooks: [], mcp: [] };
   const collect = async (kind, defaults, declared) => {
@@ -252,7 +255,7 @@ async function pluginHooks({ client, api, pinned, blobs, tree = blobs, mk, plugi
   };
   let why;
   try { why = await collect('hooks', [at('hooks/hooks.json')], [manifest?.hooks, entry.hooks])
-    || await collect('mcp', [at('.mcp.json')], [manifest?.mcpServers, entry.mcpServers]); } catch (e) { why = e.message; }
+    || await collect('mcp', [at('.mcp.json')], [manifest?.mcpServers, entry.mcpServers]); } catch (e) { why = e.message; if (e.block) return { ...none(why), block: true }; }
   return why ? none(why) : out;
 }
 
@@ -376,7 +379,9 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       settings.push({ file, key: `enabledPlugins.${id}`, before, after: true });
       managed.push(path.join(home, '.claude', 'plugins'));
       notes.push(`Claude Code adds the marketplace from the repo's current head. Tool Scout checks it is still ${pinned.slice(0, 7)} right before, and that the checkout is ${pinned.slice(0, 7)} right after; otherwise it undoes the install.`);
-      ({ hooks, hooksWhy, mcp: pluginMcp } = await pluginHooks({ client, api, pinned, blobs, tree, mk, plugin: part || plugins[0] }));
+      let block;
+      ({ hooks, hooksWhy, mcp: pluginMcp, block } = await pluginHooks({ client, api, pinned, blobs, tree, mk, plugin: part || plugins[0] }));
+      if (block) blockers.push(hooksWhy);
       notes.push("Running claude also updates Claude Code's own ~/.claude.json (it may back it up under ~/.claude/backups). On undo, Tool Scout puts back what the uninstall changes there.");
     }
   } else if (method === 'mcp') {

