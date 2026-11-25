@@ -43,11 +43,11 @@ const TYPES = {
       files: { 'package.json': JSON.stringify({ dependencies: { '@modelcontextprotocol/sdk': '1', axios: '1' } }) },
       readme: 'Export `ACME_API_KEY` before starting the server.',
     },
-    want: { type: 'mcp-server', advice: 'install', apis: ['ACME'] },
+    want: { type: 'mcp-server', advice: 'install', apis: [] }, // ACME is not a known API and has no domain in the README
   },
   'small-api-test-mcp': {
     repo: { tree: { 'requirements.txt': 40, 'server.py': 200 * L }, files: { 'requirements.txt': 'fastmcp\nhttpx\n' }, readme: 'Set WEATHER_API_KEY.' },
-    want: { type: 'mcp-server', advice: 'either', apis: ['WEATHER'] },
+    want: { type: 'mcp-server', advice: 'either', apis: [] },
   },
   'planner-app': {
     repo: {

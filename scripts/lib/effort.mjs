@@ -91,13 +91,33 @@ function dependencyNames(files) {
 }
 
 // ---- what it needs ----------------------------------------------------------------------
-const CRED_NAME = /\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_(?:API_KEY|APIKEY|KEY|TOKEN|SECRET|SECRET_KEY|CLIENT_ID|CLIENT_SECRET|PASSWORD|ACCESS_KEY|ACCESS_TOKEN|AUTH_TOKEN|PAT))\b/g;
-const CRED_SUFFIX = /_(?:API_KEY|APIKEY|SECRET_KEY|CLIENT_ID|CLIENT_SECRET|ACCESS_KEY|ACCESS_TOKEN|AUTH_TOKEN|KEY|TOKEN|SECRET|PASSWORD|PAT)$/;
+// Only names that look like secrets: *_API_KEY, *_TOKEN, *_SECRET, *_ACCESS_KEY, *_PAT, OAuth client IDs.
+const SECRET_SUFFIX = /_(?:API_?KEY|(?:ACCESS_|AUTH_|BOT_|REFRESH_)?TOKEN|(?:CLIENT_)?SECRET(?:_KEY)?|ACCESS_KEY(?:_ID)?|PAT|CLIENT_ID)$/;
+// …but not settings that merely end like one (AGENT_MAX_CONCURRENT_JOBS_PER_TOKEN, REQUEST_TIMEOUT_TOKEN).
+const SETTING_WORDS = new Set(['MAX', 'MIN', 'TIMEOUT', 'CONCURRENT', 'CONCURRENCY', 'LIMIT', 'EXPIRE', 'EXPIRES', 'EXPIRY', 'TTL', 'SIZE', 'POOL', 'PORT', 'HOST', 'URL', 'PER', 'COUNT', 'RETRY', 'RETRIES', 'INTERVAL', 'DAYS', 'HOURS', 'MINUTES', 'SECONDS', 'LENGTH', 'NUM', 'ENABLED', 'DISABLED', 'PATH', 'DIR', 'FILE', 'HEADER', 'PREFIX', 'TYPE', 'NAME']);
+// An app's own secrets (SECRET_KEY, JWT_SECRET) and local service keys aren't outside credentials.
+const OWN_SECRET = /^(?:SECRET|APP|JWT|SESSION|ENCRYPTION|SIGNING|COOKIE|CSRF|ADMIN|ROOT|MASTER|INTERNAL|LOCAL|DB|DATABASE|INNER)(?:_|$)/;
+// A value that is a placeholder (blank, "your-key-here", <token>, ${VAR}…) means "fill this in": a real
+// credential. A working default (dify-sandbox, difyai123456) means a local setting between the app's own parts.
+const PLACEHOLDER_VALUE = /^$|your|xxx|\.\.\.|[<>]|change[-_ ]?me|replace|here\b|example|placeholder|^\$\{?|^\*+$|todo|insert|enter|^sk-$|^null$|^none$|^""$|^''$/i;
 const PLACEHOLDER = /^(YOUR|MY|THE|SOME|EXAMPLE|SAMPLE|XXX|DUMMY|FAKE|TEST)$/;
 // Build tools that expose env vars to the browser prefix them: VITE_FIREBASE_API_KEY is Firebase's.
 const ENV_PREFIX = /^(?:VITE|NEXT_PUBLIC|REACT_APP|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|GATSBY|VUE_APP)_/;
-// Passwords and an app's own secrets (SECRET_KEY, JWT_SECRET) are credentials, not external APIs.
-const NOT_AN_API = /_PASSWORD$|^(?:SECRET|ROOT|APP|ADMIN|MASTER|PRIVATE|JWT|SESSION|ENCRYPTION|SIGNING|COOKIE|CSRF|DB|DATABASE|INTERNAL|LOCAL)_/;
+/** Services named from a credential's first word. Anything else is only named when the README links its domain. */
+export const KNOWN_APIS = {
+  OPENAI: 'OpenAI', ANTHROPIC: 'Anthropic', CLAUDE: 'Anthropic', GITHUB: 'GitHub', GH: 'GitHub', GITLAB: 'GitLab', BITBUCKET: 'Bitbucket',
+  STRIPE: 'Stripe', SLACK: 'Slack', NOTION: 'Notion', AWS: 'AWS', S3: 'AWS S3', AZURE: 'Azure', GOOGLE: 'Google', GEMINI: 'Gemini', GCP: 'Google Cloud',
+  FIREBASE: 'Firebase', SUPABASE: 'Supabase', OPENROUTER: 'OpenRouter', FIRECRAWL: 'Firecrawl', LINEAR: 'Linear', JIRA: 'Jira',
+  ATLASSIAN: 'Atlassian', CONFLUENCE: 'Confluence', DISCORD: 'Discord', TELEGRAM: 'Telegram', TWILIO: 'Twilio', SENDGRID: 'SendGrid',
+  RESEND: 'Resend', MAILGUN: 'Mailgun', HUGGINGFACE: 'Hugging Face', HF: 'Hugging Face', REPLICATE: 'Replicate', FAL: 'fal',
+  ELEVENLABS: 'ElevenLabs', DEEPSEEK: 'DeepSeek', GROQ: 'Groq', MISTRAL: 'Mistral', COHERE: 'Cohere', PERPLEXITY: 'Perplexity',
+  XAI: 'xAI', TOGETHER: 'Together AI', FIREWORKS: 'Fireworks', VOYAGE: 'Voyage AI', JINA: 'Jina', BRAVE: 'Brave Search', TAVILY: 'Tavily',
+  EXA: 'Exa', SERPAPI: 'SerpApi', VERCEL: 'Vercel', NETLIFY: 'Netlify', HEROKU: 'Heroku', CLOUDFLARE: 'Cloudflare', CF: 'Cloudflare',
+  DIGITALOCEAN: 'DigitalOcean', DATADOG: 'Datadog', SENTRY: 'Sentry', POSTHOG: 'PostHog', MIXPANEL: 'Mixpanel', PINECONE: 'Pinecone',
+  QDRANT: 'Qdrant', WEAVIATE: 'Weaviate', SHOPIFY: 'Shopify', HUBSPOT: 'HubSpot', SALESFORCE: 'Salesforce', ASANA: 'Asana',
+  TRELLO: 'Trello', AIRTABLE: 'Airtable', TODOIST: 'Todoist', ZAPIER: 'Zapier', FIGMA: 'Figma', SPOTIFY: 'Spotify', YOUTUBE: 'YouTube',
+  TWITTER: 'X (Twitter)', REDDIT: 'Reddit', ALGOLIA: 'Algolia', MAPBOX: 'Mapbox', POLYGON: 'Polygon', ALPACA: 'Alpaca',
+};
 const MAX_LISTED = 8; // credentials and APIs listed; the totals are kept as counts
 const OTHER_INSTALL = /\b(?:npx|uvx|pipx?\s+install|npm\s+(?:i|install)|pnpm\s+add|yarn\s+add|bun\s+add|go\s+install|cargo\s+install|brew\s+install|claude\s+mcp\s+add|claude\s+plugin\s+install|\/plugin\s+install)\b/i;
 const NEGATED = /\b(?:no|without|not|don'?t|doesn'?t|never|zero)\b[^.\n]{0,25}$/i;
@@ -110,33 +130,50 @@ const DB_ENV = /\b(?:DATABASE_URL|POSTGRES_[A-Z_]+|PG(?:HOST|DATABASE|USER)|MYSQ
 const DB_IMAGE = /^\s*image:\s*["']?(?:[\w./-]*\/)?(?:postgres|postgis|mysql|mariadb|mongo|redis|valkey|elasticsearch|neo4j|clickhouse)\b/im;
 const DOCKER_RUN = /\bdocker(?:-compose|\s+compose)\s+up\b|\bdocker\s+run\b/i;
 
-function credentialsIn(texts) {
-  const names = new Set();
-  const phrases = new Set();
-  for (const text of texts) {
-    for (const m of text.matchAll(CRED_NAME)) names.add(m[1]);
-    for (const [re, label] of [[/\bOAuth\b/g, 'OAuth'], [/\bAPI[ _-]?keys?\b/gi, 'API key']]) {
-      for (const m of text.matchAll(re)) {
-        const before = text.slice(Math.max(0, m.index - 40), m.index);
-        if (ASKED.test(before) && !NEGATED.test(before)) phrases.add(label);
-      }
-    }
-  }
-  return { names: [...names].sort(), phrases: [...phrases].sort() };
+/** True for a name that looks like an outside secret: right suffix, no settings words, not the app's own. */
+export function isSecretName(name) {
+  const n = name.replace(ENV_PREFIX, '');
+  if (!SECRET_SUFFIX.test(n) || OWN_SECRET.test(n)) return false;
+  return !n.split('_').some((w) => SETTING_WORDS.has(w));
 }
 
-/** The service behind each credential: STRIPE_API_KEY → STRIPE. Unnamed ones → "an external API", only if nothing is named. */
-function apisOf(cred) {
-  const named = new Set();
-  let unnamed = cred.phrases.length > 0;
-  for (const n of cred.names) {
-    const name = n.replace(ENV_PREFIX, '');
-    if (NOT_AN_API.test(name)) continue;
-    const head = name.replace(CRED_SUFFIX, '').split('_')[0];
-    if (!head || PLACEHOLDER.test(head) || head === 'API') unnamed = true;
-    else named.add(head);
+/** name → example value (null when only mentioned) from .env files, compose files and .mcp.json env. */
+function assignments(text) {
+  const out = [];
+  for (const m of String(text).matchAll(/^\s*(?:-\s*)?(?:export\s+)?([A-Z][A-Z0-9_]*)\s*[:=][ \t]*(.*)$/gm)) out.push([m[1], m[2].trim().replace(/^["']|["']$/g, '').replace(/\s+#.*$/, '')]);
+  return out;
+}
+
+function credentialsIn({ readme = '', valued = [] }) {
+  const names = new Set();
+  const local = new Set(); // shipped with a working default: a setting, not a credential
+  for (const [name, value] of valued) {
+    if (!isSecretName(name)) continue;
+    if (PLACEHOLDER_VALUE.test(value)) names.add(name); else local.add(name);
   }
-  return named.size ? [...named].sort() : unnamed ? ['an external API'] : [];
+  for (const m of readme.matchAll(/\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)) if (isSecretName(m[1]) && !local.has(m[1])) names.add(m[1]);
+  const phrases = new Set();
+  for (const [re, label] of [[/\bOAuth\b/g, 'OAuth'], [/\bAPI[ _-]?keys?\b/gi, 'API key']]) {
+    for (const m of readme.matchAll(re)) {
+      const before = readme.slice(Math.max(0, m.index - 40), m.index);
+      if (ASKED.test(before) && !NEGATED.test(before)) phrases.add(label);
+    }
+  }
+  // A phrase only counts when no named credential already stands for it.
+  return { names: [...names].sort(), phrases: names.size ? [] : [...phrases].sort() };
+}
+
+/** Name the service behind each credential: from KNOWN_APIS, or a prefix whose domain the README links. */
+function apisOf(cred, readme) {
+  const out = new Set();
+  for (const n of cred.names) {
+    const head = n.replace(ENV_PREFIX, '').split('_')[0];
+    if (PLACEHOLDER.test(head)) continue;
+    if (KNOWN_APIS[head]) { out.add(KNOWN_APIS[head]); continue; }
+    const p = head.toLowerCase();
+    if (p.length >= 3 && new RegExp(`(?:^|[^a-z0-9.-])(?:api\\.)?${p}\\.(?:com|io|ai|dev|co|org|net|app|so|sh|cloud|tech)\\b`, 'i').test(readme)) out.add(head[0] + head.slice(1).toLowerCase());
+  }
+  return [...out].sort();
 }
 
 // ---- collections -------------------------------------------------------------------------
@@ -228,17 +265,17 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
 
   const deps = dependencyNames(files);
   const mcpConfig = (() => { try { return JSON.parse(fileOf(files, /^\.mcp\.json$/) || 'null'); } catch { return null; } })();
-  const mcpEnv = Object.values(mcpConfig?.mcpServers || {}).flatMap((s) => Object.keys(s?.env || {})).join('\n');
   const envFile = fileOf(files, /^\.env\.(example|sample|template)$/) || '';
   const compose = fileOf(files, /^(docker-)?compose\.ya?ml$/) || '';
-  const cred = credentialsIn([readme || '', envFile, mcpEnv, compose]);
-  const apis = apisOf(cred);
+  const mcpValued = Object.values(mcpConfig?.mcpServers || {}).flatMap((sv) => Object.entries(sv?.env || {}).map(([k, v]) => [k, String(v ?? '')]));
+  const cred = credentialsIn({ readme: readme || '', valued: [...assignments(envFile), ...assignments(compose), ...mcpValued] });
+  const apis = apisOf(cred, readme || '');
   const services = [];
   // Docker is needed when there's a compose file, or when the README's only way to run it is docker.
   if (has(/^(docker-)?compose\.ya?ml$/) || (DOCKER_RUN.test(readme || '') && !OTHER_INSTALL.test(readme || ''))) services.push('docker');
   if ((deps || []).some((d) => DB_DEPS.has(d)) || DB_IMAGE.test(compose) || DB_ENV.test(`${envFile}\n${compose}`)) services.push('database');
   const remoteMcp = Object.values(mcpConfig?.mcpServers || {}).some((s) => /^https?:\/\//.test(s?.url || ''));
-  const network = apis.length > 0 || remoteMcp || (deps || []).some((d) => HTTP_DEPS.has(d));
+  const network = cred.names.length + cred.phrases.length > 0 || remoteMcp || (deps || []).some((d) => HTTP_DEPS.has(d));
 
   const loc = Math.round(codeBytes / BYTES_PER_LINE);
   // Where the code lives: inside skill folders (a skill with scripts) or beside them (an app with a skill).
@@ -326,29 +363,40 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
   const size = sizeText(f);
   const what = f.type === 'instructions' ? 'Only instructions' : `A ${f.typeLabel}`;
   const apiCount = f.needs.apiCount ?? apis.length;
-  const apiText = apiCount > 2 ? [`${apiCount} APIs (${apis.slice(0, 3).join(', ')}${apiCount > 3 ? ', …' : ''})`] : apis.map((a) => (a === 'an external API' ? a : `the ${a} API`));
+  const credCount = f.needs.credentialCount ?? credentials.length;
+  const external = credCount > 0;
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  // Named APIs when we know them; otherwise only how many credentials it needs.
+  const tiedTo = apis.length
+    ? list(apiCount > 2 ? [`${apiCount} APIs (${apis.slice(0, 3).join(', ')}${apiCount > 3 ? ', …' : ''})`] : apis.map((a) => `the ${a} API`))
+    : `${plural(credCount, 'credential')}`;
   const credText = credentials.filter((c) => /^[A-Z0-9_]+$/.test(c)).slice(0, 2);
 
   let advice, reason;
   if (f.loc >= T.LARGE_LOC || f.truncated) {
     advice = 'install';
-    reason = apis.length ? `Wraps ${list(apiText)} with ${size}: installing saves you keeping up with it.`
+    reason = apis.length ? `Wraps ${tiedTo} with ${size}: installing saves you keeping up with it.`
       : `${size[0].toUpperCase()}${size.slice(1)}: far more than you'd want to write and maintain.`;
   } else if (f.loc > T.SMALL_LOC && services.length) {
     advice = 'install'; reason = `Needs ${list(services)} running and has ${size}: install it and follow its setup.`;
-  } else if (f.loc > T.SMALL_LOC && apis.length) {
-    advice = 'install'; reason = `Wraps ${list(apiText)} with ${size}: installing saves you keeping up with it.`;
+  } else if (f.loc > T.SMALL_LOC && external) {
+    advice = 'install';
+    reason = apis.length ? `Wraps ${tiedTo} with ${size}: installing saves you keeping up with it.`
+      : `Needs ${tiedTo} and has ${size}: installing saves you keeping up with what it talks to.`;
   } else if (active && f.loc >= T.ACTIVE_MIN_LOC) {
     advice = 'install'; reason = `Actively maintained (pushed ${days === 0 ? 'today' : `${days} day${days === 1 ? '' : 's'} ago`}) with ${size}: hard to keep up with on your own.`;
-  } else if ((f.type === 'instructions' || f.loc <= T.SMALL_LOC) && !apis.length && !services.length) {
+  } else if ((f.type === 'instructions' || f.loc <= T.SMALL_LOC) && !external && !services.length) {
     advice = 'build';
     reason = !f.loc && f.instructionLines > 800
       ? `${what} (${size}) and no external API: write your own for the part you need.`
       : `${what} (${size}) and no external API, so writing your own is quick.`;
-  } else if (apis.length || services.length) {
+  } else if (external || services.length) {
     advice = 'either';
-    const need = credText.length ? ` (needs ${credText.join(', ')})` : services.length ? ` (needs ${list(services)})` : '';
-    reason = `${f.loc ? 'Small' : 'Only instructions'} (${size}) but tied to ${apis.length ? list(apiText) : list(services)}${need}: build it if you need only a little of it, install it to get fixes.`;
+    const what2 = `${f.loc ? 'Small' : 'Only instructions'} (${size})`;
+    const tie = external
+      ? (apis.length ? `tied to ${tiedTo}${credText.length ? ` (needs ${credText.join(', ')})` : ''}` : `needs ${tiedTo}${credText.length ? ` (${credText.join(', ')})` : ''}`)
+      : `needs ${list(services)} running`;
+    reason = `${what2} but ${tie}: build it if you need only a little of it, install it to get fixes.`;
   } else {
     advice = 'either';
     reason = `Medium-sized (${size}), no external API: building is real work; installing is quicker if it fits as it is.`;

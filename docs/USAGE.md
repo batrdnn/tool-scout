@@ -81,10 +81,15 @@ For each final pick (and for `check`), the content scan also reads the repo's fi
   or agents, MCP server, or app.
 - **Size:** files, approximate lines of code (file bytes ÷ 35; docs, tests, examples, vendored and
   generated code, lockfiles and assets don't count), main languages, runtime dependencies.
-- **Needs:** credentials (ALL_CAPS env names like `STRIPE_API_KEY`, or "API key" / "OAuth" in the
-  README, unless negated; passwords and an app's own secrets are not counted as APIs), network,
-  and running services (a compose file, `docker run` when it's the only way to run it, a
-  database driver or image).
+- **Needs:** credentials, network, and running services (a compose file, `docker run` when it's the
+  only way to run it, a database driver or image). Only names that look like secrets count:
+  `*_API_KEY`, `*_TOKEN`, `*_SECRET`, `*_ACCESS_KEY`, `*_PAT`, OAuth client IDs; plus "API key" or
+  "OAuth" when the README asks the user for one. Not counted: settings that merely end like one
+  (`AGENT_MAX_CONCURRENT_JOBS_PER_TOKEN`: MAX, TIMEOUT, CONCURRENT, PER, EXPIRE…), passwords, an
+  app's own secrets (`SECRET_KEY`, `JWT_SECRET`), and keys an example file ships with a working
+  default value (those connect the app's own containers). An API is named only from a known list
+  (`KNOWN_APIS` in effort.mjs) or a prefix whose domain the README links (`BALE_BOT_TOKEN` +
+  `bale.ai`); otherwise the advice says "needs N credentials"
 
 | advice | when |
 |---|---|

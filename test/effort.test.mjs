@@ -2,7 +2,7 @@
 // Synthetic trees, one per type, plus the thresholds at their boundaries.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { estimateEffort, effortFacts, advise, effortFiles, effortLine, THRESHOLDS, BYTES_PER_LINE, BYTES_PER_MD_LINE } from '../scripts/lib/effort.mjs';
+import { estimateEffort, effortFacts, advise, effortFiles, effortLine, THRESHOLDS, BYTES_PER_LINE, BYTES_PER_MD_LINE, KNOWN_APIS } from '../scripts/lib/effort.mjs';
 
 const NOW = Date.parse('2026-11-25T00:00:00Z');
 const OLD = '2025-06-01T00:00:00Z';
@@ -69,10 +69,10 @@ test('MCP server wrapping an external API → install; credentials, network, lan
   assert.deepEqual(e.languages, ['TypeScript']);
   assert.equal(e.dependencies, 3);
   assert.deepEqual(e.needs.credentials, ['STRIPE_API_KEY', 'STRIPE_WEBHOOK_SECRET']);
-  assert.deepEqual(e.needs.apis, ['STRIPE']);
+  assert.deepEqual(e.needs.apis, ['Stripe']);
   assert.equal(e.needs.network, true);
   assert.equal(e.advice, 'install');
-  assert.match(e.reason, /STRIPE/);
+  assert.match(e.reason, /the Stripe API/);
 });
 
 test('small but tied to one API → either', () => {
@@ -80,7 +80,8 @@ test('small but tied to one API → either', () => {
   const e = est({ kind: 'mcp-server', tree: [blob('requirements.txt', 40), code('server.py', 170)], files, readme: 'Get a key and export WEATHER_API_KEY=...' });
   assert.equal(e.type, 'mcp-server');
   assert.equal(e.dependencies, 2);
-  assert.deepEqual(e.needs.apis, ['WEATHER']);
+  assert.deepEqual(e.needs.apis, [], 'WEATHER is not a known API and no weather domain is in the README');
+  assert.match(e.reason, /needs 1 credential/);
   assert.equal(e.advice, 'either');
   assert.equal(e.adviceLabel, 'Either');
 });
@@ -144,7 +145,8 @@ test('dependency counts from requirements.txt, pyproject.toml, go.mod and Cargo.
 test('credentials: env-style names and API-key/OAuth wording; "no API key needed" does not count', () => {
   assert.deepEqual(est({ tree: [md('SKILL.md', 20)], readme: 'Works offline. No API key needed.' }).needs.credentials, []);
   assert.deepEqual(est({ tree: [md('SKILL.md', 20)], readme: 'Sign in with OAuth.' }).needs.credentials, ['OAuth']);
-  assert.deepEqual(est({ tree: [md('SKILL.md', 20)], readme: 'Paste your API key.' }).needs.apis, ['an external API']);
+  const asked = est({ tree: [md('SKILL.md', 20)], readme: 'Paste your API key.' }).needs;
+  assert.deepEqual([asked.credentials, asked.apis], [['API key'], []], 'counted, not named');
   const mcp = est({ tree: [blob('.mcp.json'), code('s.py', 50)], files: { '.mcp.json': JSON.stringify({ mcpServers: { x: { command: 'x', env: { NOTION_TOKEN: '' } } } }) } });
   assert.deepEqual(mcp.needs.credentials, ['NOTION_TOKEN']);
   const env = est({ tree: [blob('.env.example'), code('s.py', 50)], files: { '.env.example': 'OPENAI_API_KEY=\nDATABASE_URL=postgres://\n' } });
@@ -201,8 +203,8 @@ test('docs/USAGE.md documents every threshold with the value the code uses', asy
 // ---- found by running the estimate on real repos (docs/eval/effort-review.md) ----------
 
 test('credential names: build-tool prefixes stripped, passwords and bare secrets are not APIs, unnamed dropped when named exist', () => {
-  const e = est({ tree: [blob('.env.example'), code('a.ts', 50)], files: { '.env.example': 'VITE_FIREBASE_API_KEY=\nNEXT_PUBLIC_STRIPE_KEY=\nDB_PASSWORD=\nSECRET_KEY=\nYOUR_TOKEN=\n' } });
-  assert.deepEqual(e.needs.apis, ['FIREBASE', 'STRIPE']);
+  const e = est({ tree: [blob('.env.example'), code('a.ts', 50)], files: { '.env.example': 'VITE_FIREBASE_API_KEY=\nNEXT_PUBLIC_STRIPE_SECRET=\nDB_PASSWORD=\nSECRET_KEY=\nYOUR_TOKEN=\n' } });
+  assert.deepEqual(e.needs.apis, ['Firebase', 'Stripe']);
 });
 
 test('a huge .env lists at most 8 credentials and 8 APIs, with the totals; the reason stays one short line', () => {
@@ -210,9 +212,13 @@ test('a huge .env lists at most 8 credentials and 8 APIs, with the totals; the r
   const e = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env } });
   assert.equal(e.needs.credentials.length, 8);
   assert.equal(e.needs.credentialCount, 30);
-  assert.equal(e.needs.apis.length, 8);
-  assert.equal(e.needs.apiCount, 30);
-  assert.match(e.reason, /^Wraps 30 APIs/);
+  assert.deepEqual(e.needs.apis, [], 'none of them is a known API');
+  const known = Object.keys(KNOWN_APIS).slice(0, 30).map((k) => `${k}_API_KEY=`).join('\n');
+  const k = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': known } });
+  assert.equal(k.needs.apis.length, 8);
+  assert.ok(k.needs.apiCount > 8);
+  assert.match(k.reason, /^Wraps \d+ APIs/);
+  assert.ok(k.reason.length < 160, k.reason);
   assert.ok(e.reason.length < 160, e.reason);
 });
 
@@ -272,11 +278,11 @@ test('a large instruction set is not "quick": the reason says to take the part y
 });
 
 test('"Wraps N APIs (…)" ends with … only when some are not named', () => {
-  const env = (n) => Array.from({ length: n }, (_, i) => `SVC${String.fromCharCode(65 + i)}_API_KEY=`).join('\n');
-  const three = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(3) } });
-  assert.match(three.reason, /^Wraps 3 APIs \(SVCA, SVCB, SVCC\) with/);
-  const four = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(4) } });
-  assert.match(four.reason, /^Wraps 4 APIs \(SVCA, SVCB, SVCC, …\) with/);
+  const env = (names) => names.map((n) => `${n}_API_KEY=`).join('\n');
+  const three = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(['OPENAI', 'GROQ', 'ANTHROPIC']) } });
+  assert.match(three.reason, /^Wraps 3 APIs \(Anthropic, Groq, OpenAI\) with/);
+  const four = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(['OPENAI', 'GROQ', 'ANTHROPIC', 'MISTRAL']) } });
+  assert.match(four.reason, /^Wraps 4 APIs \(Anthropic, Groq, Mistral, …\) with/);
 });
 
 test('the catalog kind "mcp-server" is a weak signal: hooks, agents or code inside a skill win', () => {
