@@ -13,6 +13,7 @@ export const THRESHOLDS = {
   ACTIVE_DAYS: 14, //  pushed within this many days counts as actively maintained …
   ACTIVE_MIN_LOC: 1000, // … and with at least this much code it's hard to keep up with: install
   NOTE_MAX_LINES: 40, // instructions this short fit in a CLAUDE.md note instead of a skill
+  COLLECTION_MIN: 3, // this many skills, agents, MCP servers or plugins make a collection, judged per part
 };
 export const BYTES_PER_LINE = 35; //    average bytes per line of code (the tree API gives sizes, not lines)
 export const BYTES_PER_MD_LINE = 50; // average bytes per line of Markdown
@@ -138,6 +139,66 @@ function apisOf(cred) {
   return named.size ? [...named].sort() : unnamed ? ['an external API'] : [];
 }
 
+// ---- collections -------------------------------------------------------------------------
+const UNIT_PLURAL = { skill: 'skills', agent: 'agents', server: 'MCP servers', plugin: 'plugins' };
+const MANIFEST_FILE = /^(package\.json|pyproject\.toml|go\.mod|Cargo\.toml)$/;
+const MAX_PART_NAMES = 300;
+const dirOf = (p) => p.replace(/[^/]*$/, '');
+const baseName = (d) => d.replace(/\/$/, '').split('/').pop();
+
+/**
+ * Several skills, agents, MCP servers or plugins in one repo: each part's own size, the typical
+ * (median) part and the largest. The most numerous kind of part decides the unit.
+ */
+function collectionOf(blobs, codeBlobs, mdBlobs, kind) {
+  const outsideSkill = (t) => !IN_SKILL.test(t.path);
+  const units = {
+    skill: blobs.filter((t) => /(^|\/)SKILL\.md$/i.test(t.path) && t.path.includes('/')).map((t) => ({ name: baseName(dirOf(t.path)), prefix: dirOf(t.path) })),
+    agent: blobs.filter((t) => /(^|\/)agents\/[^/]+\.md$/i.test(t.path) && outsideSkill(t)).map((t) => ({ name: t.path.split('/').pop().replace(/\.md$/i, ''), file: t.path })),
+    plugin: blobs.filter((t) => /(^|\/)\.claude-plugin\/plugin\.json$/.test(t.path) && t.path.split('/').length >= 3).map((t) => ({ name: baseName(dirOf(t.path).replace(/\.claude-plugin\/$/, '')), prefix: dirOf(t.path).replace(/\.claude-plugin\/$/, '') })),
+    server: blobs.filter((t) => MANIFEST_FILE.test(t.path.split('/').pop()) && [3, 4].includes(t.path.split('/').length) && !NOT_CODE_DIR.test(t.path)
+      && (kind === 'mcp-server' || /mcp|server/i.test(dirOf(t.path)))).map((t) => ({ name: baseName(dirOf(t.path)), prefix: dirOf(t.path) })),
+  };
+  const [unit, list] = Object.entries(units).sort((a, b) => b[1].length - a[1].length)[0];
+  if (list.length < THRESHOLDS.COLLECTION_MIN) return null;
+  const sum = (arr, part) => arr.filter((t) => (part.file ? t.path === part.file : t.path.startsWith(part.prefix))).reduce((a, t) => a + (t.size || 0), 0);
+  const parts = list.map((p) => ({
+    name: p.name, loc: Math.round(sum(codeBlobs, p) / BYTES_PER_LINE), instructionLines: Math.round(sum(mdBlobs, p) / BYTES_PER_MD_LINE),
+    hooks: !!p.prefix && blobs.some((t) => t.path.startsWith(p.prefix) && /(^|\/)hooks\/hooks\.json$/i.test(t.path)),
+  })).sort((a, b) => a.loc - b.loc || a.instructionLines - b.instructionLines || a.name.localeCompare(b.name));
+  const pick = ({ name, loc, instructionLines }) => ({ name, loc, instructionLines });
+  return {
+    unit, count: parts.length,
+    typical: pick(parts[Math.floor((parts.length - 1) / 2)]), largest: pick(parts.at(-1)),
+    hooks: parts.some((p) => p.hooks), names: parts.map((p) => p.name).sort().slice(0, MAX_PART_NAMES),
+  };
+}
+
+/** The part whose name fits one of the user's topics, in their order: { name, topic } or null. */
+export function matchPart(names, topics, keywords = {}) {
+  for (const topic of topics || []) {
+    const terms = [topic, ...(keywords[topic] || [])].map((k) => k.toLowerCase().replace(/[\s.]+/g, '-'));
+    const hit = (names || []).find((n) => {
+      const tokens = n.toLowerCase().split(/[-_\s.]+/);
+      return terms.some((k) => tokens.includes(k) || (k.length >= 5 && n.toLowerCase().includes(k)));
+    });
+    if (hit) return { name: hit, topic };
+  }
+  return null;
+}
+
+/** For each collection pick: the part for its own evidence topics first, then the profile's topics. Mutates. */
+export function matchCollections(recs, profileTopics = [], keywords = {}) {
+  for (const r of recs) {
+    const c = r.effort?.collection;
+    if (!c) continue;
+    const topics = [...new Set([...(r.evidence || []).map((e) => e.topic), ...profileTopics])];
+    const m = matchPart(c.names, topics, keywords);
+    if (m) c.match = m;
+  }
+  return recs;
+}
+
 // ---- facts ------------------------------------------------------------------------------
 const TYPE_LABEL = {
   instructions: 'instructions-only skill', 'skill-scripts': 'skill with scripts', plugin: 'plugin with hooks or agents',
@@ -187,19 +248,20 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
   // An MCP SDK dependency is proof; the catalog's kind (from topics) only decides when nothing else does.
   const structural = parts.hooks || parts.agents || (parts.skills && skillCodeShare >= 0.5);
   const isMcp = (deps || []).some((d) => MCP_DEPS.has(d)) || (kind === 'mcp-server' && loc > 0 && !structural);
-  const type = isMcp ? 'mcp-server'
+  const collection = collectionOf(blobs, codeBlobs, mdBlobs, kind);
+  const type = collection ? 'collection' : isMcp ? 'mcp-server'
     : (parts.hooks || parts.agents) ? 'plugin'
       : loc === 0 ? 'instructions'
         : (kind !== 'app' && (parts.skills ? skillCodeShare >= 0.5 : parts.pluginManifest || parts.commands)) ? 'skill-scripts'
           : 'app';
   return {
-    type, typeLabel: TYPE_LABEL[type], files: blobs.length, codeFiles: codeBlobs.length, loc, instructionLines, languages,
+    type, typeLabel: collection ? `collection of ${collection.count} ${UNIT_PLURAL[collection.unit]}` : TYPE_LABEL[type], files: blobs.length, codeFiles: codeBlobs.length, loc, instructionLines, languages,
     dependencies: deps ? deps.length : null,
     needs: {
       credentials: [...cred.names, ...cred.phrases].slice(0, MAX_LISTED), credentialCount: cred.names.length + cred.phrases.length,
       apis: apis.slice(0, MAX_LISTED), apiCount: apis.length, network, services,
     },
-    parts, truncated: !!truncated,
+    parts, collection, truncated: !!truncated,
   };
 }
 
@@ -229,8 +291,34 @@ function buildTime(f) {
   return 'a few days';
 }
 
+/** A collection part on its own: its size, and the kind of thing it is. Repo-wide needs stay with the repo. */
+function partFacts(c, p, languages) {
+  const unitType = { server: 'mcp-server', agent: 'plugin', plugin: 'plugin', skill: p.loc ? 'skill-scripts' : 'instructions' }[c.unit];
+  return {
+    type: unitType, typeLabel: TYPE_LABEL[unitType], loc: p.loc, instructionLines: p.instructionLines, languages,
+    parts: { skills: c.unit === 'skill' ? 1 : 0, agents: c.unit === 'agent' ? 1 : 0, hooks: c.unit === 'plugin' && c.hooks, commands: 0 },
+    needs: { credentials: [], credentialCount: 0, apis: [], apiCount: 0, network: false, services: [] }, truncated: false,
+  };
+}
+
+/** Collections are judged by the typical part (and the largest is named), never by the total. */
+function adviseCollection(f, opts) {
+  const c = f.collection;
+  const typical = advise(partFacts(c, c.typical, f.languages), opts);
+  const largest = advise(partFacts(c, c.largest, f.languages), opts);
+  const one = { skill: 'one', agent: 'one', server: 'one', plugin: 'one' }[c.unit];
+  const same = c.largest.name === c.typical.name;
+  const reason = `Collection of ${c.count} ${UNIT_PLURAL[c.unit]}: a typical ${one} is ${sizeText(partFacts(c, c.typical, f.languages))}`
+    + `${same ? '' : `; the largest, ${c.largest.name}, ${sizeText(partFacts(c, c.largest, f.languages))} (${largest.adviceLabel})`}. Take only the part you need.`;
+  return { ...typical, reason, collectionAdvice: { typical, largest } };
+}
+
 /** Build your own / Either / Install, with a form, a time and one plain reason. */
 export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
+  if (f.collection) {
+    const { collectionAdvice, ...rest } = adviseCollection(f, { pushedAt, now });
+    return { ...rest, collection: { ...f.collection, typicalAdvice: collectionAdvice.typical.advice, largestAdvice: { advice: collectionAdvice.largest.advice, adviceLabel: collectionAdvice.largest.adviceLabel } } };
+  }
   const T = THRESHOLDS;
   const days = pushedAt ? Math.floor((now - Date.parse(pushedAt)) / 86400e3) : null;
   const active = days != null && days <= T.ACTIVE_DAYS;
@@ -282,5 +370,6 @@ export function estimateEffort({ pushedAt = null, now = Date.now(), ...input } =
 /** One line for text output: "Build your own (skill, under an hour): …" / "Install: …". */
 export function effortLine(e) {
   const extra = e.advice === 'install' ? '' : ` (${e.buildForm}, ${e.buildTime})`;
-  return `${e.adviceLabel}${extra}: ${e.reason}`;
+  const match = e.collection?.match ? ` For your ${e.collection.match.topic} work: ${e.collection.match.name}.` : '';
+  return `${e.adviceLabel}${extra}: ${e.reason}${match}`;
 }

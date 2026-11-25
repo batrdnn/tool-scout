@@ -92,6 +92,12 @@ For each final pick (and for `check`), the content scan also reads the repo's fi
 | Either | medium size (301 to 2,999 lines), or small but tied to one API or service |
 | Install | at least `LARGE_LOC` = 3,000 lines; or over 300 lines wrapping an API or needing a service; or pushed in the last `ACTIVE_DAYS` = 14 days with at least `ACTIVE_MIN_LOC` = 1,000 lines |
 
+**Collections.** A repo with at least `COLLECTION_MIN` = 3 skills, agents, MCP servers or plugins
+is a "collection of N skills" (the most numerous kind decides). It is judged by its typical
+(median) part, and the largest part is named with its own advice: never by the total size. When a
+part's name fits one of your profile topics (e.g. `webapp-testing` for testing), the advice points
+to it.
+
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a
 time. The facts are cached with the scan; the advice is worked out when read. It's advice only:

@@ -132,9 +132,14 @@ function effortFields(e, P) {
     e.needs.services.length ? `running: ${e.needs.services.join(', ')}` : null,
     e.needs.network ? 'network' : null,
   ].filter(Boolean).join(' · ') || 'nothing external';
+  const c = e.collection;
+  const part = (p) => (p.loc ? `~${num(p.loc)} lines of ${e.languages[0] || 'code'}` : `~${num(p.instructionLines)} lines of Markdown`);
+  const sizeRow = c
+    ? ['Parts', `${c.count} ${e.typeLabel.replace(/^collection of \d+ /, '')}; typical ${part(c.typical)}; largest ${c.largest.name}, ${part(c.largest)}${c.match ? `; for your ${c.match.topic} work: ${c.match.name}` : ''}`]
+    : null;
   return P.fields([
     ['What', e.typeLabel],
-    ['Size', `${size}${e.dependencies != null ? ` · ${e.dependencies} ${e.dependencies === 1 ? 'dependency' : 'dependencies'}` : ''}`],
+    sizeRow || ['Size', `${size}${e.dependencies != null ? ` · ${e.dependencies} ${e.dependencies === 1 ? 'dependency' : 'dependencies'}` : ''}`],
     ['Needs', needs, e.needs.credentials.length || e.needs.services.length ? 'yellow' : null],
     ['Advice', e.advice === 'install' ? e.adviceLabel : `${e.adviceLabel} (${e.buildForm}, ${e.buildTime})`, ADVICE[e.advice], ADVICE[e.advice]],
     ['Why', e.reason],

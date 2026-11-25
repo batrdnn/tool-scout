@@ -45,6 +45,8 @@ import { whoAmI, formatMe, meCard } from './me.mjs';
 import { formatProfile, formatAll } from './output.mjs';
 import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettyStats } from './pretty.mjs';
 import { detectStyle, painter } from './term.mjs';
+import { matchCollections } from './effort.mjs';
+import { TOPICS } from './taxonomy.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
 const BOOLEAN = new Set(['plain', 'json']);
@@ -123,6 +125,8 @@ async function main() {
       const offline = !!opts.offline;
       const client = offline ? null : createClient({ token: githubToken(), log });
       const { recs } = await runPipeline(p, cat, { top, rankOpts, client, dataDir, log });
+      // A collection's part that fits this user (topic names only; the profile never leaves the machine).
+      matchCollections(recs, Object.keys(p.topicWeights || p.topics || {}), TOPICS);
       const LIMITED = 10;
       const limitedHistory = p.sessions < LIMITED;
       const notes = [];
@@ -165,6 +169,8 @@ async function main() {
       if (!opts._.length) throw new Error('usage: check <owner/repo | GitHub URL> [--json]');
       const client = createClient({ token: githubToken(), log });
       const r = await checkRepo(client, opts._[0]);
+      const saved = readJSON('profile.json');
+      if (r.effort) matchCollections([r], Object.keys(saved?.topicWeights || saved?.topics || {}), TOPICS);
       console.log(opts.json ? JSON.stringify(r, null, 2) : style.pretty ? prettyCheck(r, P) : formatCheck(r));
       break;
     }
