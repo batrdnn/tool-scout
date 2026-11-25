@@ -2,6 +2,18 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.8.0 (2026-11-25)
+
+- Build-or-install advice for each pick and for `check`: what the repo is (instructions-only
+  skill, skill with scripts, plugin with hooks or agents, MCP server, app), its size, what it needs
+  (credentials, network, docker or a database), and Build your own / Either / Install with one
+  plain reason. In `--json` (`effort`), an "Effort" line in the text output, and the skills.
+  Advice only: nothing is built or installed.
+- Claude's per-pick question now offers "Why build vs install?" (it ends with the install steps).
+- The CLI titles its list "Shortlist (unfiltered)" and points to `/tool-scout:scout`.
+- `docs/eval/effort-review.md`: the estimate on 20 real repos, for human review
+  (`npm run eval:effort`). Ranking is unchanged.
+
 ## v0.7.0 (2026-11-25)
 
 - Run in a terminal, output has colors, boxes, dividers and aligned columns (`all`, `recommend`,

@@ -1,6 +1,6 @@
 # Build-or-install estimate: review
 
-Run on 2026-11-25 with `npm run eval:effort` (tool-scout 0.7.0). 20 repos: 12 picked
+Run on 2026-11-25 with `npm run eval:effort` (tool-scout 0.8.0). 20 repos: 12 picked
 with seed 2026 from the frozen eval catalog (`test/eval/catalog.json`), plus 8 chosen by hand so
 every type appears. Sizes and needs come from each repo's file tree and a few manifests at the
 time of the run. Thresholds: [docs/USAGE.md](../USAGE.md#build-or-install).
