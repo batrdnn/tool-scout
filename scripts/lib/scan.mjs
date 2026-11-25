@@ -244,6 +244,12 @@ export async function scanRepo(client, fullName, meta = {}) {
  */
 export const unfence = (text) => String(text).replace(/\b(BEGIN|END)(\s+)(REPO\s+TEXT)\b/gi, '[fence marker removed]');
 
+/**
+ * Repo text for inside a fence: every line starts with "| " (line breaks of any kind included), so no
+ * line of it can look like the fence's own BEGIN / END line, however the marker is spelled.
+ */
+export const quoteLines = (text) => String(text).replace(/\r\n?|[\u0085\u2028\u2029]/g, '\n').split('\n').map((l) => `| ${l}`).join('\n');
+
 export const HEAD_LINES = 40;
 const HEAD_CHARS = 3000;
 /** First HEAD_LINES lines (at most HEAD_CHARS), without control, bidi, zero-width or tag characters. */

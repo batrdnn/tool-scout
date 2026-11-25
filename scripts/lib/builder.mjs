@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
-import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
+import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, fencePlan, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
 import { currentVersion, replaceFiles, restoreReplaced, supersede, replaceLine } from './replace.mjs';
 
 export const FORMS = ['skill', 'command', 'subagent', 'hook', 'memory'];
@@ -308,11 +308,12 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
       : `Source:    ${b.source.repo}. ${NO_LICENSE} The draft is in Claude's own words; nothing was copied.`);
   }
   for (const n of b.notes) out.push(`Note:      ${n}`);
+  const after = [];
   if (b.blockers.length) { out.push('Blocked:   this plan cannot be built:'); for (const x of b.blockers) out.push(`           - ${x}`); } else {
-    out.push(`To build exactly this: scout.mjs build --confirm ${rec.id}`);
-    if (b.hook) out.push(`Then, because it is a hook, a second, separate confirmation: scout.mjs build --confirm-hook ${rec.id}`);
+    after.push(`To build exactly this: scout.mjs build --confirm ${rec.id}`);
+    if (b.hook) after.push(`Then, because it is a hook, a second, separate confirmation: scout.mjs build --confirm-hook ${rec.id}`);
   }
-  return out.join('\n');
+  return fencePlan(rec.id, out, after);
 }
 
 // ---- build ----------------------------------------------------------------------------------------
