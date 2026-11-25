@@ -29,7 +29,9 @@ or just "what Claude Code tools should I install?". The first run takes 1 to 3 m
 What happens on your machine:
 - Your recent Claude Code sessions (`~/.claude/projects`) and your projects' dependency files
   (`package.json`, `requirements.txt`, `go.mod`, …) are read **locally**. Only counts are kept.
-- GitHub gets fixed topic searches and public repo names. Nothing about you is sent.
+- GitHub gets fixed topic searches and public repo names. An install plan for an MCP server may
+  also look up a package's current version on npm or PyPI (the package name only). Nothing about
+  you is sent.
 - Tool Scout installs only after you approve a plan, and every install can be undone. Without your yes to a plan, it only shows install steps for you to review.
 
 If you're working on this plugin itself, leave that project out first:

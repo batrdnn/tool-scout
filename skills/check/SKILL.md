@@ -25,7 +25,8 @@ same text without them; `--json` is for reading results.
    node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" check <owner/repo or URL> --json --data "${CLAUDE_PLUGIN_DATA}"
    ```
 
-   Only the public repo name goes to GitHub. If GitHub can't be reached behind a proxy, retry with
+   Only the public repo name goes to GitHub (and an install plan may look up an MCP server's
+   package version on npm or PyPI, the package name only). If GitHub can't be reached behind a proxy, retry with
    `NODE_USE_ENV_PROXY=1` in front.
 
 2. Present the result in plain language:

@@ -15,7 +15,9 @@ user's own work.
 
 - The script reads `~/.claude/projects/*.jsonl` locally and keeps **counts only**
   (topics, languages, command names). No prompt text, file paths or arguments are stored.
-- GitHub is queried with fixed topic searches. Nothing about the user is sent anywhere.
+- GitHub is queried with fixed topic searches and public repo names. An install plan for an MCP
+  server may also look up a package's current version on npm or PyPI (the package name only).
+  Nothing about the user is sent anywhere.
 - Do not read the user's session transcripts yourself. Work only from the script's output.
 
 ## Running the script

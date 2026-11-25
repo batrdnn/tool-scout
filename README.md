@@ -28,7 +28,8 @@ sessions, because it reads your local session history. To drive it from a browse
 - **Node.js 18 or newer.** Check with `node --version`. If it's missing or older, install it
   from [nodejs.org](https://nodejs.org) or with `brew install node`. No other dependencies,
   accounts or API keys are needed.
-- **Internet access to `api.github.com`** for the crawl, momentum and trust checks (`audit`
+- **Internet access to `api.github.com`** for the crawl, momentum and trust checks, and to
+  `registry.npmjs.org` or `pypi.org` when an install plan pins an MCP server's package (`audit`
   needs none). Behind a proxy, set `NODE_USE_ENV_PROXY=1`.
 - **Optional: a GitHub token** (`GITHUB_TOKEN`, or `gh auth login`) makes the first crawl faster
   than the usual 1 to 3 minutes.
@@ -95,7 +96,9 @@ Example cards, made from synthetic profiles (`npm run gallery`).
 
 - Your session history is read **locally** and kept as **counts only**: no prompt text, file
   paths or command arguments.
-- GitHub gets fixed topic searches and public repo names. Nothing about you is sent.
+- GitHub gets fixed topic searches and public repo names. An install plan for an MCP server may
+  also look up a package's current version on npm or PyPI (the package name only). Nothing about
+  you is sent.
 - Data lives in the plugin's data folder (`~/.claude/plugins/data/tool-scout-…`) and is deleted
   when you uninstall. `profile --show` shows exactly what it learned and where it's stored.
 - Tool Scout installs only after you approve a plan, and every install can be undone. It never
