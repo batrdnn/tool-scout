@@ -2,6 +2,17 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.11.3 (2026-11-25)
+
+- Kickoff installs of official marketplace plugins now show the full plan before the yes/no, the
+  same as `/tool-scout:check`: every hook (event, matcher, command), the settings it changes, the
+  pinned commit, the license and the scope. The skill never asks the question before the plan.
+- `build --start` refuses a draft folder left by an earlier run and says so; `--fresh` clears it.
+  Every build plan now shows when its draft files were last written.
+- The ranking-freeze hook no longer blocks chained commands (`&&`, `;`, `|`) that write a file
+  that is not frozen and only name a frozen path elsewhere. Writes to frozen paths stay blocked.
+- Tidy: the shading test allows only space, ▓ and █, as the two-tone rule says.
+
 ## v0.11.2 (2026-11-25)
 
 - Pixel-art animals for `/tool-scout:me`: each of Beaver, Owl, Bee, Octopus, Ant, Fox, Turtle and

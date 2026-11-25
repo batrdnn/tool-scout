@@ -65,7 +65,7 @@ Example of exactly what you'll see and share:
 This is everything that would be shared: aggregate counts, the rated repo names and your Claude Code animal.
 No profile, topics, libraries, projects or prompts. Nothing is sent: copy it yourself if you agree.
 
-tool-scout 0.11.2 ratings (2026-11-25)
+tool-scout 0.11.3 ratings (2026-11-25)
 animal: Bee
 rated: 3
 useful: 2 (67%)
