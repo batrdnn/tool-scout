@@ -2,6 +2,19 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.11.1 (2026-11-25)
+
+- Kickoff fix round after a first run where none of the 5 items was worth keeping. Claude now
+  judges every match with the scout's own filtering before showing it, and never shows one it calls
+  weak: that need becomes "nothing needed" or a build proposal.
+- New candidates, preferred over trending repos: Anthropic's official marketplace (by repo name
+  only) and a short list of built-in Claude Code features such as /ultrareview.
+- CI config files, icons and posts are "nothing needed: Claude does this directly", with one line
+  on how. A match that needs a local service or more than 3 credentials the plan doesn't mention is
+  ranked down and labeled "heavy setup".
+- The CLAUDE.md note holds only conventions not already in CLAUDE.md (none is offered when all are
+  covered), and an item with doubts gets "Skip (recommended)" first in its yes/no.
+
 ## v0.11.0 (2026-11-25)
 
 - Project kickoff: `/tool-scout:kickoff` takes a plan (pasted or a file) and turns it into a needs
