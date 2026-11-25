@@ -270,6 +270,21 @@ text and on the card), next to "come back after 10 sessions".
 | **Turtle** | The Deep Diver | tool calls per session, scaled by 2 ÷ projects when there are more than 2 projects | 40 calls, 2 projects |
 | **Egg** | Not hatched yet | fewer sessions than the threshold; "come back after 10 sessions" | 10 sessions |
 
+**Blind spot to topic.** Each animal's blind spot maps to one topic of the fixed taxonomy, which
+`me --blind-spot` uses to look up one tool (see below):
+
+| animal | blind-spot topic |
+|---|---|
+| **Owl** | `testing` |
+| **Beaver** | `docs` |
+| **Bee** | `debugging` |
+| **Octopus** | `security` |
+| **Ant** | `refactoring` |
+| **Fox** | `planning` |
+| **Turtle** | `git` |
+
+The Egg has no blind-spot tool: it keeps "come back after 10 sessions".
+
 **What it shows:** the animal's ASCII art, its title, the time window ("Your last 30 days: N
 sessions across M projects"), up to 3 evidence lines, a
 superpower, a blind spot, a close second if there is one, and the link line. Evidence lines

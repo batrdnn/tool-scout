@@ -14,6 +14,9 @@ export const CLOSE = 0.85; // a second animal is shown when its score is at leas
 export const MAX_SCORE = 2; // scores are signal ÷ threshold, capped here
 export const HATCHING = 1; // behind the Egg, a top score at least this high shows "Hatching into… <animal>?"
 export const ORDER = ['Beaver', 'Owl', 'Bee', 'Octopus', 'Ant', 'Fox', 'Turtle']; // also breaks ties
+// Each animal's blind spot, as one topic of the fixed taxonomy: what `me --blind-spot` looks a tool up for.
+// The Egg has none (nothing to read yet). Documented in docs/USAGE.md ("Your Claude Code animal").
+export const BLIND_TOPICS = { Owl: 'testing', Beaver: 'docs', Bee: 'debugging', Octopus: 'security', Ant: 'refactoring', Fox: 'planning', Turtle: 'git' };
 
 // A score of 1 means the signal reaches its threshold.
 export const THRESHOLDS = {
@@ -222,7 +225,7 @@ export function whoAmI(p, { as } = {}) {
     hatching: animal === 'Egg' && sc[byScore[0]] >= HATCHING ? byScore[0] : null,
     window: { days: windowDays(p), sessions: sig.sessions, projects: sig.projects },
     evidence: evidence(animal, sig),
-    superpower: a.superpower, blindSpot: a.blindSpot,
+    superpower: a.superpower, blindSpot: a.blindSpot, blindTopic: BLIND_TOPICS[animal] || null,
     second: close ? { animal: runnerUp, title: ANIMALS[runnerUp].title } : null,
     scores: sc,
     next: nextLine(animal),
