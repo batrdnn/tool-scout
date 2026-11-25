@@ -7,7 +7,7 @@
 // Thresholds and the mapping are documented in docs/USAGE.md ("Your Claude Code animal").
 
 import { TOPICS, EXT_HINTS } from './taxonomy.mjs'; // read-only: the fixed topic and language names
-import { shaded } from './sprites.mjs';
+import { shaded, svgRects } from './sprites.mjs';
 
 export const EGG_SESSIONS = 10; // under this many sessions: Egg, not hatched yet
 export const CLOSE = 0.85; // a second animal is shown when its score is at least this share of the winner's
@@ -263,15 +263,12 @@ const COLORS = { // background, accent
 };
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** A self-contained 600×315 SVG card: original ASCII artwork, animal, title, 3 general stats. */
+/** A self-contained 600×315 SVG card: the pixel-art sprite, animal, title, 3 general stats. */
 export function meCard(r, p) {
   const st = cardStats(p);
   const [bg, accent] = COLORS[r.animal];
   const sans = 'font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif"';
-  const mono = 'font-family="ui-monospace, Menlo, Consolas, monospace"';
-  const artW = Math.max(...r.art.map((l) => l.length)) * 10.8; // monospace 18px ≈ 10.8px per character
-  const artTop = 158 - (r.art.length * 24) / 2 + 17;
-  const art = r.art.map((l, i) => `    <text x="${(24 + (240 - artW) / 2).toFixed(1)}" y="${artTop + i * 24}" xml:space="preserve">${esc(l)}</text>`);
+  const sprite = svgRects(r.animal, { x: 48, y: 62, scale: 12 }).map((l) => `    ${l}`); // 16×16 pixels at 12 units each, centered in the panel
   const rows = [['Sessions', st.sessions], ['Top language', st.topLanguage || '—'], ['Top topic', st.topTopic || '—']]
     .map(([k, v], i) => `  <text x="296" y="${190 + i * 30}" font-size="15" fill="#57606a" ${sans}>${k}</text>\n  <text x="576" y="${190 + i * 30}" font-size="15" font-weight="700" text-anchor="end" fill="#1f2328" ${sans}>${esc(v)}</text>`);
   const footer = r.hatched ? `My last ${windowDays(p)} days in Claude Code · tool-scout` : `My last ${windowDays(p)} days · come back after ${EGG_SESSIONS} sessions`;
@@ -279,7 +276,7 @@ export function meCard(r, p) {
     '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="315" viewBox="0 0 600 315" role="img" aria-label="' + esc(`My Claude Code animal: ${r.animal}, ${r.title}`) + '">',
     `  <rect width="600" height="315" rx="20" fill="${bg}"/>`,
     '  <rect x="24" y="24" width="240" height="267" rx="14" fill="#ffffff" fill-opacity="0.7"/>',
-    `  <g font-size="18" fill="${accent}" ${mono}>`, ...art, '  </g>',
+    '  <g shape-rendering="crispEdges">', ...sprite, '  </g>',
     `  <text x="296" y="62" font-size="12" font-weight="700" letter-spacing="2" fill="${accent}" ${sans}>MY CLAUDE CODE ANIMAL</text>`,
     `  <text x="296" y="112" font-size="44" font-weight="800" fill="#1f2328" ${sans}>${esc(r.animal)}</text>`,
     `  <text x="296" y="142" font-size="20" fill="${accent}" ${sans}>${esc(r.title)}</text>`,

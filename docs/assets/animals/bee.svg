@@ -1,12 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="315" viewBox="0 0 600 315" role="img" aria-label="My Claude Code animal: Bee, The Tester">
   <rect width="600" height="315" rx="20" fill="#fff4c7"/>
   <rect x="24" y="24" width="240" height="267" rx="14" fill="#ffffff" fill-opacity="0.7"/>
-  <g font-size="18" fill="#8a6800" font-family="ui-monospace, Menlo, Consolas, monospace">
-    <text x="63.0" y="115" xml:space="preserve">     \   /</text>
-    <text x="63.0" y="139" xml:space="preserve">   __(o.o)__</text>
-    <text x="63.0" y="163" xml:space="preserve">  (__|###|__)~&gt;</text>
-    <text x="63.0" y="187" xml:space="preserve">     |###|</text>
-    <text x="63.0" y="211" xml:space="preserve">      \_/</text>
+  <g shape-rendering="crispEdges">
+    <rect x="72" y="62" width="12" height="12" fill="#2a2214"/>
+    <rect x="204" y="62" width="12" height="12" fill="#2a2214"/>
+    <rect x="84" y="74" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="74" width="12" height="12" fill="#2a2214"/>
+    <rect x="96" y="86" width="12" height="12" fill="#2a2214"/>
+    <rect x="180" y="86" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="98" width="72" height="12" fill="#2a2214"/>
+    <rect x="84" y="110" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="96" y="110" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="110" width="72" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="110" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="110" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="72" y="122" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="84" y="122" width="12" height="12" fill="#e3f1ff"/>
+    <rect x="96" y="122" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="122" width="12" height="12" fill="#ffcf2e"/>
+    <rect x="120" y="122" width="12" height="12" fill="#2a2214"/>
+    <rect x="132" y="122" width="24" height="12" fill="#ffcf2e"/>
+    <rect x="156" y="122" width="12" height="12" fill="#2a2214"/>
+    <rect x="168" y="122" width="12" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="122" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="122" width="12" height="12" fill="#e3f1ff"/>
+    <rect x="204" y="122" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="72" y="134" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="84" y="134" width="12" height="12" fill="#e3f1ff"/>
+    <rect x="96" y="134" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="134" width="72" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="134" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="134" width="12" height="12" fill="#e3f1ff"/>
+    <rect x="204" y="134" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="84" y="146" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="96" y="146" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="146" width="24" height="12" fill="#ffcf2e"/>
+    <rect x="132" y="146" width="24" height="12" fill="#2a2214"/>
+    <rect x="156" y="146" width="24" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="146" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="146" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="96" y="158" width="96" height="12" fill="#2a2214"/>
+    <rect x="84" y="170" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="96" y="170" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="170" width="72" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="170" width="12" height="12" fill="#2a2214"/>
+    <rect x="192" y="170" width="12" height="12" fill="#7aa6d6"/>
+    <rect x="96" y="182" width="96" height="12" fill="#2a2214"/>
+    <rect x="96" y="194" width="12" height="12" fill="#2a2214"/>
+    <rect x="108" y="194" width="72" height="12" fill="#ffcf2e"/>
+    <rect x="180" y="194" width="12" height="12" fill="#2a2214"/>
+    <rect x="96" y="206" width="96" height="12" fill="#2a2214"/>
+    <rect x="108" y="218" width="12" height="12" fill="#2a2214"/>
+    <rect x="120" y="218" width="48" height="12" fill="#ffcf2e"/>
+    <rect x="168" y="218" width="12" height="12" fill="#2a2214"/>
+    <rect x="120" y="230" width="48" height="12" fill="#2a2214"/>
+    <rect x="132" y="242" width="24" height="12" fill="#2a2214"/>
   </g>
   <text x="296" y="62" font-size="12" font-weight="700" letter-spacing="2" fill="#8a6800" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">MY CLAUDE CODE ANIMAL</text>
   <text x="296" y="112" font-size="44" font-weight="800" fill="#1f2328" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">Bee</text>
