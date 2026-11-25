@@ -7,6 +7,7 @@
 // Thresholds and the mapping are documented in docs/USAGE.md ("Your Claude Code animal").
 
 import { TOPICS, EXT_HINTS } from './taxonomy.mjs'; // read-only: the fixed topic and language names
+import { shaded } from './sprites.mjs';
 
 export const EGG_SESSIONS = 10; // under this many sessions: Egg, not hatched yet
 export const CLOSE = 0.85; // a second animal is shown when its score is at least this share of the winner's
@@ -230,7 +231,7 @@ export function whoAmI(p, { as } = {}) {
 
 export function formatMe(r) {
   const w = r.window;
-  const out = [...r.art.map((l) => `  ${l}`), '',
+  const out = [...shaded(r.animal).map((l) => `  ${l}`.trimEnd()), '',
     `  ${r.animal.toUpperCase()} · ${r.title}`,
     ...(r.hatching ? [`  Hatching into… ${r.hatching}?`] : []),
     `  Your last ${w.days} days: ${plural(w.sessions, 'session')} across ${plural(w.projects, 'project')}`];

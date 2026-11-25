@@ -5,7 +5,7 @@
 import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT, TOOL_SCOUT_INSTALL } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
 import { NBSP, strWidth } from './term.mjs';
-import { halfBlocks } from './sprites.mjs';
+import { halfBlocks, shaded } from './sprites.mjs';
 import { effortLine } from './effort.mjs';
 
 const SEV = { high: 'red', medium: 'yellow', low: 'dim' };
@@ -95,9 +95,9 @@ export function prettyAll(p, notes, recs, { profilePath, withProfile = true }, P
 
 export function prettyMe(r, P) {
   const w = r.window;
-  // Color + Unicode: the half-block sprite. Otherwise the ASCII art (NO_COLOR and ASCII rules unchanged).
-  const sprite = P.style.color && P.style.unicode;
-  const art = sprite ? halfBlocks(r.animal, { truecolor: P.style.truecolor === true }) : r.art;
+  // Color + Unicode: the half-block sprite. NO_COLOR + Unicode: monochrome shading. ASCII: the ASCII art.
+  const sprite = P.style.unicode;
+  const art = !sprite ? r.art : P.style.color ? halfBlocks(r.animal, { truecolor: P.style.truecolor === true }) : shaded(r.animal);
   const aw = Math.max(...art.map((l) => strWidth(l)));
   const infoW = P.inner - aw - 3;
   const info = [

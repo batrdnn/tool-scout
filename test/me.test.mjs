@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { whoAmI, formatMe, ANIMALS, ORDER, EGG_SESSIONS } from '../scripts/lib/me.mjs';
+import { shaded } from '../scripts/lib/sprites.mjs';
 import { prof } from './helpers.mjs';
 
 const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
@@ -47,7 +48,7 @@ test('the output shows art, title, the time window, 3 evidence lines from real c
   assert.match(r.evidence.join('\n'), /80 of 120 tool calls/);
   assert.match(r.evidence.join('\n'), /20 new files/);
   const text = formatMe(r);
-  for (const line of ANIMALS.Beaver.art) assert.ok(text.includes(line), 'art missing');
+  for (const row of shaded('Beaver')) assert.ok(text.includes(row.trimEnd()), 'sprite row missing'); // plain output draws the shaded sprite (v0.11.2)
   assert.match(text, /BEAVER · The Builder/);
   assert.match(text, /Your last 30 days: 20 sessions across 1 project\b/);
   for (const e of r.evidence) assert.ok(text.includes(`- ${e}`));

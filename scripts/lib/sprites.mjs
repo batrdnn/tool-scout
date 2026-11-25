@@ -48,7 +48,7 @@ export const SPRITES = {
     ],
   },
   Bee: {
-    palette: { K: '#2a2214', Y: '#ffcf2e', W: '#e3f1ff', B: '#8fbfe8' },
+    palette: { K: '#2a2214', Y: '#ffcf2e', W: '#e3f1ff', B: '#7aa6d6' },
     rows: [
       '..K..........K..',
       '...K........K...',
@@ -226,4 +226,20 @@ export function halfBlocks(name, { truecolor = true } = {}) {
     out.push(line + (cur ? '\u001b[0m' : ''));
   }
   return out;
+}
+
+// ---- Plain text: monochrome shading, no escape codes ---------------------------------------
+
+/** Brightness of a '#rrggbb' color, 0 (black) to 1 (white). */
+export const luminance = (hex) => {
+  const [r, g, b] = rgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+};
+
+// Dark colors get dense characters (like ink on paper): outline █, then ▓, ▒, ░ for the lightest.
+const shade = (hex) => { const l = luminance(hex); return l < 0.3 ? '█' : l < 0.5 ? '▓' : l < 0.72 ? '▒' : '░'; };
+
+/** The sprite as 16 text rows of 32 columns: two characters per pixel, so it keeps its proportions. */
+export function shaded(name) {
+  return pixels(name).map((row) => row.map((c) => (c ? shade(c).repeat(2) : '  ')).join(''));
 }

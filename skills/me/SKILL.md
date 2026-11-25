@@ -23,7 +23,7 @@ same text without them; `--json` is for reading results.
    node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" me --plain --data "${CLAUDE_PLUGIN_DATA}"
    ```
 
-2. Show the output exactly as printed, in a `text` code block, so the ASCII art keeps its shape.
+2. Show the output exactly as printed, in a `text` code block, so the shaded pixel-art animal keeps its shape.
    Don't change the animal, the evidence lines or the counts, and don't add a different animal.
    You may add one short sentence afterwards in your own words about what the evidence says.
 3. Keep the last line ("Tools that fit a … : run /tool-scout:scout") as it is. Don't run the
