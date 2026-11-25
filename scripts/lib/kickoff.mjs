@@ -19,6 +19,7 @@ import { scanRecommendations } from './scan.mjs';
 import { crawl, loadCatalog } from './crawl.mjs';
 import { dismissedSet } from './feedback.mjs';
 import { loadLog } from './installer.mjs';
+import { OFFICIAL_REPO, OFFICIAL_MARKETPLACE, loadOfficial, pickCandidate } from './kickoff-sources.mjs';
 
 export const MAX_ITEMS = 5;
 const MAX_PLAN_BYTES = 200_000;
@@ -32,7 +33,7 @@ const CONVENTION_HEADING = /\b(?:conventions?|rules|guidelines|style|standards)\
 // A match is good enough when the repo says it is about the need (in its name or first clause), or
 // is built around one of the project's own libraries.
 const GOOD_STRENGTH = EVIDENCE.headWeak; // the taxonomy's own bar for a head mention, even of a weak keyword
-const ACTION_WEIGHT = { install: 1, build: 0.9, nothing: 0.4 };
+const ACTION_WEIGHT = { install: 1, builtin: 0.9, build: 0.9, nothing: 0.4 };
 const FORM_OF = { hook: 'hook', subagent: 'subagent', 'slash command': 'command', 'CLAUDE.md note': 'memory', skill: 'skill', 'skill with a script': 'skill' };
 
 export const needsPath = (dataDir) => path.join(dataDir, 'kickoff', 'needs.json');
@@ -117,7 +118,7 @@ const goodEnough = (rec, repo, topic) => {
 const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
 
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
-export async function buildToolkit(n, catalog, { home, project = null, dataDir, now = Date.now(), platform = process.platform, scan = null } = {}) {
+export async function buildToolkit(n, catalog, { home, project = null, dataDir, now = Date.now(), platform = process.platform, scan = null, official = null } = {}) {
   const installed = detectInstalled(home, project || home);
   // Repos Claude judged a weak fit (the scout skill's steps 2-4) are never offered, whatever their rank.
   const exclude = new Set([...(dataDir ? dismissedSet(dataDir) : []), ...(n.rejects || []).map((r) => String(r).toLowerCase())]);
@@ -128,6 +129,18 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
   for (const need of n.needs.filter((x) => x.lines.length)) {
     const ex = `"${clip(need.lines[0])}"`;
     const said = `Your plan has ${plural(need.lines.length, `${need.topic} line`)} (${ex})`;
+    // Anthropic's official plugins and the built-in features come first: they beat trending repos for the same need.
+    const cand = pickCandidate(need, { official, installed: new Set(installed.names), used });
+    if (cand) {
+      used.add(cand.name);
+      const base = { topic: need.topic, impact: Number((need.impact * ACTION_WEIGHT[cand.type === 'builtin' ? 'builtin' : 'install']).toFixed(2)), scope: 'project' };
+      items.push(cand.type === 'builtin'
+        ? { ...base, action: 'builtin', name: cand.name, reason: `${said}; Claude Code has ${cand.name} built in: ${cand.what}; you type ${cand.name} yourself (${cand.note}).` }
+        : { ...base, action: 'install', kind: 'official-plugin', plugin: cand.name, repo: OFFICIAL_REPO, trust: 'official',
+          command: `claude plugin install ${cand.name}@${OFFICIAL_MARKETPLACE} --scope project`,
+          reason: `${said}; ${cand.name} in Anthropic's official marketplace is ${cand.what}.` });
+      continue;
+    }
     const recs = recommend(needProfile(need, installed), catalog, { top: 3, exclude, now, platform });
     let match = null;
     for (const r of recs) {
@@ -210,7 +223,8 @@ export async function runKickoff({ planFile = null, rematch = false, project = n
   }
   const memo = new Map();
   const scanner = scan || (client ? (recs) => scanRecommendations(recs, catalog, { client, dataDir, log, now, memo }).catch((e) => log(`trust scan skipped: ${e.message}`)) : null);
-  const toolkit = await buildToolkit(n, catalog, { home, project: n.project, dataDir, now, platform, scan: scanner });
+  const official = await loadOfficial({ client, dataDir, now, log });
+  const toolkit = await buildToolkit(n, catalog, { home, project: n.project, dataDir, now, platform, scan: scanner, official });
   n.toolkit = toolkit;
   n.matchedAt = new Date(now).toISOString();
   fs.mkdirSync(path.dirname(needsPath(dataDir)), { recursive: true });
@@ -219,7 +233,7 @@ export async function runKickoff({ planFile = null, rematch = false, project = n
   return { needsFile: needsPath(dataDir), needs: n, toolkit };
 }
 
-const ACTION_LABEL = { install: 'Install', build: 'Build your own', memory: 'CLAUDE.md note', nothing: 'Nothing needed' };
+const ACTION_LABEL = { install: 'Install', builtin: 'Use built-in', build: 'Build your own', memory: 'CLAUDE.md note', nothing: 'Nothing needed' };
 
 export function formatKickoff({ needsFile, needs: n, toolkit }) {
   const out = [`Needs from your plan (${plural(n.needs.filter((x) => x.lines.length).length, 'task topic')}):`];
@@ -228,9 +242,10 @@ export function formatKickoff({ needsFile, needs: n, toolkit }) {
   out.push(`  conventions: ${n.conventions.length}`);
   out.push('', `Toolkit (${toolkit.items.length} of at most ${MAX_ITEMS}, by impact):`);
   toolkit.items.forEach((i, k) => {
-    const what = i.action === 'install' ? i.repo : i.action === 'nothing' ? i.topic : `${i.form} ${i.name}${i.source ? ` (idea from ${i.source})` : ''}`;
+    const what = i.kind === 'official-plugin' ? `${i.plugin} (official plugin)` : i.action === 'install' ? i.repo : i.action === 'builtin' ? i.name : i.action === 'nothing' ? i.topic : `${i.form} ${i.name}${i.source ? ` (idea from ${i.source})` : ''}`;
     out.push(`${k + 1}. ${ACTION_LABEL[i.action]}: ${what}`, `   ${i.reason}`);
     if (i.next) out.push(`   Next: scout.mjs ${i.next}`);
+    if (i.command) out.push(`   Command: ${i.command}`);
   });
   if (toolkit.omitted) out.push(`(${plural(toolkit.omitted, 'smaller need')} left out to keep it to ${MAX_ITEMS}.)`);
   for (const note of toolkit.notes) out.push(`Note: ${note}`);

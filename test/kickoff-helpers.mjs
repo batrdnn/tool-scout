@@ -69,3 +69,12 @@ export function filesUnder(dir) {
   walk(dir);
   return out;
 }
+
+export { repo as catalogRepo };
+
+/** Mark plugins as installed for the user (what detectInstalled reads). */
+export function installPlugins(home, ...names) {
+  const dir = path.join(home, '.claude', 'plugins');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: Object.fromEntries(names.map((n) => [n, [{ scope: 'user' }]])) }));
+}

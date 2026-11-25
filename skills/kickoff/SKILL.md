@@ -67,12 +67,15 @@ Below, `…` stands for running the bundled script as in the Final summary block
    **N. what** (Install `owner/repo`, Build your own `<form>`, CLAUDE.md note, or Nothing needed):
    its `reason` line, which ties it to the plan. For an install, add the kind, ★ stars, `trust`
    tier and `effort` label when present; for a build with a `source`, say the idea comes from that
-   repo. Say "nothing needed: Claude handles this without a tool" for `nothing` items as given.
+   repo. An `install` item with `kind: official-plugin` comes from Anthropic's official marketplace
+   (`anthropics/claude-plugins-official`): say so, and show its `command`. A `builtin` item is a
+   Claude Code feature (like `/ultrareview`): nothing to install, the user types it themselves; say
+   so, including any cost noted in its `reason`. Say "nothing needed: Claude handles this without a tool" for `nothing` items as given.
    If `omitted` is above 0, say how many smaller needs were left out. Relay every entry in `notes`.
 
 6. **Selection.** With AskUserQuestion, ask "Which of these should I set up?", header `Toolkit`,
    `multiSelect: true`, one option per item, labeled like "1. Install owner/repo".
-   "Nothing needed" items are not options. A question takes at most 4 options: with 5 items, ask about items 1 to 4,
+   "Nothing needed" items are not options. Built-in items are not options either. A question takes at most 4 options: with 5 items, ask about items 1 to 4,
    then item 5 in a second question in the same call. If the user picks nothing, stop: say they can
    run the kickoff again later. Without AskUserQuestion, ask in one line ("Reply with the numbers,
    like `1, 3`") and wait.
@@ -88,6 +91,12 @@ next. Never in bulk: never one plan, one question or one confirmation for severa
   verdict and coverage, credentials to set yourself, and the license line), ask one yes/no question
   for that item only ("Install <name> as planned?", options "Yes, install it" and "No"), and only
   after "Yes" run `… install <owner/repo> --confirm <planId> --plain`.
+- **Official plugin** items (`kind: official-plugin`, no `next`): there is no Tool Scout plan for
+  these. Show in plain words what the plugin is and the item's `command`
+  (`claude plugin install <plugin>@claude-plugins-official --scope project`: it installs from
+  Anthropic's marketplace into this project's settings), ask one yes/no question for that item only
+  ("Install <plugin> as planned?", "Yes, install it" and "No"), and only after "Yes" run the
+  `command`. Undo is `claude plugin uninstall <plugin>@claude-plugins-official --scope project`.
 - **Build** items: follow "Building your own, with consent" in the scout skill. Start the draft with
   the item's `next` command (`… build --start --form <form> --name <name> --plain`), write it in your
   own words, tailored to the plan's needs and stack, then make the plan with
