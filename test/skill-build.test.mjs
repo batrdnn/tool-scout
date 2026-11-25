@@ -44,3 +44,26 @@ test('scout offers "Build my own" for Build your own picks; check offers it next
   const check = flat(read('skills/check/SKILL.md'));
   assert.match(check, /When the advice is Build your own, offer "Build my own" as well[^.]*Building your own, with consent/);
 });
+
+// ---- v0.10.0 item 4: "build me a skill that …", without a pick -----------------------------------
+
+test('scout: "build me a skill that …" (no pick) triggers the skill and goes through the same flow', () => {
+  const md = read('skills/scout/SKILL.md');
+  const desc = md.match(/^description: (.*)$/m)[1];
+  assert.match(desc, /build (?:me )?(?:a|their own) (?:skill|slash command)[^"]*"build me a skill that …"/i);
+  assert.match(desc, /slash command, subagent, hook or CLAUDE\.md memory/);
+  for (const name of ['scout', 'check']) {
+    const sec = section(read(`skills/${name}/SKILL.md`), '## Building your own, with consent');
+    assert.match(sec, /without a pick \("build me a skill that …"[^)]*\)[^.]*the same steps[^.]*skip step 3[^.]*no `--source`/i, name);
+  }
+});
+
+test('building without a pick needs no network: no --source, no GitHub', async () => {
+  const { makeBuildPlan } = await import('../scripts/lib/builder.mjs');
+  const { sandbox, draft, SKILL, ctx } = await import('./build-helpers.mjs');
+  const sb = sandbox();
+  const client = { request: () => { throw new Error('GitHub was called'); } };
+  const p = await makeBuildPlan({ ...ctx(sb), client, form: 'skill', name: 'pr-notes', from: draft(sb, 'pr-notes', { 'SKILL.md': SKILL('pr-notes') }) });
+  assert.deepEqual(p.body.blockers, []);
+  assert.equal(p.body.source, null);
+});

@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them. Also use when the user says they're not interested in a recommended tool or repo ("not interested in X", "dismiss X", "stop showing X"), or wants to undo that. Also use when the user rates picks ("1 useful, 2 not"), asks for their scout stats or share stats, or wants a project left out of their profile.
+description: Recommend trending Claude Code skills, plugins and MCP servers that fit how this user actually works, based on their local session history. Use when the user runs /scout, or asks what tools, skills, plugins or MCP servers they should install, or what's trending that would help them. Also use when the user says they're not interested in a recommended tool or repo ("not interested in X", "dismiss X", "stop showing X"), or wants to undo that. Also use when the user rates picks ("1 useful, 2 not"), asks for their scout stats or share stats, or wants a project left out of their profile. Also use when the user asks to build their own skill, slash command, subagent, hook or CLAUDE.md memory ("build me a skill that …").
 argument-hint: "[focus, e.g. testing | mcp | refresh]"
 ---
 
@@ -205,7 +205,10 @@ Never run install scripts, package-manager installs, `curl | sh` or any other RE
 
 ## Building your own, with consent
 
-When the user chose "Build my own" for a pick whose advice is Build your own:
+When the user chose "Build my own" for a pick whose advice is Build your own, or asks to build one
+without a pick ("build me a skill that …", a slash command, a subagent, a hook, a CLAUDE.md rule),
+follow the same steps; without a pick, skip step 3 and pass no `--source`, since there is no
+reference repo:
 
 1. Ask at most 2 short questions, in one AskUserQuestion call, and only what you can't tell from
    the conversation: what exactly it should do, and which scope ("All my projects" = user, "This

@@ -77,7 +77,10 @@ same text without them; `--json` is for reading results.
 
 ## Building your own, with consent
 
-When the user chose "Build my own" for a pick whose advice is Build your own:
+When the user chose "Build my own" for a pick whose advice is Build your own, or asks to build one
+without a pick ("build me a skill that …", a slash command, a subagent, a hook, a CLAUDE.md rule),
+follow the same steps; without a pick, skip step 3 and pass no `--source`, since there is no
+reference repo:
 
 1. Ask at most 2 short questions, in one AskUserQuestion call, and only what you can't tell from
    the conversation: what exactly it should do, and which scope ("All my projects" = user, "This
