@@ -268,6 +268,8 @@ const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every ti
 // Binary is decided by content (not valid UTF-8, or a NUL). Only a file meant to be text, by its name
 // or a UTF-16 byte-order mark, is blocked when it can't be read; any other unreadable file is binary.
 const TEXT_LIKE = /(?:^|\/)(?:[^./]+|[^/]*\.(?:md|markdown|txt|json|ya?ml|toml|sh|bash|zsh|py|m?js|cjs|ts|rb|pl|ps1|html|css|xml|csv))$/i;
+// In decoded noise only readable-text rules count: random bytes decode to bidi and zero-width characters.
+const LOSSY_RULES = new Set(['prompt-injection', 'hidden-instructions', 'pipe-to-shell', 'obfuscated-exec', 'exfiltration']);
 const utf16Bom = (buf) => buf.length >= 2 && ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff));
 const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
 
@@ -296,7 +298,14 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra, re
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
     // Text is decided by content, not by name: a notes.png that is really text is scanned like any other.
     const unreadable = text == null || text.includes('\u0000');
-    if (unreadable && !TEXT_LIKE.test(w.rel) && !utf16Bom(buf)) { binary.push(w.rel); continue; }
+    if (unreadable && !TEXT_LIKE.test(w.rel) && !utf16Bom(buf)) {
+      // Fail closed: "binary" is only a guess, so text hidden in it (UTF-16 without a byte-order mark, text
+      // around a few odd bytes) is still read through lossy decodes, and a high flag blocks like any file.
+      const lossy = [buf.toString('utf16le'), buf.subarray(1).toString('utf16le'), buf.toString('latin1')].map((t) => t.replace(/\u0000/g, ''));
+      const hidden = lossy.flatMap((t) => scanText(t, { file: `${dir}${w.rel}`, role: 'skill' })).filter((x) => x.severity === 'high' && LOSSY_RULES.has(x.id));
+      if (hidden.length) { flags.push(hidden[0]); continue; }
+      binary.push(w.rel); continue;
+    }
     if (unreadable) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
     // Judged like the repo check does: the README is a readme, and the repo's own URLs are its own.
     const role = /^readme(\.\w+)?$/i.test(w.rel) ? 'readme' : SCRIPT.test(w.rel) ? 'script' : 'skill';

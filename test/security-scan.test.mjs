@@ -201,3 +201,18 @@ test('a skill install fetches each blob once for --plan and once for --confirm (
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(blobCalls(), 6, 'plan 3 + confirm 3');
 });
+
+test('an unreadable file with an unlisted name is still scanned (lossy decodes): UTF-16 without a BOM cannot hide text', async () => {
+  for (const [name, buf] of [['guide.rst', Buffer.from(`${INJ}\n`, 'utf16le')], ['notes.dat', Buffer.concat([Buffer.from(`${INJ}\n`), Buffer.from([0xff, 0x00, 0xfe])])]]) {
+    const p = await skillPlan({ 'SKILL.md': `${SKILL_MD('x')}Read ${name}.\n`, [name]: buf });
+    assert.ok(p.body.blockers.some((b) => /prompt-injection/.test(b)), `${name}: ${p.body.blockers.join('\n')}`);
+  }
+});
+
+test('random binary content never trips the lossy scan (no false blocks from decoded noise)', async () => {
+  const crypto = await import('node:crypto');
+  for (let i = 0; i < 5; i++) {
+    const p = await skillPlan({ 'SKILL.md': SKILL_MD('x'), 'blob.bin': Buffer.concat([Buffer.from([0x00, 0xff]), crypto.randomBytes(200_000)]) });
+    assert.deepEqual(p.body.blockers, [], `run ${i}`);
+  }
+});
