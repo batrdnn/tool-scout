@@ -103,6 +103,12 @@ is a "collection of N skills" (the most numerous kind decides). It is judged by 
 part's name fits one of your profile topics (e.g. `webapp-testing` for testing), the advice points
 to it.
 
+**Leaning to Install.** Two cases go to Install whatever the size: an official repo from the
+vendor (`OFFICIAL_ORGS` in effort.mjs: anthropics, microsoft, github, awslabs, …), "maintained by
+the vendor"; and a thin wrapper, at most `THIN_MAX_LOC` = 1,000 lines of its own code around one
+big library (Playwright, Puppeteer, LangChain, boto3, …) or the library it's named after, "most of
+the work is in …". A vendor collection still names its typical and largest parts.
+
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a
 time. The facts are cached with the scan; the advice is worked out when read. It's advice only:

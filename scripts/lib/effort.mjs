@@ -14,7 +14,26 @@ export const THRESHOLDS = {
   ACTIVE_MIN_LOC: 1000, // … and with at least this much code it's hard to keep up with: install
   NOTE_MAX_LINES: 40, // instructions this short fit in a CLAUDE.md note instead of a skill
   COLLECTION_MIN: 3, // this many skills, agents, MCP servers or plugins make a collection, judged per part
+  THIN_MAX_LOC: 1000, // own code up to this size around one big library is a thin wrapper: install
 };
+/** Official repos from these orgs are maintained by the vendor: lean to Install. */
+export const OFFICIAL_ORGS = new Set([
+  'anthropics', 'modelcontextprotocol', 'microsoft', 'github', 'google', 'google-gemini', 'googleapis', 'googlecloudplatform',
+  'aws', 'awslabs', 'cloudflare', 'stripe', 'vercel', 'supabase', 'supabase-community', 'makenotion', 'atlassian', 'getsentry',
+  'hashicorp', 'docker', 'grafana', 'mongodb', 'mongodb-js', 'redis', 'elastic', 'openai', 'huggingface', 'figma', 'linear',
+  'shopify', 'slackapi', 'twilio', 'firebase', 'pulumi', 'netlify', 'upstash', 'neondatabase', 'prisma', 'jetbrains', 'datadog',
+  'posthog', 'auth0', 'salesforce', 'hubspot', 'zapier', 'apify', 'browserbase', 'exa-labs', 'tavily-ai', 'perplexityai',
+  'mistralai', 'cohere-ai', 'pinecone-io', 'qdrant', 'weaviate', 'neo4j', 'neo4j-contrib', 'snowflake-labs', 'databricks',
+]);
+/** Big libraries: a small repo built on one of these is mostly that library. */
+const BIG_LIBS = new Set([
+  'playwright', 'playwright-core', '@playwright/test', 'puppeteer', 'puppeteer-core', 'selenium', 'selenium-webdriver', 'langchain',
+  '@langchain/core', 'langgraph', 'llama-index', 'llama_index', 'transformers', 'torch', 'tensorflow', 'boto3', 'googleapis',
+  'octokit', '@octokit/rest', 'pandas', 'electron', 'ffmpeg-static', 'fluent-ffmpeg', 'sharp', 'opencv-python', 'pymupdf',
+  'docling', 'unstructured', 'scrapy', 'crawlee', 'firecrawl-py', '@mendable/firecrawl-js', 'stagehand', '@browserbasehq/stagehand',
+]);
+const STEM_SUFFIX = /(?:[-_.](?:mcp|server|mcp[-_]server|skill|skills|plugin|cli|wrapper|tool|tools))+$/;
+const STEM_PREFIX = /^(?:mcp|server|claude)[-_.]/;
 export const BYTES_PER_LINE = 35; //    average bytes per line of code (the tree API gives sizes, not lines)
 export const BYTES_PER_MD_LINE = 50; // average bytes per line of Markdown
 const MAX_EFFORT_FILES = 6;
@@ -243,7 +262,7 @@ const TYPE_LABEL = {
 };
 
 /** Everything that doesn't depend on the date: cached by the scan. */
-export function effortFacts({ tree = [], truncated = false, readme = '', files = {}, kind = null } = {}) {
+export function effortFacts({ tree = [], truncated = false, readme = '', files = {}, kind = null, name = '' } = {}) {
   const blobs = tree.filter((t) => t.type === 'blob');
   const seen = new Set(); // identical copies (same file name and size, e.g. bundled into a "pack") count once
   const codeBlobs = blobs.filter((t) => LANG[ext(t.path)] && !NOT_CODE_DIR.test(t.path) && !NOT_CODE_FILE.test(t.path))
@@ -286,6 +305,14 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
   const structural = parts.hooks || parts.agents || (parts.skills && skillCodeShare >= 0.5);
   const isMcp = (deps || []).some((d) => MCP_DEPS.has(d)) || (kind === 'mcp-server' && loc > 0 && !structural);
   const collection = collectionOf(blobs, codeBlobs, mdBlobs, kind);
+  const [owner = '', repoName = ''] = String(name || '').toLowerCase().split('/');
+  const vendor = OFFICIAL_ORGS.has(owner) ? owner : null;
+  // Thin wrapper: little own code around one big library, or around the library the repo is named after.
+  const stem = repoName.replace(STEM_SUFFIX, '').replace(STEM_PREFIX, '');
+  const bare = (d) => d.replace(/^@[^/]+\//, '').toLowerCase();
+  const wraps = loc > 0 && loc <= THRESHOLDS.THIN_MAX_LOC
+    ? (deps || []).find((d) => !MCP_DEPS.has(d) && (BIG_LIBS.has(d) || (stem.length >= 4 && (bare(d) === stem || bare(d).startsWith(`${stem}-`))))) || null
+    : null;
   const type = collection ? 'collection' : isMcp ? 'mcp-server'
     : (parts.hooks || parts.agents) ? 'plugin'
       : loc === 0 ? 'instructions'
@@ -298,7 +325,7 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
       credentials: [...cred.names, ...cred.phrases].slice(0, MAX_LISTED), credentialCount: cred.names.length + cred.phrases.length,
       apis: apis.slice(0, MAX_LISTED), apiCount: apis.length, network, services,
     },
-    parts, collection, truncated: !!truncated,
+    parts, collection, vendor, wraps, truncated: !!truncated,
   };
 }
 
@@ -343,11 +370,13 @@ function adviseCollection(f, opts) {
   const c = f.collection;
   const typical = advise(partFacts(c, c.typical, f.languages), opts);
   const largest = advise(partFacts(c, c.largest, f.languages), opts);
-  const one = { skill: 'one', agent: 'one', server: 'one', plugin: 'one' }[c.unit];
-  const same = c.largest.name === c.typical.name;
-  const reason = `Collection of ${c.count} ${UNIT_PLURAL[c.unit]}: a typical ${one} is ${sizeText(partFacts(c, c.typical, f.languages))}`
-    + `${same ? '' : `; the largest, ${c.largest.name}, ${sizeText(partFacts(c, c.largest, f.languages))} (${largest.adviceLabel})`}. Take only the part you need.`;
-  return { ...typical, reason, collectionAdvice: { typical, largest } };
+  const same = c.largest.loc === c.typical.loc && c.largest.instructionLines === c.typical.instructionLines;
+  const head = `Collection of ${c.count} ${UNIT_PLURAL[c.unit]}: a typical one is ${sizeText(partFacts(c, c.typical, f.languages))}`
+    + `${same ? '' : `; the largest, ${c.largest.name}, ${sizeText(partFacts(c, c.largest, f.languages))} (${largest.adviceLabel})`}.`;
+  if (f.vendor) {
+    return { advice: 'install', adviceLabel: 'Install', buildForm: null, buildTime: null, reason: `${head} Maintained by the vendor (${f.vendor}): install the part you need.`, collectionAdvice: { typical, largest } };
+  }
+  return { ...typical, reason: `${head} Take only the part you need.`, collectionAdvice: { typical, largest } };
 }
 
 /** Build your own / Either / Install, with a form, a time and one plain reason. */
@@ -373,7 +402,11 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
   const credText = credentials.filter((c) => /^[A-Z0-9_]+$/.test(c)).slice(0, 2);
 
   let advice, reason;
-  if (f.loc >= T.LARGE_LOC || f.truncated) {
+  if (f.vendor) {
+    advice = 'install'; reason = `Maintained by the vendor (${f.vendor}), ${size}: install it to stay on their updates.`;
+  } else if (f.wraps) {
+    advice = 'install'; reason = `Most of the work is in ${f.wraps}; its own code is ${size}: install it to keep up with ${f.wraps}.`;
+  } else if (f.loc >= T.LARGE_LOC || f.truncated) {
     advice = 'install';
     reason = apis.length ? `Wraps ${tiedTo} with ${size}: installing saves you keeping up with it.`
       : `${size[0].toUpperCase()}${size.slice(1)}: far more than you'd want to write and maintain.`;

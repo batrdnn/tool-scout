@@ -224,7 +224,7 @@ export async function scanRepo(client, fullName, meta = {}) {
   const hint = extractInstallHint(readme, { full_name: fullName, name: fullName.split('/')[1], kind: meta.kind }, { marketplacePlugins });
   // Build-or-install facts from the same tree, plus the few small manifests not fetched above.
   for (const p of effortFiles(treeRes.data?.tree)) if (!(p in texts)) texts[p] = await contents(p);
-  const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind });
+  const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind, name: fullName });
   return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, effortFacts: effort };
 }
 

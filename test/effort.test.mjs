@@ -12,7 +12,7 @@ const md = (path, lines) => blob(path, lines * BYTES_PER_MD_LINE);
 const est = (o) => estimateEffort({ readme: '', files: {}, kind: 'skill', pushedAt: OLD, now: NOW, ...o });
 
 test('thresholds are documented constants', () => {
-  assert.deepEqual(Object.keys(THRESHOLDS).sort(), ['ACTIVE_DAYS', 'ACTIVE_MIN_LOC', 'COLLECTION_MIN', 'LARGE_LOC', 'NOTE_MAX_LINES', 'SMALL_LOC']);
+  assert.deepEqual(Object.keys(THRESHOLDS).sort(), ['ACTIVE_DAYS', 'ACTIVE_MIN_LOC', 'COLLECTION_MIN', 'LARGE_LOC', 'NOTE_MAX_LINES', 'SMALL_LOC', 'THIN_MAX_LOC']);
   assert.equal(THRESHOLDS.SMALL_LOC, 300);
   assert.ok(THRESHOLDS.LARGE_LOC > THRESHOLDS.ACTIVE_MIN_LOC && THRESHOLDS.ACTIVE_MIN_LOC > THRESHOLDS.SMALL_LOC);
 });
