@@ -27,6 +27,8 @@ export const REVIEW_TOPICS = ['testing', 'frontend', 'database', 'git'];
 export const MODEL = 'claude-opus-5-5';
 export const REVIEW_MD = fileURLToPath(new URL('../../docs/eval/effort-review.md', import.meta.url));
 export const REVIEW_JSON = fileURLToPath(new URL('../../docs/eval/effort-review.json', import.meta.url));
+/** The reviewer's Agree column, kept apart from the generated results: { reviewedAt, note, answers: { repo: { answer, reviewed } } }. */
+export const REVIEW_ANSWERS = fileURLToPath(new URL('../../docs/eval/effort-review-answers.json', import.meta.url));
 export const JUDGE_CACHE = fileURLToPath(new URL('./effort-judge-cache/', import.meta.url));
 const SKILL_PATH = fileURLToPath(new URL('../../skills/scout/SKILL.md', import.meta.url));
 const INJECTION = new Set(['prompt-injection', 'hidden-instructions', 'invisible-unicode', 'obfuscated-exec', 'exfiltration']);
@@ -116,14 +118,19 @@ function needsCell(e) {
 const LABEL = { build: 'Build your own', either: 'Either', install: 'Install' };
 const scriptCell = (e) => (e.advice === 'judge' ? `Judgment needed (rules alone: ${LABEL[e.judgment.ruleAdvice]})` : e.adviceLabel);
 const finalCell = (f) => (f.advice === 'install' ? 'Install' : `${LABEL[f.advice]} (${f.form}, ${f.time})`);
+/** The "Final advice" cell: an answer applies only while the row still shows the advice it was given to. */
+export const finalLabel = finalCell;
 
-export function renderReview(results) {
+export function renderReview(results, answers = null) {
+  const given = answers?.answers || {};
+  const shown = (r) => { const a = given[r.name]; return a && r.final && a.reviewed === finalCell(r.final) ? a.answer : ''; };
+  const stale = results.repos.filter((r) => given[r.name] && !shown(r)).length;
   const rows = results.repos.map((r, i) => {
     const repo = `[${r.name}](https://github.com/${r.name})`;
-    if (!r.effort) return `| ${i + 1} | ${repo} | ${r.group} | — | — | — | not estimated | — | — | ${cell(r.error)} | |`;
+    if (!r.effort) return `| ${i + 1} | ${repo} | ${r.group} | — | — | — | not estimated | — | — | ${cell(r.error)} | ${cell(shown(r))} |`;
     const e = r.effort;
     const match = e.collection?.match ? ` For your ${e.collection.match.topic} work: ${e.collection.match.name}.` : '';
-    return `| ${i + 1} | ${repo} | ${r.group} | ${cell(e.typeLabel)} | ${cell(sizeCell(e))} | ${cell(needsCell(e))} | ${cell(scriptCell(e))} | ${cell(finalCell(r.final))} | ${r.final.by} | ${cell(r.final.reason + match)} | |`;
+    return `| ${i + 1} | ${repo} | ${r.group} | ${cell(e.typeLabel)} | ${cell(sizeCell(e))} | ${cell(needsCell(e))} | ${cell(scriptCell(e))} | ${cell(finalCell(r.final))} | ${r.final.by} | ${cell(r.final.reason + match)} | ${cell(shown(r))} |`;
   });
   const count = (f) => results.repos.reduce((o, r) => { const v = f(r); if (v) o[v] = (o[v] || 0) + 1; return o; }, {});
   const fmt = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ');
@@ -140,7 +147,10 @@ export function renderReview(results) {
     `**Final advice:** ${fmt(count((r) => r.final && LABEL[r.final.advice]))}. **Decided by:** ${fmt(count((r) => r.final?.by))}.`,
     '',
     '**For the reviewer:** fill in the last column with `y` or `n` (and a word on why, if `n`).',
-    'It is left empty on purpose.',
+    answers
+      ? [`Filled in on ${answers.reviewedAt}: ${results.repos.filter((r) => /^y\b/.test(shown(r))).length} of ${results.repos.length} agree (y). ${answers.note}`,
+        stale ? ` ${stale} answer${stale === 1 ? '' : 's'} no longer matches the advice (rerun since the review) and ${stale === 1 ? 'is' : 'are'} left out until reviewed again.` : ''].join('')
+      : 'It is left empty on purpose.',
     '',
     '| # | Repo | Group | What it is | Size | Needs | Script says | Final advice | Decided by | Reason | Agree? (y/n) |',
     '|---|---|---|---|---|---|---|---|---|---|---|',
@@ -195,7 +205,8 @@ async function main() {
   const results = { generatedAt: new Date(now).toISOString(), version, model: MODEL, topics: REVIEW_TOPICS, repos };
   fs.mkdirSync(path.dirname(REVIEW_JSON), { recursive: true });
   fs.writeFileSync(REVIEW_JSON, `${JSON.stringify(results, null, 2)}\n`);
-  fs.writeFileSync(REVIEW_MD, renderReview(results));
+  const answers = fs.existsSync(REVIEW_ANSWERS) ? JSON.parse(fs.readFileSync(REVIEW_ANSWERS, 'utf8')) : null;
+  fs.writeFileSync(REVIEW_MD, renderReview(results, answers));
   console.log(`Wrote ${REVIEW_MD} (${client.state.requests} GitHub requests)`);
 }
 

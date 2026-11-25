@@ -1,0 +1,87 @@
+{
+  "reviewedAt": "2026-11-25",
+  "source": "Agree column filled in by the project owner on docs/eval/effort-review.md (v0.8.1 run)",
+  "note": "The 3 n's are all reference material (a spec, an examples collection, an API companion) and point to a missing \"Reference: read it, copy what you need\" advice.",
+  "answers": {
+    "agentskills/agentskills": {
+      "answer": "n: it's a spec to read, not a tool to build or install (should be Reference)",
+      "reviewed": "Either (skill with a script, about a day)"
+    },
+    "yusufkaraaslan/Skill_Seekers": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "oil-oil/beautify-github-readme": {
+      "answer": "y",
+      "reviewed": "Either (skill with a script, about a day)"
+    },
+    "nidhinjs/prompt-master": {
+      "answer": "y",
+      "reviewed": "Build your own (skill, a few hours for the part you need)"
+    },
+    "DreambigOu/ELI5": {
+      "answer": "y",
+      "reviewed": "Build your own (skill with a script, 2–4 hours)"
+    },
+    "mohi-devhub/antivibe": {
+      "answer": "y",
+      "reviewed": "Build your own (hook, 2–4 hours)"
+    },
+    "skills-directory/skill-codex": {
+      "answer": "y (its model list will go stale fast)",
+      "reviewed": "Install"
+    },
+    "op7418/Humanizer-zh": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "aiwithremy/claude-skills-llm-council": {
+      "answer": "y",
+      "reviewed": "Build your own (skill, 1–2 hours)"
+    },
+    "anthropics/launch-your-agent": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "anthropics/skills": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "wshobson/agents": {
+      "answer": "y",
+      "reviewed": "Build your own (subagent, under an hour)"
+    },
+    "awslabs/mcp": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "ScrapeCreators/social-media-research-skills": {
+      "answer": "n: you need their paid API anyway and their official skills know its endpoints; judged a generic part, not the API part",
+      "reviewed": "Build your own (skill, under an hour)"
+    },
+    "obra/superpowers": {
+      "answer": "y",
+      "reviewed": "Build your own (skill, 1–2 hours)"
+    },
+    "disler/claude-code-hooks-mastery": {
+      "answer": "n: an examples collection for learning; copy the hook you want (should be Reference)",
+      "reviewed": "Install"
+    },
+    "privetbuket/pii-guard": {
+      "answer": "y",
+      "reviewed": "Either (hook, a few days)"
+    },
+    "microsoft/playwright-mcp": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "21st-dev/magic-mcp": {
+      "answer": "y",
+      "reviewed": "Install"
+    },
+    "cplj/axiocairn-mcp": {
+      "answer": "y",
+      "reviewed": "Install"
+    }
+  }
+}

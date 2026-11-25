@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SETS, selectRepos, renderReview, judgePrompt, closeCallRules, REVIEW_MD, REVIEW_JSON, JUDGE_CACHE } from './eval/effort-review.mjs';
+import { SETS, selectRepos, renderReview, judgePrompt, closeCallRules, finalLabel, REVIEW_MD, REVIEW_JSON, REVIEW_ANSWERS, JUDGE_CACHE } from './eval/effort-review.mjs';
 
 const SKILL = fs.readFileSync(new URL('../skills/scout/SKILL.md', import.meta.url), 'utf8');
 
@@ -29,13 +29,38 @@ test('the judge gets exactly the close-call rules Claude follows in the scout sk
 
 const results = JSON.parse(fs.readFileSync(REVIEW_JSON, 'utf8'));
 
-test('the doc has 20 rows, an empty Agree column, and is exactly what the saved results render to', () => {
+const answers = JSON.parse(fs.readFileSync(REVIEW_ANSWERS, 'utf8'));
+const agreeCells = (md) => md.split('\n').filter((l) => /^\| \d+ \|/.test(l)).map((l) => l.match(/\| ([^|]*?) ?\|$/)[1].trim());
+
+test('the doc is exactly what the saved results and the reviewer\'s answers render to', () => {
   const md = fs.readFileSync(REVIEW_MD, 'utf8');
-  const rows = md.split('\n').filter((l) => /^\| \d+ \|/.test(l));
-  assert.equal(rows.length, 20);
+  assert.equal(md.split('\n').filter((l) => /^\| \d+ \|/.test(l)).length, 20);
   assert.match(md, /\| Agree\? \(y\/n\) \|$/m);
-  for (const r of rows) assert.match(r, /\|\s*\|$/, `Agree column must be empty: ${r}`);
-  assert.equal(md, renderReview(results));
+  assert.equal(md, renderReview(results, answers));
+});
+
+test('without answers the Agree column is empty: only the reviewer fills it', () => {
+  assert.ok(agreeCells(renderReview(results)).every((c) => c === ''));
+  assert.match(renderReview(results), /It is left empty on purpose\./);
+});
+
+test('the review answers: 17 of 20 agree; the n\'s are rows 1, 14 and 16, all reference material', () => {
+  const cells = agreeCells(fs.readFileSync(REVIEW_MD, 'utf8'));
+  assert.equal(cells.filter((c) => /^y\b/.test(c)).length, 17);
+  assert.deepEqual(cells.map((c, i) => (/^n\b/.test(c) ? i + 1 : null)).filter(Boolean), [1, 14, 16]);
+  assert.match(fs.readFileSync(REVIEW_MD, 'utf8'), /Filled in on 2026-11-25: 17 of 20 agree \(y\)\./);
+  for (const name of Object.keys(answers.answers)) assert.ok(results.repos.some((r) => r.name === name), `answer for a repo not in the review: ${name}`);
+});
+
+test('an answer only shows while the row still has the advice it was given to (a rerun that changes it clears the cell)', () => {
+  const changed = structuredClone(results);
+  const r = changed.repos.find((x) => x.name === 'microsoft/playwright-mcp');
+  assert.equal(finalLabel(r.final), answers.answers[r.name].reviewed);
+  r.final = { ...r.final, advice: 'build', form: 'skill', time: 'under an hour' };
+  const cells = agreeCells(renderReview(changed, answers));
+  assert.equal(cells[changed.repos.indexOf(r)], '');
+  assert.equal(cells.filter((c) => c).length, 19);
+  assert.match(renderReview(changed, answers), /1 answer no longer matches the advice/);
 });
 
 test('every close call was decided by Claude (build or install, one reason line), from a cached run', () => {
