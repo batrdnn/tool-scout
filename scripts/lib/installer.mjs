@@ -20,6 +20,7 @@ import { checkRepo } from './check.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
 import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
+import { OFFICIAL_ORGS } from './effort.mjs';
 
 export { tokenize, mcpCommands } from './install.mjs';
 
@@ -63,6 +64,87 @@ function setKey(file, key, value) {
 const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
 const isEmptyValue = (v) => v != null && typeof v === 'object' && !Object.keys(v).length;
 
+// ---- npx / uvx packages pinned to one version -----------------------------------------------------
+
+const VERSION_OK = /^[0-9][0-9A-Za-z.+-]{0,63}$/;
+const EXACT_NPM = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const NPM_NAME = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
+const PYPI_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const TAG = /^[A-Za-z][\w.-]*$/;
+
+/**
+ * The version a registry serves now for `name` (npm: the dist-tag `tag`; PyPI: the latest release),
+ * or null. Sends only the public package name, and no GitHub token.
+ */
+export async function latestVersion(registry, name, tag = 'latest', { fetchImpl = globalThis.fetch } = {}) {
+  const url = registry === 'npm' ? `https://registry.npmjs.org/${name.replace('/', '%2F')}/${encodeURIComponent(tag)}`
+    : registry === 'pypi' && tag === 'latest' ? `https://pypi.org/pypi/${encodeURIComponent(name)}/json` : null;
+  if (!url) return null;
+  try {
+    const res = await fetchImpl(url, { headers: { Accept: 'application/json', 'User-Agent': 'tool-scout' }, signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const v = registry === 'npm' ? j?.version : j?.info?.version;
+    return typeof v === 'string' && VERSION_OK.test(v) ? v : null;
+  } catch { return null; }
+}
+
+/** A package spec split up: { name, extras, version } or { why } when it is not a registry package. */
+function parseSpec(registry, spec) {
+  if (registry === 'npm') {
+    const m = spec.match(/^(@[^/@]+\/[^@]+|[^@]+)(?:@(.*))?$/);
+    if (!m || !NPM_NAME.test(m[1])) return { why: 'not a registry package' };
+    return { name: m[1], extras: '', version: m[2] ?? '' };
+  }
+  const m = spec.match(/^([^[=@<>!~ ]+)(\[[\w,.-]+\])?(?:(==|@)(.*))?$/);
+  if (!m || !PYPI_NAME.test(m[1])) return { why: /[<>!~]/.test(spec) ? 'a version range' : 'not a registry package' };
+  return { name: m[1], extras: m[2] || '', version: m[4] ?? '' };
+}
+
+/** Which arguments of an npx / uvx server line name the package, and how a pinned one is written. */
+function packageArgs(runner, args) {
+  const out = [];
+  const valueOpts = runner === 'npx' ? new Set(['--package', '-p', '--call', '-c', '--registry', '--cache', '--userconfig'])
+    : new Set(['--from', '--with', '--with-editable', '--with-requirements', '--python', '-p', '--index', '--index-url', '--extra-index-url', '--default-index', '--constraints', '-c', '--overrides', '--cache-dir', '--directory', '--project']);
+  const fromOpt = runner === 'npx' ? new Set(['--package', '-p']) : new Set(['--from']);
+  const sep = runner === 'npx' ? '@' : '==';
+  let fromGiven = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    const eq = a.match(/^(--[\w-]+)=(.*)$/);
+    if (eq) { if (fromOpt.has(eq[1])) { out.push({ i, prefix: `${eq[1]}=`, spec: eq[2], sep }); fromGiven = true; } continue; }
+    if (runner === 'npx' && (a === '--call' || a === '-c')) return { why: 'it runs a command string' };
+    if (valueOpts.has(a)) { if (fromOpt.has(a) && i + 1 < args.length) { out.push({ i: i + 1, prefix: '', spec: args[i + 1], sep }); fromGiven = true; } i++; continue; }
+    if (a.startsWith('-')) continue;
+    if (!fromGiven) out.push({ i, prefix: '', spec: a, sep: '@' });
+    break; // the command: what follows is the server's own arguments
+  }
+  return { out };
+}
+
+/** An npx / uvx server line with each package pinned to the version its registry serves now. */
+async function pinPackages(target, args, versions) {
+  const runner = path.basename(target);
+  const registry = runner === 'npx' ? 'npm' : 'pypi';
+  const label = registry === 'npm' ? 'npm' : 'PyPI';
+  const res = { args: [...args], pinned: [], unpinned: [], label };
+  const found = packageArgs(runner, args);
+  if (found.why) { res.unpinned.push([args.join(' '), found.why]); return res; }
+  for (const { i, prefix, spec, sep } of found.out) {
+    const s = parseSpec(registry, spec);
+    if (s.why) { res.unpinned.push([spec, s.why]); continue; }
+    const exact = registry === 'npm' ? EXACT_NPM.test(s.version) : s.version !== 'latest' && VERSION_OK.test(s.version);
+    if (exact) continue;
+    if (s.version && !(registry === 'npm' ? TAG.test(s.version) : s.version === 'latest')) { res.unpinned.push([spec, 'a version range']); continue; }
+    const v = await versions(registry, s.name, s.version || 'latest');
+    if (!v) { res.unpinned.push([spec, `could not look up its current version on ${label}`]); continue; }
+    const to = `${s.name}${s.extras}${sep}${v}`;
+    res.args[i] = `${prefix}${to}`;
+    res.pinned.push([spec, to]);
+  }
+  return res;
+}
+
 // ---- the plan -----------------------------------------------------------------------------------
 
 const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
@@ -72,7 +154,7 @@ const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(home.len
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.
  * Saves it in the data folder (only there) and returns { id, createdAt, expiresAt, body }.
  */
-export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, home, cwd, dataDir, now = Date.now(), save = true }) {
+export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion }) {
   const full = normalizeRepo(repo || '');
   if (!full) throw new Error(`not a GitHub repo: ${repo}`);
   if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
@@ -156,13 +238,22 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       else {
         const c = ok.find((x) => x.name === (part || names[0]));
         name = c.name;
-        commands.push(['mcp', 'add', c.name, ...c.opts, '--scope', scope, ...(c.url ? [c.target] : ['--', c.target, ...c.args])]);
+        // Not from a known vendor: npx / uvx packages are pinned, so a new release needs a new plan.
+        let args = c.args; let unpinned = !c.url && UNPINNED_RUNNERS.has(path.basename(c.target));
+        if (unpinned && !OFFICIAL_ORGS.has(full.split('/')[0].toLowerCase()) && ['npx', 'uvx'].includes(path.basename(c.target))) {
+          const p = await pinPackages(c.target, c.args, versions);
+          args = p.args;
+          for (const [from, to] of p.pinned) notes.push(`Pinned ${from} to ${to}, its current version on ${p.label}: ${full} is not from a known vendor, so a new release can't change what runs without a new plan (its own dependencies can still update).`);
+          for (const [spec, why] of p.unpinned) notes.push(`${spec} is not pinned (${why}): it runs whatever ${p.label} serves when Claude Code starts it.`);
+          unpinned = false;
+        }
+        commands.push(['mcp', 'add', c.name, ...c.opts, '--scope', scope, ...(c.url ? [c.target] : ['--', c.target, ...args])]);
         for (const k of c.env) credentials.add(k);
         for (const d of c.dropped) notes.push(`The README sets a ${d}: add it yourself if the server needs it (Tool Scout never handles secrets).`);
         const file = scope === 'project' ? path.join(cwd, '.mcp.json') : path.join(home, '.claude.json');
         if (getKey(file, `mcpServers.${c.name}`) != null) blockers.push(`an MCP server named ${c.name} is already configured`);
         settings.push({ file, key: `mcpServers.${c.name}`, before: null, after: '(set by claude mcp add)' });
-        if (!c.url && UNPINNED_RUNNERS.has(path.basename(c.target))) notes.push(`The server runs \`${[c.target, ...c.args].join(' ')}\` each time Claude Code starts it. That package comes from its registry and is not pinned by this commit.`);
+        if (unpinned) notes.push(`The server runs \`${[c.target, ...c.args].join(' ')}\` each time Claude Code starts it. That package comes from its registry and is not pinned by this commit.`);
         if (c.url) notes.push(`The server is hosted at ${c.target}: Tool Scout only checked this repo, not that service.`);
       }
     }
@@ -217,7 +308,7 @@ function listTree(root) {
   return out;
 }
 
-export async function confirmInstall({ client, id, home, cwd, dataDir, now = Date.now(), run = defaultRun }) {
+export async function confirmInstall({ client, id, home, cwd, dataDir, now = Date.now(), run = defaultRun, versions = latestVersion }) {
   const rec = /^[0-9a-f]{12}$/.test(String(id)) ? readJson(planFile(dataDir, id)) : null;
   if (!rec) return { ok: false, reason: `unknown plan ID ${id}: make a plan first with --plan` };
   if (now > Date.parse(rec.expiresAt)) return { ok: false, reason: `plan ${id} expired at ${rec.expiresAt.slice(11, 16)} UTC (plans last ${PLAN_TTL_MIN} minutes): make a new plan` };
@@ -229,7 +320,7 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
     if (head !== b.sha) return { ok: false, reason: `the repo moved since the plan (its head is now ${String(head).slice(0, 7)}, the plan pinned ${b.sha.slice(0, 7)}): make a new plan` };
   }
   let fresh;
-  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false }); } catch (e) {
+  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, versions }); } catch (e) {
     // GitHub unreachable or rate-limited: nothing is known to have changed, so say what happened.
     if (e instanceof RateLimitError || /could not reach GitHub/.test(e.message)) return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was installed; try again later` };
     return { ok: false, reason: `changed since the plan: ${e.message}` };

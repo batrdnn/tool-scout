@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createClient } from '../scripts/lib/github.mjs';
-import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
+import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan, latestVersion, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
 import { mockFetch } from './helpers.mjs';
 
 const NOW = Date.parse('2026-11-25T12:00:00Z');
@@ -147,11 +147,15 @@ function mockClaude(sb, R, { headOf = (n) => R[n]?.sha } = {}) {
   return { run, calls };
 }
 
+// npm / PyPI as the plan sees them (only `latest` is known here); null = not found or unreachable.
+const VERSIONS = { npm: { 'thing-mcp': '1.4.2', '@scope/srv': '2.0.0' }, pypi: { 'mcp-thing': '0.3.1' } };
+const versions = async (registry, name, tag = 'latest') => (tag === 'latest' ? VERSIONS[registry]?.[name] ?? null : null);
+
 const setup = (o = {}) => {
   const sb = sandbox(); const R = repos(); Object.assign(R, o.patch?.(R) || {});
   const fetchImpl = github(R, o);
   const claude = mockClaude(sb, R, o);
-  const ctx = (extra = {}) => ({ client: createClient({ fetchImpl }), home: sb.home, cwd: sb.cwd, dataDir: sb.dataDir, run: claude.run, now: NOW, ...extra });
+  const ctx = (extra = {}) => ({ client: createClient({ fetchImpl }), home: sb.home, cwd: sb.cwd, dataDir: sb.dataDir, run: claude.run, now: NOW, versions, ...extra });
   return { sb, R, claude, ctx, fetchImpl };
 };
 
@@ -167,14 +171,14 @@ test('a plan writes nothing, and shows paths, settings, scope, SHA, verdict, cov
   assert.equal(b.sha, SHA.mcp);
   assert.equal(b.method, 'mcp');
   assert.equal(b.scope, 'user');
-  assert.deepEqual(b.commands, [['mcp', 'add', 'thing', '--scope', 'user', '--', 'npx', '-y', 'thing-mcp@latest']], 'the README command, without -e/-s, with our scope');
+  assert.deepEqual(b.commands, [['mcp', 'add', 'thing', '--scope', 'user', '--', 'npx', '-y', 'thing-mcp@1.4.2']], 'the README command, without -e/-s, with our scope, pinned');
   assert.deepEqual(b.credentials, ['THING_API_KEY']);
   assert.ok(b.check.verdict && b.check.line.startsWith('Checked '));
   assert.deepEqual(b.settings.map((s) => [s.file, s.key]), [[path.join(sb.home, '.claude.json'), 'mcpServers.thing']]);
   assert.match(plan.id, /^[0-9a-f]{12}$/);
   assert.equal(plan.expiresAt, new Date(NOW + PLAN_TTL_MIN * 60e3).toISOString());
   const text = formatPlan(plan);
-  for (const s of [plan.id, 'aaaaaaa'.replace(/a/g, 'c'), 'claude mcp add thing --scope user -- npx -y thing-mcp@latest', 'THING_API_KEY', 'not pinned', '--confirm']) assert.ok(text.includes(s), s);
+  for (const s of [plan.id, 'aaaaaaa'.replace(/a/g, 'c'), 'claude mcp add thing --scope user -- npx -y thing-mcp@1.4.2', 'THING_API_KEY', 'current version on npm', '--confirm']) assert.ok(text.includes(s), s);
   assert.ok(!text.includes('your-key'), 'example values from the README are never shown or used');
 });
 
@@ -397,4 +401,85 @@ test('plugin undo when ~/.claude/plugins already existed with another plugin: on
   const left = changed(before, snapshot(sb));
   assert.deepEqual(left.filter((p) => !p.endsWith('.last_inuse_sweep') && !p.endsWith('installed_plugins.json')), [], left.join('\n'));
   assert.deepEqual(JSON.parse(fs.readFileSync(reg, 'utf8')).plugins, { 'mine@mine': [{ scope: 'user' }] }, 'the other plugin is untouched');
+});
+
+// ---- v0.9.1: MCP packages pinned for repos not from a known vendor -----------------------------
+
+const mcpRepo = (line) => setup({ patch: (R) => ({ 'pin-mcp': { ...R['thing-mcp'], readme: '```\n' + line + '\n```' } }) });
+async function pinPlan(line, { owner = 'o', versionsImpl = versions } = {}) {
+  const { ctx, fetchImpl } = mcpRepo(line);
+  // An official org's repo: the same mock repo, served under that owner.
+  const client = createClient({ fetchImpl: Object.assign(async (url, o) => fetchImpl(url.replace(`/repos/${owner}/`, '/repos/o/'), o), { calls: [] }) });
+  return makePlan({ ...ctx({ client, versions: versionsImpl }), repo: `${owner}/pin-mcp` });
+}
+const serverArgv = (p) => p.body.commands[0].slice(p.body.commands[0].indexOf('--') + 1);
+
+test('npx and uvx packages are pinned to their current version, and the plan says why', async () => {
+  const cases = [
+    ['claude mcp add pin -- npx -y thing-mcp@latest', ['npx', '-y', 'thing-mcp@1.4.2'], /Pinned thing-mcp@latest to thing-mcp@1\.4\.2, its current version on npm/],
+    ['claude mcp add pin -- npx @scope/srv --port 3000', ['npx', '@scope/srv@2.0.0', '--port', '3000'], /Pinned @scope\/srv to @scope\/srv@2\.0\.0/],
+    ['claude mcp add pin -- npx -p @scope/srv srv-bin', ['npx', '-p', '@scope/srv@2.0.0', 'srv-bin'], /@scope\/srv@2\.0\.0/],
+    ['claude mcp add pin -- uvx mcp-thing', ['uvx', 'mcp-thing@0.3.1'], /Pinned mcp-thing to mcp-thing@0\.3\.1, its current version on PyPI/],
+    ['claude mcp add pin -- uvx --from mcp-thing mcp-thing-server', ['uvx', '--from', 'mcp-thing==0.3.1', 'mcp-thing-server'], /mcp-thing==0\.3\.1/],
+  ];
+  for (const [line, argv, note] of cases) {
+    const p = await pinPlan(line);
+    assert.deepEqual(p.body.blockers, [], line);
+    assert.deepEqual(serverArgv(p), argv, line);
+    const text = formatPlan(p);
+    assert.match(text, note, line);
+    assert.match(text, /not from a known vendor/, `${line}: says why`);
+    assert.ok(text.includes(`claude mcp add pin --scope user -- ${argv.join(' ')}`), 'the plan shows the pinned command');
+  }
+});
+
+test('already exact versions are kept; ranges, git sources and failed lookups stay unpinned and say so', async () => {
+  for (const line of ['claude mcp add pin -- npx -y thing-mcp@1.0.0', 'claude mcp add pin -- uvx --from mcp-thing==0.1.0 mcp-thing']) {
+    const p = await pinPlan(line);
+    assert.deepEqual(serverArgv(p), line.split(' -- ')[1].split(' '), line);
+    assert.doesNotMatch(formatPlan(p), /Pinned|not pinned/, line);
+  }
+  for (const [line, why] of [
+    ['claude mcp add pin -- npx thing-mcp@^1.0.0', /version range/],
+    ['claude mcp add pin -- uvx --from git+https://github.com/o/x mcp-x', /not a registry package/],
+    ['claude mcp add pin -- npx unknown-pkg', /could not look up its current version on npm/],
+  ]) {
+    const p = await pinPlan(line);
+    assert.deepEqual(serverArgv(p), line.split(' -- ')[1].split(' '), line);
+    const text = formatPlan(p);
+    assert.match(text, why, line);
+    assert.match(text, /not pinned/, line);
+  }
+});
+
+test('repos from a known vendor (OFFICIAL_ORGS) keep the README command as it is', async () => {
+  const p = await pinPlan('claude mcp add pin -- npx @playwright/mcp@latest', { owner: 'microsoft', versionsImpl: async () => '9.9.9' });
+  assert.deepEqual(serverArgv(p), ['npx', '@playwright/mcp@latest']);
+  assert.match(formatPlan(p), /not pinned by this commit/);
+  assert.doesNotMatch(formatPlan(p), /Pinned/);
+});
+
+test('a pinned plan installs exactly the pinned command; a new release before confirm means a new plan', async () => {
+  const { ctx, claude } = setup();
+  const plan = await makePlan({ ...ctx(), repo: 'o/thing-mcp' });
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  assert.deepEqual(claude.calls[0].slice(-3), ['npx', '-y', 'thing-mcp@1.4.2']);
+  const s2 = setup();
+  const p2 = await makePlan({ ...s2.ctx(), repo: 'o/thing-mcp' });
+  const res = await confirmInstall({ ...s2.ctx({ versions: async () => '1.5.0' }), id: p2.id });
+  assert.equal(res.ok, false);
+  assert.match(res.reason, /changed since the plan \(commands/);
+  assert.equal(s2.claude.calls.length, 0);
+});
+
+test('registry lookups go to npm or PyPI with the package name only, never with a GitHub token', async () => {
+  const seen = [];
+  const fetchImpl = async (url, o) => { seen.push([url, o?.headers || {}]); return { ok: true, status: 200, json: async () => (url.includes('pypi') ? { info: { version: '0.3.1' } } : { version: '2.0.0' }) }; };
+  assert.equal(await latestVersion('npm', '@scope/srv', 'latest', { fetchImpl }), '2.0.0');
+  assert.equal(await latestVersion('pypi', 'mcp-thing', 'latest', { fetchImpl }), '0.3.1');
+  assert.deepEqual(seen.map((x) => x[0]), ['https://registry.npmjs.org/@scope%2Fsrv/latest', 'https://pypi.org/pypi/mcp-thing/json']);
+  assert.ok(seen.every(([, h]) => !Object.keys(h).some((k) => /authorization/i.test(k))));
+  const bad = async () => ({ ok: true, status: 200, json: async () => ({ version: '1.0.0 && rm -rf ~' }) });
+  assert.equal(await latestVersion('npm', 'x', 'latest', { fetchImpl: bad }), null, 'a version that is not a version is refused');
+  assert.equal(await latestVersion('npm', 'x', 'latest', { fetchImpl: async () => { throw new Error('offline'); } }), null);
 });
