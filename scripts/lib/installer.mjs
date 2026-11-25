@@ -589,7 +589,14 @@ export async function confirmInstall({ client, id, repo = null, home, cwd, dataD
     for (const s of b.settings) entry.settings.push({ ...s, fileExisted: fs.existsSync(s.file), topExisted: readJson(s.file)?.[s.key.split('.')[0]] !== undefined });
     // `claude plugin uninstall` records the plugin in ~/.claude.json declinedPlugins: undo puts it back as it was.
     if (b.method === 'plugin') entry.restore = [{ file: path.join(home, '.claude.json'), key: 'declinedPlugins', before: getKey(path.join(home, '.claude.json'), 'declinedPlugins') ?? null }];
-    const fail = (reason) => { undoSteps(entry, b, run); return { ok: false, reason: `${reason}: rolled back` }; };
+    const fail = (reason) => {
+      const { pending } = undoSteps(entry, b, run);
+      if (!pending.length) return { ok: false, reason: `${reason}: rolled back` };
+      // Logged, so `undo` can finish the restores once the file parses again.
+      entry.pending = pending; entry.rolledBack = true;
+      const log = loadLog(dataDir); log.installs.push(entry); saveLog(dataDir, log);
+      return { ok: false, reason: `${reason}: rolled back, except in settings Tool Scout could not parse (left exactly as they are): ${pending.join('; ')}. Fix them, then run: scout.mjs undo ${b.name}` };
+    };
     try {
       for (const c of b.commands) { run('claude', c); entry.commands.push(c); }
     } catch (e) { return fail(`claude ${(entry.commands.length < b.commands.length ? b.commands[entry.commands.length] : []).join(' ')} failed (${String(e.stderr || e.message).trim().split('\n')[0]})`); }
@@ -615,17 +622,21 @@ function rollbackFiles(entry) {
 }
 
 /** Undo claude-made changes: inverse commands, settings back to their logged values, new empty leftovers removed. */
+/**
+ * Undo claude-made changes. Returns { kept, pending }: `pending` names each restore skipped because its
+ * settings file didn't parse (a hand edit, or a write in progress), as "<file>: <key> back to <value>".
+ */
 function undoSteps(entry, b, run) {
-  const kept = []; const untouched = [];
-  // A settings file that no longer parses is left exactly as it is, and named in the result.
-  const edit = (file, fn) => { try { fn(); } catch (e) { if (!/is not valid JSON/.test(e.message)) throw e; const n = `${file} (not valid JSON: left as it is; check it yourself)`; if (!untouched.includes(n)) untouched.push(n); } };
+  const kept = []; const pending = [];
+  // A settings file that no longer parses is left exactly as it is; what it still needs is named.
+  const edit = (file, todo, fn) => { try { fn(); } catch (e) { if (!/is not valid JSON/.test(e.message)) throw e; if (todo.length) pending.push(`${file}: ${todo.join(', ')}`); } };
   for (const c of [...entry.commands].reverse()) {
     const inv = c[0] === 'mcp' ? ['mcp', 'remove', c[2], '--scope', entry.scope]
       : c[1] === 'install' ? ['plugin', 'uninstall', c[2], '--scope', entry.scope]
         : ['plugin', 'marketplace', 'remove', b.name.split('@')[1], '--scope', entry.scope];
     try { run('claude', inv); } catch { /* already gone */ }
   }
-  for (const s of entry.settings) edit(s.file, () => {
+  for (const s of entry.settings) edit(s.file, [...(s.before !== null && typeof s.after !== 'string' ? [`${s.key} back to ${JSON.stringify(s.before)}`] : []), ...(s.topExisted === false ? [`${s.key.split('.')[0]} removed if empty`] : [])], () => {
     if (unreadableJson(s.file)) throw new Error(`${s.file} is not valid JSON`);
     // The user's earlier value comes back, whether the setting still has ours or the uninstall removed it.
     if (s.before !== null && typeof s.after !== 'string' && [s.after, undefined].includes(getKey(s.file, s.key))) setKey(s.file, s.key, s.before);
@@ -633,7 +644,7 @@ function undoSteps(entry, b, run) {
     if (s.topExisted === false && fs.existsSync(s.file) && isEmptyValue(readJson(s.file)?.[top])) setKey(s.file, top, null); // e.g. an empty mcpServers left by mcp remove
     if (!s.fileExisted && fs.existsSync(s.file) && emptyJson(s.file)) fs.unlinkSync(s.file);
   });
-  for (const r of entry.restore || []) edit(r.file, () => {
+  for (const r of entry.restore || []) edit(r.file, [`${r.key} back to ${JSON.stringify(r.before)}`], () => {
     if (!fs.existsSync(r.file)) return;
     if (unreadableJson(r.file)) throw new Error(`${r.file} is not valid JSON`);
     const now = getKey(r.file, r.key);
@@ -663,7 +674,7 @@ function undoSteps(entry, b, run) {
       if (st.isDirectory()) { if (!fs.readdirSync(p).length) fs.rmdirSync(p); else kept.push(p); } else if (emptyJson(p) || !st.size) fs.unlinkSync(p); else kept.push(p);
     } catch { /* already gone */ }
   }
-  return [...kept.filter((p) => fs.existsSync(p)), ...untouched];
+  return { kept: kept.filter((p) => fs.existsSync(p)), pending };
 }
 
 export async function undoInstall({ name, dataDir, run = defaultRun }) {
@@ -682,7 +693,15 @@ export async function undoInstall({ name, dataDir, run = defaultRun }) {
     }
     for (const d of [...entry.dirs].reverse()) { try { fs.rmdirSync(d); } catch { /* holds kept files */ } }
   } else {
-    kept = undoSteps(entry, { name: entry.name }, run);
+    const r = undoSteps(entry, { name: entry.name }, run);
+    kept = r.kept;
+    if (r.pending.length) {
+      // Not marked undone: a later `undo` finishes it, once the file parses again.
+      entry.pending = r.pending;
+      saveLog(dataDir, log);
+      return { ok: false, entry, kept, pending: r.pending, reason: `Undid ${name} except in settings Tool Scout could not parse (left exactly as they are): ${r.pending.join('; ')}. Fix them (or wait for Claude Code to finish writing), then run: scout.mjs undo ${name}` };
+    }
+    delete entry.pending;
   }
   entry.undoneAt = new Date().toISOString();
   entry.kept = kept;

@@ -29,7 +29,7 @@ test('undo leaves a settings file it cannot parse byte for byte as it is, and sa
   const res = await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
   assert.equal(fs.readFileSync(settings, 'utf8'), hand, 'settings.json untouched');
   assert.equal(fs.readFileSync(cj, 'utf8'), half, '~/.claude.json untouched');
-  assert.ok(res.kept.some((k) => k.includes('settings.json')) && res.kept.some((k) => k.includes('.claude.json')), res.kept.join('\n'));
+  assert.ok(res.pending.some((k) => k.includes('settings.json')) && res.pending.some((k) => k.includes('.claude.json')), res.reason);
 });
 
 test('undo keeps the user\'s other keys and the file mode (0600 stays 0600), and writes atomically', async () => {
@@ -109,4 +109,47 @@ test('a settings file that is a symlink stays a symlink: the change lands in its
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(other, '.claude.json'), 'utf8')).declinedPlugins, ['old@x']);
   assert.equal(fs.statSync(path.join(other, '.claude.json')).mode & 0o777, 0o600);
   for (const d of [other, path.dirname(settings), sb.home]) assert.deepEqual(fs.readdirSync(d).filter((f) => /tool-scout|\.tmp/.test(f)), [], `no temp file in ${d}`);
+});
+
+// ---- 0.12.1: a restore skipped because a file didn't parse is never lost ---------------------------
+test('undo that had to skip an unparseable file stays undoable, names what is still to put back, and finishes on a retry', async () => {
+  const { listInstalled } = await import('../scripts/lib/installer.mjs');
+  const sb = sandbox();
+  const { settings, cj } = logged(sb);
+  fs.writeFileSync(settings, '{"enabledPlugins": {"guard@o-tools": true},}');
+  fs.writeFileSync(cj, '{"declinedPlugins": ["old@x", "guard@o-tools"]'); // mid-write
+  const res = await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
+  assert.equal(res.ok, false);
+  assert.match(res.reason, /enabledPlugins\.guard@o-tools.*false/);
+  assert.match(res.reason, /declinedPlugins.*\["old@x"\]/);
+  assert.match(res.reason, /undo guard@o-tools/);
+  assert.equal(listInstalled(sb.dataDir).length, 1, 'still listed, so undo can run again');
+  fs.writeFileSync(settings, '{"enabledPlugins": {"guard@o-tools": true}}');
+  fs.writeFileSync(cj, '{"declinedPlugins": ["old@x", "guard@o-tools"]}');
+  const again = await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
+  assert.ok(again.ok, again.reason);
+  assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).enabledPlugins['guard@o-tools'], false);
+  assert.deepEqual(JSON.parse(fs.readFileSync(cj, 'utf8')).declinedPlugins, ['old@x']);
+  assert.equal(listInstalled(sb.dataDir).length, 0);
+});
+
+test('an install rolled back while a settings file did not parse says what is left, and logs it so undo can finish', async () => {
+  const { makePlan, confirmInstall, listInstalled } = await import('../scripts/lib/installer.mjs');
+  const s = setup({ p: { readme: '# p', topics: ['claude-code-plugin'], files: { '.claude-plugin/marketplace.json': JSON.stringify({ name: 'p-tools', plugins: [{ name: 'guard', source: './guard' }] }) } } });
+  const settings = path.join(s.sb.home, '.claude', 'settings.json');
+  fs.writeFileSync(settings, JSON.stringify({ enabledPlugins: { 'guard@p-tools': false } }));
+  const plan = await makePlan({ ...s.ctx(), repo: 'o/p' });
+  assert.deepEqual(plan.body.blockers, []);
+  const failing = (cmd, argv) => {
+    if (argv[1] === 'install') { fs.writeFileSync(settings, '{"enabledPlugins": {"guard@p-tools": true},'); throw Object.assign(new Error('x'), { stderr: 'boom' }); }
+    return '';
+  };
+  const res = await confirmInstall({ ...s.ctx({ run: failing }), repo: 'o/p', id: plan.id });
+  assert.equal(res.ok, false);
+  assert.match(res.reason, /enabledPlugins\.guard@p-tools.*false/);
+  assert.match(res.reason, /undo guard@p-tools/);
+  assert.equal(listInstalled(s.sb.dataDir).length, 1);
+  fs.writeFileSync(settings, '{"enabledPlugins": {"guard@p-tools": true}}');
+  assert.ok((await undoInstall({ name: 'guard@p-tools', dataDir: s.sb.dataDir, run })).ok);
+  assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).enabledPlugins['guard@p-tools'], false);
 });
