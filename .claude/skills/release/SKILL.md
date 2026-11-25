@@ -5,7 +5,7 @@ description: Cut a Tool Scout release. Bumps the version, writes the CHANGELOG e
 
 # /release
 
-Cuts a release of Tool Scout from `main`. Never push without the user's explicit yes (step 8).
+Cuts a release of Tool Scout from `main`. Never push without the user's explicit yes (step 9).
 
 ## 1. Preflight (stop and report if any check fails)
 
@@ -62,7 +62,20 @@ catches before going on.
   message with the session's attribution trailer.
 - `git tag -a vX.Y.Z -m "Tool Scout X.Y.Z"`
 
-## 8. Ask before pushing
+## 8. Review the report with the report-reviewer subagent
+
+Before asking about the push, run the Agent tool with `subagent_type: "report-reviewer"`. Pass it:
+- the report path, `docs/reports/vX.Y.Z.md`;
+- this stage's criteria as a list: the items the user gave for this stage (the numbered list in
+  their request), word for word. If you don't have them, ask the user for them; don't make any up.
+
+Show its output to the user. If it lists anything under Missing or Wrong, fix the report (or
+whatever it found), run `npm test` again, then `git commit --amend --no-edit` with the fixed files
+and move the tag (`git tag -f -a vX.Y.Z -m "Tool Scout X.Y.Z"`). Then run the reviewer again. Only
+go on to step 9 when it lists nothing missing or wrong, or after the user has seen the remaining
+findings and said to go on. Never push before asking, whatever the review says.
+
+## 9. Ask before pushing
 
 Show `git log -1 --stat` and the tag, then ask with AskUserQuestion: "Push main and tag vX.Y.Z
 to origin?", with the options "Yes, push" and "No, keep it local". Only after "Yes, push" run
@@ -72,4 +85,4 @@ to undo it (`git tag -d vX.Y.Z && git reset --soft HEAD~1`).
 ## Report
 
 End with 10 lines or fewer: the version, the commit, the tag, the test count, the eval numbers,
-and whether it was pushed.
+the report review's result (e.g. "review: all 7 criteria met"), and whether it was pushed.
