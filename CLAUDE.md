@@ -19,3 +19,11 @@ Before each release, check that `git diff <last tag> HEAD` on these paths prints
 
 **Stage files by name.** Never use `git add -A` or `git add .`; stage files by name.
 <!-- tool-scout:end working-rules -->
+
+<!-- tool-scout:begin tool-scout-conventions -->
+## Tool Scout v1.0 conventions
+
+Stack: Node.js 18+, plain ES modules (.mjs), tests with node:test. Domain: security-sensitive install and build code, being prepared for a public v1.0 launch.
+
+- Never add runtime dependencies.
+<!-- tool-scout:end tool-scout-conventions -->
