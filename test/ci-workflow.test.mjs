@@ -13,6 +13,10 @@ test('the workflow runs on push and on pull request', () => {
   assert.match(yml(), /^\s+pull_request:/m);
 });
 
+test('it can also be started by hand (workflow_dispatch), for when a push does not start a run', () => {
+  assert.match(yml(), /^\s+workflow_dispatch:/m);
+});
+
 test('the matrix is ubuntu, macos and windows by Node 20, 22 and 24: 9 jobs, none dropped on failure', () => {
   const y = yml();
   assert.match(y, /os:\s*\[\s*ubuntu-latest\s*,\s*macos-latest\s*,\s*windows-latest\s*\]/);
