@@ -2,6 +2,21 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.14.1 (2026-11-26)
+
+Kickoff answers every line of your plan, and stops matching tools to tasks that are not tool work.
+
+- Recruiting people, submitting or publishing, recording a demo GIF, writing a post or a FAQ and
+  drawing icons or sprites are never matched to a tool now, even when the line mentions GitHub or
+  git. Your v1.0 plan no longer gets a code-review tool for "bug reports as GitHub issues".
+- Every task line gets an answer: a tool, "nothing needed: Claude does this directly", "already
+  installed: <name>", or "outside Claude Code: <one line>" (for example a terminal recorder for a
+  demo GIF). No line is skipped silently.
+- A status line in the plan is answered by the built-in `/statusline`: nothing to install, you
+  type it yourself.
+- Needs files saved by older versions are re-derived from the saved plan text on the next
+  `--rematch`; your rejects are kept.
+
 ## v0.14.0 (2026-11-26)
 
 Your animal's blind spot now points at a tool.
