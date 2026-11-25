@@ -63,9 +63,11 @@
           "credentials": [
             "ACME_API_KEY"
           ],
+          "credentialCount": 1,
           "apis": [
             "ACME"
           ],
+          "apiCount": 1,
           "network": true,
           "services": []
         },
@@ -140,7 +142,9 @@
         "dependencies": null,
         "needs": {
           "credentials": [],
+          "credentialCount": 0,
           "apis": [],
+          "apiCount": 0,
           "network": false,
           "services": []
         },

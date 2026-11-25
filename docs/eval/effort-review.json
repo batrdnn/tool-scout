@@ -1,0 +1,891 @@
+{
+  "generatedAt": "2026-11-25T02:25:44.327Z",
+  "version": "0.7.0",
+  "seed": 2026,
+  "repos": [
+    {
+      "name": "sepehr071/iran-mcp",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-23T13:01:12Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 284,
+        "codeFiles": 2,
+        "loc": 1563,
+        "instructionLines": 9627,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [
+            "BALE_BOT_TOKEN",
+            "PAYPING_TOKEN",
+            "OAuth"
+          ],
+          "credentialCount": 3,
+          "apis": [
+            "BALE",
+            "PAYPING"
+          ],
+          "apiCount": 2,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 97,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the BALE API and the PAYPING API with ~1,600 lines of Python: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "rehan-remade/universal-modder",
+      "source": "seed 2026",
+      "kind": "skill",
+      "pushedAt": "2026-11-25T00:39:36Z",
+      "effort": {
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 962,
+        "codeFiles": 29,
+        "loc": 11232,
+        "instructionLines": 140638,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": 3,
+        "needs": {
+          "credentials": [
+            "FAL_KEY",
+            "API key"
+          ],
+          "credentialCount": 2,
+          "apis": [
+            "FAL"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 39,
+          "hooks": true,
+          "agents": 3,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the FAL API with ~11,200 lines of Python: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "OpenByteInc/QuantDinger",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-22T19:38:46Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 1965,
+        "codeFiles": 1254,
+        "loc": 459320,
+        "instructionLines": 613,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": 41,
+        "needs": {
+          "credentials": [
+            "ADANOS_API_KEY",
+            "ADMIN_PASSWORD",
+            "AGENT_MAX_CONCURRENT_JOBS_PER_TOKEN",
+            "ALPHA_VANTAGE_API_KEY",
+            "ATLASCLOUD_API_KEY",
+            "BEA_API_KEY",
+            "BLS_API_KEY",
+            "BSCSCAN_API_KEY"
+          ],
+          "credentialCount": 51,
+          "apis": [
+            "ADANOS",
+            "AGENT",
+            "ALPHA",
+            "ATLASCLOUD",
+            "BEA",
+            "BLS",
+            "BSCSCAN",
+            "COINGLASS"
+          ],
+          "apiCount": 33,
+          "network": true,
+          "services": [
+            "docker",
+            "database"
+          ]
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps 33 APIs (ADANOS, AGENT, ALPHA, …) with ~459,300 lines of Python: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "teng-lin/notebooklm-py",
+      "source": "seed 2026",
+      "kind": "skill",
+      "pushedAt": "2026-11-24T16:25:35Z",
+      "effort": {
+        "type": "skill-scripts",
+        "typeLabel": "skill with scripts",
+        "files": 2234,
+        "codeFiles": 607,
+        "loc": 221496,
+        "instructionLines": 532,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": 6,
+        "needs": {
+          "credentials": [
+            "CF_TUNNEL_TOKEN",
+            "NOTEBOOKLM_MCP_OAUTH_PASSWORD",
+            "NOTEBOOKLM_MCP_TOKEN",
+            "TUNNEL_TOKEN",
+            "OAuth"
+          ],
+          "credentialCount": 5,
+          "apis": [
+            "CF",
+            "NOTEBOOKLM",
+            "TUNNEL"
+          ],
+          "apiCount": 3,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps 3 APIs (CF, NOTEBOOKLM, TUNNEL) with ~221,500 lines of Python: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "onehumanbeing/esp32-iphone-agent",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T18:34:30Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 741,
+        "codeFiles": 524,
+        "loc": 125547,
+        "instructionLines": 1258,
+        "languages": [
+          "Swift",
+          "C"
+        ],
+        "dependencies": 9,
+        "needs": {
+          "credentials": [
+            "LLM_API_KEY",
+            "API key"
+          ],
+          "credentialCount": 2,
+          "apis": [
+            "LLM"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 5,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the LLM API with ~125,500 lines of Swift and more: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "alchaincyf/huashu-design",
+      "source": "seed 2026",
+      "kind": "skill",
+      "pushedAt": "2026-11-23T06:13:20Z",
+      "effort": {
+        "type": "skill-scripts",
+        "typeLabel": "skill with scripts",
+        "files": 496,
+        "codeFiles": 35,
+        "loc": 10157,
+        "instructionLines": 16636,
+        "languages": [
+          "Python",
+          "JavaScript"
+        ],
+        "dependencies": 3,
+        "needs": {
+          "credentials": [
+            "ARK_API_KEY",
+            "DOUBAO_ACCESS_KEY",
+            "DOUBAO_TTS_API_KEY"
+          ],
+          "credentialCount": 3,
+          "apis": [
+            "ARK",
+            "DOUBAO"
+          ],
+          "apiCount": 2,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the ARK API and the DOUBAO API with ~10,200 lines of Python and more: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "getsentry/MobileBuildMCP",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-19T03:33:58Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 1837,
+        "codeFiles": 422,
+        "loc": 70515,
+        "instructionLines": 1883,
+        "languages": [
+          "TypeScript"
+        ],
+        "dependencies": 11,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 13,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "~70,500 lines of TypeScript: far more than you'd want to write and maintain."
+      }
+    },
+    {
+      "name": "Tthanh2k6/turbo-browser-mcp",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T05:44:29Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 133,
+        "codeFiles": 14,
+        "loc": 18149,
+        "instructionLines": 597,
+        "languages": [
+          "JavaScript"
+        ],
+        "dependencies": 1,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "~18,100 lines of JavaScript: far more than you'd want to write and maintain."
+      }
+    },
+    {
+      "name": "AhmadHassan-BTed/Jantt",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T15:10:22Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 473,
+        "codeFiles": 255,
+        "loc": 74362,
+        "instructionLines": 30508,
+        "languages": [
+          "TypeScript"
+        ],
+        "dependencies": 0,
+        "needs": {
+          "credentials": [
+            "VITE_FIREBASE_API_KEY",
+            "API key",
+            "OAuth"
+          ],
+          "credentialCount": 3,
+          "apis": [
+            "FIREBASE"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": [
+            "docker"
+          ]
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the FIREBASE API with ~74,400 lines of TypeScript: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "trailofbits/skills",
+      "source": "seed 2026",
+      "kind": "skill",
+      "pushedAt": "2026-11-24T02:56:05Z",
+      "effort": {
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 1660,
+        "codeFiles": 134,
+        "loc": 67917,
+        "instructionLines": 80305,
+        "languages": [
+          "Python",
+          "JavaScript",
+          "Shell"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 99,
+          "hooks": true,
+          "agents": 33,
+          "commands": 8,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "~67,900 lines of Python and more: far more than you'd want to write and maintain."
+      }
+    },
+    {
+      "name": "oss-invisible/playwright_mcp",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T15:16:44Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 359,
+        "codeFiles": 50,
+        "loc": 18564,
+        "instructionLines": 25,
+        "languages": [
+          "Python",
+          "JavaScript"
+        ],
+        "dependencies": 0,
+        "needs": {
+          "credentials": [
+            "OPENROUTER_API_KEY"
+          ],
+          "credentialCount": 1,
+          "apis": [
+            "OPENROUTER"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the OPENROUTER API with ~18,600 lines of Python and more: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "awslabs/mcp",
+      "source": "seed 2026",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T22:39:43Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 3923,
+        "codeFiles": 1108,
+        "loc": 389405,
+        "instructionLines": 51396,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": 8,
+        "needs": {
+          "credentials": [
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN"
+          ],
+          "credentialCount": 2,
+          "apis": [
+            "AWS"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 8,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the AWS API with ~389,400 lines of Python: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "antonbabenko/terraform-skill",
+      "source": "hand",
+      "kind": "skill",
+      "pushedAt": "2026-11-19T12:30:08Z",
+      "effort": {
+        "type": "instructions",
+        "typeLabel": "instructions-only skill",
+        "files": 34,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 5712,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 1,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "build",
+        "adviceLabel": "Build your own",
+        "buildForm": "skill",
+        "buildTime": "a few hours for the part you need",
+        "reason": "Only instructions (~5,700 lines of Markdown) and no external API: write your own for the part you need."
+      }
+    },
+    {
+      "name": "0xfurai/claude-code-subagents",
+      "source": "hand",
+      "kind": "tool",
+      "pushedAt": "2026-11-07T13:34:14Z",
+      "effort": {
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 142,
+        "codeFiles": 0,
+        "loc": 0,
+        "instructionLines": 6748,
+        "languages": [],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 140,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "build",
+        "adviceLabel": "Build your own",
+        "buildForm": "subagent",
+        "buildTime": "a few hours for the part you need",
+        "reason": "A plugin with hooks or agents (~6,700 lines of Markdown) and no external API: write your own for the part you need."
+      }
+    },
+    {
+      "name": "obra/superpowers",
+      "source": "hand",
+      "kind": "skill",
+      "pushedAt": "2026-11-24T23:59:04Z",
+      "effort": {
+        "type": "plugin",
+        "typeLabel": "plugin with hooks or agents",
+        "files": 236,
+        "codeFiles": 16,
+        "loc": 3498,
+        "instructionLines": 10206,
+        "languages": [
+          "JavaScript",
+          "Shell"
+        ],
+        "dependencies": 0,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 15,
+          "hooks": true,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "~3,500 lines of JavaScript and more: far more than you'd want to write and maintain."
+      }
+    },
+    {
+      "name": "anthropics/skills",
+      "source": "hand",
+      "kind": "skill",
+      "pushedAt": "2026-11-16T14:22:50Z",
+      "effort": {
+        "type": "skill-scripts",
+        "typeLabel": "skill with scripts",
+        "files": 448,
+        "codeFiles": 51,
+        "loc": 16588,
+        "instructionLines": 42026,
+        "languages": [
+          "Python"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 20,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": true
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "~16,600 lines of Python: far more than you'd want to write and maintain."
+      }
+    },
+    {
+      "name": "microsoft/playwright-mcp",
+      "source": "hand",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-18T18:50:37Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 44,
+        "codeFiles": 7,
+        "loc": 613,
+        "instructionLines": 244,
+        "languages": [
+          "JavaScript",
+          "Shell"
+        ],
+        "dependencies": 2,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "either",
+        "adviceLabel": "Either",
+        "buildForm": "skill with a script",
+        "buildTime": "about a day",
+        "reason": "Medium-sized (~600 lines of JavaScript and more), no external API: building is real work; installing is quicker if it fits as it is."
+      }
+    },
+    {
+      "name": "github/github-mcp-server",
+      "source": "hand",
+      "kind": "mcp-server",
+      "pushedAt": "2026-11-24T16:19:19Z",
+      "effort": {
+        "type": "mcp-server",
+        "typeLabel": "MCP server",
+        "files": 745,
+        "codeFiles": 190,
+        "loc": 67332,
+        "instructionLines": 3678,
+        "languages": [
+          "Go"
+        ],
+        "dependencies": 31,
+        "needs": {
+          "credentials": [
+            "GITHUB_PAT",
+            "GITHUB_PERSONAL_ACCESS_TOKEN",
+            "YOUR_TOKEN",
+            "OAuth"
+          ],
+          "credentialCount": 4,
+          "apis": [
+            "GITHUB"
+          ],
+          "apiCount": 1,
+          "network": true,
+          "services": []
+        },
+        "parts": {
+          "skills": 18,
+          "hooks": false,
+          "agents": 1,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps the GITHUB API with ~67,300 lines of Go: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "langgenius/dify",
+      "source": "hand",
+      "kind": "skill",
+      "pushedAt": "2026-11-25T02:26:11Z",
+      "effort": {
+        "type": "app",
+        "typeLabel": "app or standalone tool",
+        "files": 16628,
+        "codeFiles": 7568,
+        "loc": 1382929,
+        "instructionLines": 54894,
+        "languages": [
+          "TypeScript",
+          "Python"
+        ],
+        "dependencies": 20,
+        "needs": {
+          "credentials": [
+            "AGENT_BACKEND_API_TOKEN",
+            "ALIBABACLOUD_MYSQL_PASSWORD",
+            "ALIYUN_OSS_ACCESS_KEY",
+            "ALIYUN_OSS_SECRET_KEY",
+            "ALIYUN_SLS_ACCESS_KEY_SECRET",
+            "ANALYTICDB_KEY_SECRET",
+            "ANALYTICDB_NAMESPACE_PASSWORD",
+            "ANALYTICDB_PASSWORD"
+          ],
+          "credentialCount": 77,
+          "apis": [
+            "AGENT",
+            "ALIYUN",
+            "ANALYTICDB",
+            "ARCHIVE",
+            "AZURE",
+            "BAIDU",
+            "CODE",
+            "CREATORS"
+          ],
+          "apiCount": 31,
+          "network": true,
+          "services": [
+            "docker",
+            "database"
+          ]
+        },
+        "parts": {
+          "skills": 6,
+          "hooks": false,
+          "agents": 0,
+          "commands": 1,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "install",
+        "adviceLabel": "Install",
+        "buildForm": null,
+        "buildTime": null,
+        "reason": "Wraps 31 APIs (AGENT, ALIYUN, ANALYTICDB, …) with ~1,382,900 lines of TypeScript and more: installing saves you keeping up with it."
+      }
+    },
+    {
+      "name": "cso1z/claude-ip-guard",
+      "source": "hand",
+      "kind": "tool",
+      "pushedAt": "2026-07-17T09:23:01Z",
+      "effort": {
+        "type": "app",
+        "typeLabel": "app or standalone tool",
+        "files": 11,
+        "codeFiles": 4,
+        "loc": 901,
+        "instructionLines": 0,
+        "languages": [
+          "Shell"
+        ],
+        "dependencies": null,
+        "needs": {
+          "credentials": [],
+          "credentialCount": 0,
+          "apis": [],
+          "apiCount": 0,
+          "network": false,
+          "services": []
+        },
+        "parts": {
+          "skills": 0,
+          "hooks": false,
+          "agents": 0,
+          "commands": 0,
+          "pluginManifest": false
+        },
+        "truncated": false,
+        "advice": "either",
+        "adviceLabel": "Either",
+        "buildForm": "skill with a script",
+        "buildTime": "about a day",
+        "reason": "Medium-sized (~900 lines of Shell), no external API: building is real work; installing is quicker if it fits as it is."
+      }
+    }
+  ]
+}

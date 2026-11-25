@@ -11,7 +11,8 @@
     "eval": "node test/eval/eval.mjs",
     "eval:e2e": "node test/eval/e2e.mjs",
     "gallery": "node test/gallery.mjs",
-    "screenshot": "node test/screenshot.mjs"
+    "screenshot": "node test/screenshot.mjs",
+    "eval:effort": "node test/eval/effort-review.mjs"
   },
   "engines": {
     "node": ">=18"

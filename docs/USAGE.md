@@ -82,14 +82,15 @@ For each final pick (and for `check`), the content scan also reads the repo's fi
 - **Size:** files, approximate lines of code (file bytes ÷ 35; docs, tests, examples, vendored and
   generated code, lockfiles and assets don't count), main languages, runtime dependencies.
 - **Needs:** credentials (ALL_CAPS env names like `STRIPE_API_KEY`, or "API key" / "OAuth" in the
-  README, unless negated), network, and running services (a compose file or `docker run`, a
+  README, unless negated; passwords and an app's own secrets are not counted as APIs), network,
+  and running services (a compose file, `docker run` when it's the only way to run it, a
   database driver or image).
 
 | advice | when |
 |---|---|
 | Build your own | instructions only, or at most `SMALL_LOC` = 300 lines of code, and no external API or service |
 | Either | medium size (301 to 2,999 lines), or small but tied to one API or service |
-| Install | at least `LARGE_LOC` = 3,000 lines; or over 300 lines wrapping an API or needing a service; or pushed in the last `ACTIVE_DAYS` = 14 days with at least `ACTIVE_MIN_LOC` = 1,000 lines; or an app over 300 lines |
+| Install | at least `LARGE_LOC` = 3,000 lines; or over 300 lines wrapping an API or needing a service; or pushed in the last `ACTIVE_DAYS` = 14 days with at least `ACTIVE_MIN_LOC` = 1,000 lines |
 
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a

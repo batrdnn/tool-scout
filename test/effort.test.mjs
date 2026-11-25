@@ -41,7 +41,7 @@ test('skill with scripts: small code, tests and docs not counted → build, skil
   assert.equal(e.codeFiles, 1);
   assert.deepEqual(e.languages, ['Python']);
   assert.equal(e.advice, 'build');
-  assert.equal(e.buildForm, 'skill (with a script)');
+  assert.equal(e.buildForm, 'skill with a script');
   assert.equal(e.buildTime, '2–4 hours');
 });
 
@@ -196,4 +196,85 @@ test('docs/USAGE.md documents every threshold with the value the code uses', asy
   assert.ok(sec, 'docs/USAGE.md needs a "## Build or install" section');
   for (const [k, v] of Object.entries(THRESHOLDS)) assert.match(sec, new RegExp(`\`${k}\` = ${v.toLocaleString('en-US')}\\b`), k);
   assert.match(sec, new RegExp(`÷ ${BYTES_PER_LINE}\\b`));
+});
+
+// ---- found by running the estimate on real repos (docs/eval/effort-review.md) ----------
+
+test('credential names: build-tool prefixes stripped, passwords and bare secrets are not APIs, unnamed dropped when named exist', () => {
+  const e = est({ tree: [blob('.env.example'), code('a.ts', 50)], files: { '.env.example': 'VITE_FIREBASE_API_KEY=\nNEXT_PUBLIC_STRIPE_KEY=\nDB_PASSWORD=\nSECRET_KEY=\nYOUR_TOKEN=\n' } });
+  assert.deepEqual(e.needs.apis, ['FIREBASE', 'STRIPE']);
+});
+
+test('a huge .env lists at most 8 credentials and 8 APIs, with the totals; the reason stays one short line', () => {
+  const env = Array.from({ length: 30 }, (_, i) => `SVC${String.fromCharCode(65 + (i % 26))}${i}_API_KEY=`).join('\n');
+  const e = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env } });
+  assert.equal(e.needs.credentials.length, 8);
+  assert.equal(e.needs.credentialCount, 30);
+  assert.equal(e.needs.apis.length, 8);
+  assert.equal(e.needs.apiCount, 30);
+  assert.match(e.reason, /^Wraps 30 APIs/);
+  assert.ok(e.reason.length < 160, e.reason);
+});
+
+test('agents/ or hooks/ inside a skill folder do not make a plugin', () => {
+  const e = est({ tree: [md('skills/creator/SKILL.md', 100), md('skills/creator/agents/grader.md', 80), code('skills/creator/scripts/run.py', 100)] });
+  assert.equal(e.type, 'skill-scripts');
+  assert.equal(e.parts.agents, 0);
+});
+
+test('docker in the README is a required service only when it is the only way to run it', () => {
+  const tree = [code('index.js', 200)];
+  assert.deepEqual(est({ tree, readme: 'Run `npx @x/mcp@latest`, or with Docker: `docker run -i x/mcp`.' }).needs.services, []);
+  assert.deepEqual(est({ tree, readme: 'Start it: `docker run -p 8080:8080 x/server`.' }).needs.services, ['docker']);
+});
+
+test('apps follow the size rules like everything else (a 450-line tool is not an automatic install)', () => {
+  const e = est({ kind: 'tool', tree: [blob('pyproject.toml'), code('cli/main.py', 450)] });
+  assert.equal(e.type, 'app');
+  assert.equal(e.advice, 'either');
+});
+
+test('test-*.py and other test-named scripts are not counted as code', () => {
+  const e = est({ tree: [md('SKILL.md', 50), code('scripts/test-export.py', 3000), code('scripts/build.py', 100)] });
+  assert.equal(e.loc, 100);
+});
+
+test('a big codebase with a small skill folder inside is an app; code inside skill folders is a skill with scripts', () => {
+  const app = est({ tree: [md('skills/helper/SKILL.md', 50), code('skills/helper/run.py', 100), ...Array.from({ length: 50 }, (_, i) => code(`api/m${i}.py`, 200))] });
+  assert.equal(app.type, 'app');
+  const skill = est({ tree: [md('skills/a/SKILL.md', 50), code('skills/a/scripts/x.py', 900), code('tools/lint.py', 100)] });
+  assert.equal(skill.type, 'skill-scripts');
+  const root = est({ tree: [md('SKILL.md', 50), code('src/x.py', 900)] });
+  assert.equal(root.type, 'skill-scripts', 'a SKILL.md at the root makes the whole repo the skill');
+});
+
+test('"OAuth" or "API key" as a topic is not a requirement; asked of the user, it is', () => {
+  const tree = [md('agents/a.md', 50)];
+  assert.deepEqual(est({ tree, readme: '- **[OAuth OIDC Expert](agents/oauth.md)** - OAuth 2.0 and OpenID Connect\n- API key rotation guide' }).needs.credentials, []);
+  assert.deepEqual(est({ tree, readme: 'Authenticate with OAuth before the first run.' }).needs.credentials, ['OAuth']);
+  assert.deepEqual(est({ tree, readme: 'It requires an API key from the provider.' }).needs.credentials, ['API key']);
+});
+
+test('identical copies of a file (same name and size) count once', () => {
+  const e = est({ tree: [md('SKILL.md', 20), code('plugins/guard/guard.js', 200), code('plugins/pack/lib/guard.js', 200), code('plugins/pack/lib/other.js', 50)] });
+  assert.equal(e.loc, 250);
+  assert.equal(e.codeFiles, 2);
+});
+
+test('a large instruction set is not "quick": the reason says to take the part you need, and never calls it small', () => {
+  const big = est({ tree: Array.from({ length: 80 }, (_, i) => md(`agents/a${i}.md`, 110)) });
+  assert.equal(big.advice, 'build');
+  assert.doesNotMatch(big.reason, /quick|small/i);
+  assert.match(big.reason, /part you need/);
+  const tied = est({ tree: [md('skills/x/SKILL.md', 3000)], readme: 'Set FIRECRAWL_API_KEY first.' });
+  assert.equal(tied.advice, 'either');
+  assert.doesNotMatch(tied.reason, /^Small/);
+});
+
+test('"Wraps N APIs (…)" ends with … only when some are not named', () => {
+  const env = (n) => Array.from({ length: n }, (_, i) => `SVC${String.fromCharCode(65 + i)}_API_KEY=`).join('\n');
+  const three = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(3) } });
+  assert.match(three.reason, /^Wraps 3 APIs \(SVCA, SVCB, SVCC\) with/);
+  const four = est({ tree: [blob('.env.example'), code('a.py', 5000)], files: { '.env.example': env(4) } });
+  assert.match(four.reason, /^Wraps 4 APIs \(SVCA, SVCB, SVCC, …\) with/);
 });

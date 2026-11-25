@@ -28,7 +28,8 @@ const LANG = {
 };
 // Docs, tests, examples, vendored and generated code, CI and assets are not what you'd rebuild.
 const NOT_CODE_DIR = /(^|\/)(docs?|tests?|__tests__|spec|specs|e2e|fixtures?|testdata|examples?|samples?|demos?|evals?|benchmarks?|node_modules|vendor|third_party|dist|build|out|target|coverage|\.github|assets|static|public|images|media)\//i;
-const NOT_CODE_FILE = /\.min\.\w+$|\.d\.ts$|(^|\/)[^/]*\.(test|spec)\.\w+$|(^|\/)test_[^/]*\.py$|_test\.(go|py)$/i;
+const NOT_CODE_FILE = /\.min\.\w+$|\.d\.ts$|(^|\/)[^/]*\.(test|spec)\.\w+$|(^|\/)tests?[-_][^/]*$|_test\.(go|py)$/i;
+const IN_SKILL = /(^|\/)skills\//i; // a skill's own agents/ or hooks/ folder is part of the skill, not a plugin
 const NOT_INSTRUCTIONS = /(^|\/)(readme|changelog|license|licence|contributing|code_of_conduct|security|notice|authors)[^/]*\.md$/i;
 const ext = (p) => (p.match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
 const depth = (p) => p.split('/').length;
@@ -92,7 +93,15 @@ function dependencyNames(files) {
 const CRED_NAME = /\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_(?:API_KEY|APIKEY|KEY|TOKEN|SECRET|SECRET_KEY|CLIENT_ID|CLIENT_SECRET|PASSWORD|ACCESS_KEY|ACCESS_TOKEN|AUTH_TOKEN|PAT))\b/g;
 const CRED_SUFFIX = /_(?:API_KEY|APIKEY|SECRET_KEY|CLIENT_ID|CLIENT_SECRET|ACCESS_KEY|ACCESS_TOKEN|AUTH_TOKEN|KEY|TOKEN|SECRET|PASSWORD|PAT)$/;
 const PLACEHOLDER = /^(YOUR|MY|THE|SOME|EXAMPLE|SAMPLE|XXX|DUMMY|FAKE|TEST)$/;
+// Build tools that expose env vars to the browser prefix them: VITE_FIREBASE_API_KEY is Firebase's.
+const ENV_PREFIX = /^(?:VITE|NEXT_PUBLIC|REACT_APP|NUXT_PUBLIC|EXPO_PUBLIC|PUBLIC|GATSBY|VUE_APP)_/;
+// Passwords and an app's own secrets (SECRET_KEY, JWT_SECRET) are credentials, not external APIs.
+const NOT_AN_API = /_PASSWORD$|^(?:SECRET|ROOT|APP|ADMIN|MASTER|PRIVATE|JWT|SESSION|ENCRYPTION|SIGNING|COOKIE|CSRF|DB|DATABASE|INTERNAL|LOCAL)_/;
+const MAX_LISTED = 8; // credentials and APIs listed; the totals are kept as counts
+const OTHER_INSTALL = /\b(?:npx|uvx|pipx?\s+install|npm\s+(?:i|install)|pnpm\s+add|yarn\s+add|bun\s+add|go\s+install|cargo\s+install|brew\s+install|claude\s+mcp\s+add|claude\s+plugin\s+install|\/plugin\s+install)\b/i;
 const NEGATED = /\b(?:no|without|not|don'?t|doesn'?t|never|zero)\b[^.\n]{0,25}$/i;
+// "API key" / "OAuth" count only when the user is asked for one, not when it's a topic.
+const ASKED = /\b(?:your|an?|requires?|needs?|set|get|obtain|create|provide|enter|paste|add|configure|export|sign[- ]?in|log[- ]?in|authenticate|authori[sz]e|via|using|through)\b[^.\n]{0,15}$/i;
 const HTTP_DEPS = new Set(['axios', 'node-fetch', 'got', 'undici', 'superagent', 'ky', 'requests', 'httpx', 'aiohttp', 'urllib3', 'reqwest', 'github.com/go-resty/resty/v2']);
 const DB_DEPS = new Set(['pg', 'postgres', 'mysql', 'mysql2', 'mongodb', 'mongoose', 'redis', 'ioredis', 'psycopg', 'psycopg2', 'psycopg2-binary', 'asyncpg', 'pymongo', 'motor', 'neo4j', 'neo4j-driver', 'elasticsearch', '@elastic/elasticsearch', 'github.com/lib/pq', 'github.com/jackc/pgx/v5', 'github.com/redis/go-redis/v9', 'sqlx', 'diesel', 'tokio-postgres']);
 const MCP_DEPS = new Set(['@modelcontextprotocol/sdk', 'fastmcp', 'mcp', 'github.com/mark3labs/mcp-go', 'github.com/modelcontextprotocol/go-sdk', 'rmcp', 'mcp-framework', '@mastra/mcp']);
@@ -106,21 +115,27 @@ function credentialsIn(texts) {
   for (const text of texts) {
     for (const m of text.matchAll(CRED_NAME)) names.add(m[1]);
     for (const [re, label] of [[/\bOAuth\b/g, 'OAuth'], [/\bAPI[ _-]?keys?\b/gi, 'API key']]) {
-      for (const m of text.matchAll(re)) if (!NEGATED.test(text.slice(Math.max(0, m.index - 40), m.index))) phrases.add(label);
+      for (const m of text.matchAll(re)) {
+        const before = text.slice(Math.max(0, m.index - 40), m.index);
+        if (ASKED.test(before) && !NEGATED.test(before)) phrases.add(label);
+      }
     }
   }
   return { names: [...names].sort(), phrases: [...phrases].sort() };
 }
 
-/** The service behind each credential: STRIPE_API_KEY → STRIPE. Unnamed ones → "an external API". */
+/** The service behind each credential: STRIPE_API_KEY → STRIPE. Unnamed ones → "an external API", only if nothing is named. */
 function apisOf(cred) {
-  const svc = new Set();
+  const named = new Set();
+  let unnamed = cred.phrases.length > 0;
   for (const n of cred.names) {
-    const head = n.replace(CRED_SUFFIX, '').split('_')[0];
-    svc.add(!head || PLACEHOLDER.test(head) || head === 'API' ? 'an external API' : head);
+    const name = n.replace(ENV_PREFIX, '');
+    if (NOT_AN_API.test(name)) continue;
+    const head = name.replace(CRED_SUFFIX, '').split('_')[0];
+    if (!head || PLACEHOLDER.test(head) || head === 'API') unnamed = true;
+    else named.add(head);
   }
-  if (!svc.size && cred.phrases.length) svc.add('an external API');
-  return [...svc];
+  return named.size ? [...named].sort() : unnamed ? ['an external API'] : [];
 }
 
 // ---- facts ------------------------------------------------------------------------------
@@ -132,7 +147,9 @@ const TYPE_LABEL = {
 /** Everything that doesn't depend on the date: cached by the scan. */
 export function effortFacts({ tree = [], truncated = false, readme = '', files = {}, kind = null } = {}) {
   const blobs = tree.filter((t) => t.type === 'blob');
-  const codeBlobs = blobs.filter((t) => LANG[ext(t.path)] && !NOT_CODE_DIR.test(t.path) && !NOT_CODE_FILE.test(t.path));
+  const seen = new Set(); // identical copies (same file name and size, e.g. bundled into a "pack") count once
+  const codeBlobs = blobs.filter((t) => LANG[ext(t.path)] && !NOT_CODE_DIR.test(t.path) && !NOT_CODE_FILE.test(t.path))
+    .filter((t) => { const k = `${t.path.split('/').pop()}|${t.size}`; if (seen.has(k)) return false; seen.add(k); return true; });
   const codeBytes = codeBlobs.reduce((a, t) => a + (t.size || 0), 0);
   const byLang = {};
   for (const t of codeBlobs) byLang[LANG[ext(t.path)]] = (byLang[LANG[ext(t.path)]] || 0) + (t.size || 0);
@@ -142,9 +159,9 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
   const has = (re) => blobs.some((t) => re.test(t.path));
   const parts = {
     skills: blobs.filter((t) => /(^|\/)SKILL\.md$/i.test(t.path)).length,
-    hooks: has(/(^|\/)hooks\/hooks\.json$/i),
-    agents: blobs.filter((t) => /(^|\/)agents\/[^/]+\.md$/i.test(t.path)).length,
-    commands: blobs.filter((t) => /(^|\/)commands\/[^/]+\.md$/i.test(t.path)).length,
+    hooks: blobs.some((t) => /(^|\/)hooks\/hooks\.json$/i.test(t.path) && !IN_SKILL.test(t.path)),
+    agents: blobs.filter((t) => /(^|\/)agents\/[^/]+\.md$/i.test(t.path) && !IN_SKILL.test(t.path)).length,
+    commands: blobs.filter((t) => /(^|\/)commands\/[^/]+\.md$/i.test(t.path) && !IN_SKILL.test(t.path)).length,
     pluginManifest: has(/^\.claude-plugin\/(plugin|marketplace)\.json$/),
   };
 
@@ -156,28 +173,36 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
   const cred = credentialsIn([readme || '', envFile, mcpEnv, compose]);
   const apis = apisOf(cred);
   const services = [];
-  if (has(/^(docker-)?compose\.ya?ml$/) || DOCKER_RUN.test(readme || '')) services.push('docker');
+  // Docker is needed when there's a compose file, or when the README's only way to run it is docker.
+  if (has(/^(docker-)?compose\.ya?ml$/) || (DOCKER_RUN.test(readme || '') && !OTHER_INSTALL.test(readme || ''))) services.push('docker');
   if ((deps || []).some((d) => DB_DEPS.has(d)) || DB_IMAGE.test(compose) || DB_ENV.test(`${envFile}\n${compose}`)) services.push('database');
   const remoteMcp = Object.values(mcpConfig?.mcpServers || {}).some((s) => /^https?:\/\//.test(s?.url || ''));
   const network = apis.length > 0 || remoteMcp || (deps || []).some((d) => HTTP_DEPS.has(d));
 
   const loc = Math.round(codeBytes / BYTES_PER_LINE);
+  // Where the code lives: inside skill folders (a skill with scripts) or beside them (an app with a skill).
+  const skillDirs = blobs.filter((t) => /(^|\/)SKILL\.md$/i.test(t.path)).map((t) => t.path.replace(/SKILL\.md$/i, ''));
+  const inSkill = (p) => skillDirs.some((d) => p.startsWith(d));
+  const skillCodeShare = codeBytes ? codeBlobs.filter((t) => inSkill(t.path)).reduce((a, t) => a + (t.size || 0), 0) / codeBytes : 0;
   const isMcp = (deps || []).some((d) => MCP_DEPS.has(d)) || (kind === 'mcp-server' && loc > 0);
   const type = isMcp ? 'mcp-server'
     : (parts.hooks || parts.agents) ? 'plugin'
       : loc === 0 ? 'instructions'
-        : (kind !== 'app' && (parts.skills || parts.pluginManifest || parts.commands)) ? 'skill-scripts'
+        : (kind !== 'app' && (parts.skills ? skillCodeShare >= 0.5 : parts.pluginManifest || parts.commands)) ? 'skill-scripts'
           : 'app';
   return {
     type, typeLabel: TYPE_LABEL[type], files: blobs.length, codeFiles: codeBlobs.length, loc, instructionLines, languages,
     dependencies: deps ? deps.length : null,
-    needs: { credentials: [...cred.names, ...cred.phrases], apis, network, services },
+    needs: {
+      credentials: [...cred.names, ...cred.phrases].slice(0, MAX_LISTED), credentialCount: cred.names.length + cred.phrases.length,
+      apis: apis.slice(0, MAX_LISTED), apiCount: apis.length, network, services,
+    },
     parts, truncated: !!truncated,
   };
 }
 
 // ---- advice -----------------------------------------------------------------------------
-const approx = (n) => (n < 100 ? Math.max(10, Math.round(n / 10) * 10) : n < 1000 ? Math.round(n / 50) * 50 : Math.round(n / 100) * 100).toLocaleString('en-US');
+export const approx = (n) => (n < 100 ? Math.max(10, Math.round(n / 10) * 10) : n < 1000 ? Math.round(n / 50) * 50 : Math.round(n / 100) * 100).toLocaleString('en-US');
 const list = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a.at(-1)}`);
 
 function sizeText(f) {
@@ -191,7 +216,7 @@ function buildForm(f) {
   if (f.parts.agents) return 'subagent';
   if (f.parts.commands && !f.parts.skills) return 'slash command';
   if (f.type === 'instructions') return f.instructionLines <= THRESHOLDS.NOTE_MAX_LINES ? 'CLAUDE.md note' : 'skill';
-  return 'skill (with a script)';
+  return 'skill with a script';
 }
 
 function buildTime(f) {
@@ -210,7 +235,8 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
   const { apis, services, credentials } = f.needs;
   const size = sizeText(f);
   const what = f.type === 'instructions' ? 'Only instructions' : `A ${f.typeLabel}`;
-  const apiText = apis.map((a) => (a === 'an external API' ? a : `the ${a} API`));
+  const apiCount = f.needs.apiCount ?? apis.length;
+  const apiText = apiCount > 2 ? [`${apiCount} APIs (${apis.slice(0, 3).join(', ')}${apiCount > 3 ? ', …' : ''})`] : apis.map((a) => (a === 'an external API' ? a : `the ${a} API`));
   const credText = credentials.filter((c) => /^[A-Z0-9_]+$/.test(c)).slice(0, 2);
 
   let advice, reason;
@@ -224,15 +250,15 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
     advice = 'install'; reason = `Wraps ${list(apiText)} with ${size}: installing saves you keeping up with it.`;
   } else if (active && f.loc >= T.ACTIVE_MIN_LOC) {
     advice = 'install'; reason = `Actively maintained (pushed ${days === 0 ? 'today' : `${days} day${days === 1 ? '' : 's'} ago`}) with ${size}: hard to keep up with on your own.`;
-  } else if (f.type === 'app' && f.loc > T.SMALL_LOC) {
-    advice = 'install'; reason = `A standalone app with ${size}: install it rather than rebuild it.`;
   } else if ((f.type === 'instructions' || f.loc <= T.SMALL_LOC) && !apis.length && !services.length) {
     advice = 'build';
-    reason = `${what} (${size}) and no external API, so writing your own is quick.`;
+    reason = !f.loc && f.instructionLines > 800
+      ? `${what} (${size}) and no external API: write your own for the part you need.`
+      : `${what} (${size}) and no external API, so writing your own is quick.`;
   } else if (apis.length || services.length) {
     advice = 'either';
     const need = credText.length ? ` (needs ${credText.join(', ')})` : services.length ? ` (needs ${list(services)})` : '';
-    reason = `Small (${size}) but tied to ${apis.length ? list(apiText) : list(services)}${need}: build it if you need only a little of it, install it to get fixes.`;
+    reason = `${f.loc ? 'Small' : 'Only instructions'} (${size}) but tied to ${apis.length ? list(apiText) : list(services)}${need}: build it if you need only a little of it, install it to get fixes.`;
   } else {
     advice = 'either';
     reason = `Medium-sized (${size}), no external API: building is real work; installing is quicker if it fits as it is.`;
