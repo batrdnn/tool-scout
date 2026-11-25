@@ -271,18 +271,27 @@ const TEXT_LIKE = /(?:^|\/)(?:[^./]+|[^/]*\.(?:md|markdown|txt|json|ya?ml|toml|s
 const utf16Bom = (buf) => buf.length >= 2 && ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff));
 const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
 
+/** A blob at the pinned commit, verified against its git hash: the Buffer, or null. `cache` (a Map) saves refetching. */
+async function fetchBlob(client, api, sha, cache) {
+  if (cache?.has(sha)) return cache.get(sha);
+  const r = await client.request(`${api}/git/blobs/${sha}`);
+  let buf = r.data?.encoding === 'base64' ? Buffer.from(r.data.content, 'base64') : null;
+  if (buf && gitBlobSha(buf) !== sha) buf = null;
+  cache?.set(sha, buf);
+  return buf;
+}
+
 /**
  * The repo check reads at most three SKILL.md files and none over 300 KB; Claude reads every text file
  * a skill installs. So the plan fetches each one at the pinned commit and scans it: a high flag, or a
  * text file the scanner can't decode (UTF-16, NUL bytes), blocks the plan.
  */
-async function scanWrites({ client, api, writes, dir, blockers, notes, extra, repo, readme }) {
+async function scanWrites({ client, api, writes, dir, blockers, notes, extra, repo, readme, blobs }) {
   const explainedHosts = explainedHostsOf(typeof readme === 'string' ? readme : '');
   const flags = []; const binary = [];
   for (const w of writes) {
-    const r = await client.request(`${api}/git/blobs/${w.blob}`);
-    const buf = r.data?.encoding === 'base64' ? Buffer.from(r.data.content, 'base64') : null;
-    if (!buf || gitBlobSha(buf) !== w.blob) { blockers.push(`${w.rel} could not be read at the pinned commit`); continue; }
+    const buf = await fetchBlob(client, api, w.blob, blobs);
+    if (!buf) { blockers.push(`${w.rel} could not be read at the pinned commit`); continue; }
     let text = null;
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
     // Text is decided by content, not by name: a notes.png that is really text is scanned like any other.
@@ -308,7 +317,7 @@ export const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(h
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.
  * Saves it in the data folder (only there) and returns { id, createdAt, expiresAt, body }.
  */
-export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, replace = false, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion }) {
+export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, replace = false, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion, blobCache = null }) {
   const full = normalizeRepo(repo || '');
   if (!full) throw new Error(`not a GitHub repo: ${repo}`);
   if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
@@ -365,7 +374,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       if (writes.length > MAX_FILES) blockers.push(`${writes.length} files: more than ${MAX_FILES}`);
       if (writes.reduce((a, w) => a + w.size, 0) > MAX_BYTES) blockers.push('more than 5 MB');
       if (writes.some((w) => w.mode === '100755')) notes.push('Some files are marked executable. They are copied, never run.');
-      if (!blockers.length) await scanWrites({ client, api, writes, dir, blockers, notes, repo: full, readme, extra: (scan) => { scanned = scan; } });
+      if (!blockers.length) await scanWrites({ client, api, writes, dir, blockers, notes, repo: full, readme, blobs: blobCache, extra: (scan) => { scanned = scan; } });
     }
   } else if (method === 'plugin') {
     let mk = null;
@@ -528,8 +537,8 @@ export async function confirmInstall({ client, id, repo = null, home, cwd, dataD
     const head = (await client.request(`${api}/commits/HEAD`)).data?.sha;
     if (head !== b.sha) return { ok: false, reason: `the repo moved since the plan (its head is now ${String(head).slice(0, 7)}, the plan pinned ${b.sha.slice(0, 7)}): make a new plan` };
   }
-  let fresh;
-  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, versions, replace: 'replace' in b }); } catch (e) {
+  let fresh; const cache = new Map(); // blobs the re-plan fetched are reused by the write step
+  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, versions, replace: 'replace' in b, blobCache: cache }); } catch (e) {
     // GitHub unreachable or rate-limited: nothing is known to have changed, so say what happened.
     if (e instanceof RateLimitError || /could not reach GitHub/.test(e.message)) return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was installed; try again later` };
     return { ok: false, reason: `changed since the plan: ${e.message}` };
@@ -543,9 +552,8 @@ export async function confirmInstall({ client, id, repo = null, home, cwd, dataD
   if (b.method === 'skill') {
     const contents = [];
     for (const w of b.writes) {
-      const r = await client.request(`${api}/git/blobs/${w.blob}`);
-      const buf = r.data?.encoding === 'base64' ? Buffer.from(r.data.content, 'base64') : null;
-      if (!buf || gitBlobSha(buf) !== w.blob) return { ok: false, reason: `${w.rel} does not match its git hash at the pinned commit: nothing was written` };
+      const buf = await fetchBlob(client, api, w.blob, cache);
+      if (!buf) return { ok: false, reason: `${w.rel} does not match its git hash at the pinned commit: nothing was written` };
       contents.push([w, buf]);
     }
     try {
