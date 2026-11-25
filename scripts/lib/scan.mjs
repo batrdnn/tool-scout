@@ -50,6 +50,24 @@ const INJECTION = [
   /\byou\s+are\s+now\s+(?:in\s+)?(?:developer|dan|jailbreak|unrestricted|god)\s*mode/i,
   /\b(?:new|updated|override)\s+system\s+prompt\b/i,
 ];
+// Text as the phrase rules read it: soft hyphens and zero-width characters taken out, NFKC
+// (full-width and mathematical letters become ASCII), and Cyrillic/Greek look-alikes folded to
+// Latin. `at[i]` is the index in the original text of folded character i, so flags keep their line.
+const FOLD_DROP = /[\u00AD\u034F\u180E\u200B-\u200F\u2060-\u2064\uFEFF]/;
+const LOOKALIKE = Object.fromEntries([
+  ...[...'аеорсухіјѕԁһԛԝԜвкмнт'].map((c, i) => [c, 'aeopcyxijsdhqwWbkmht'[i]]),
+  ...[...'АВЕЗКМНОРСТХІЈЅУ'].map((c, i) => [c, 'ABE3KMHOPCTXIJSY'[i]]),
+  ...[...'αεικνορτυχΑΒΕΖΗΙΚΜΝΟΡΤΥΧ'].map((c, i) => [c, 'aeiknoptuxABEZHIKMNOPTYX'[i]]),
+]);
+export function foldForRules(text) {
+  if (!/[^\x00-\x7F]/.test(text)) return { text, at: null };
+  let out = ''; const at = []; let i = 0;
+  for (const ch of text) {
+    if (!FOLD_DROP.test(ch)) for (const c of ch.normalize('NFKC')) { const f = LOOKALIKE[c] ?? c; out += f; for (let k = 0; k < f.length; k++) at.push(i); }
+    i += ch.length;
+  }
+  return { text: out, at };
+}
 const AI_WORDS = /\b(claude|assistant|ai|agent|llm|model|copilot|cursor|gpt|chatgpt)\b/i;
 const IMPERATIVE = /\b(ignore|must|always|never|do not|don'?t|execute|run|install|send|upload|you are|you should|instead)\b/i;
 // Needs an argument between the downloader and the pipe, so prose like "`curl | sh`" doesn't count.
@@ -103,11 +121,13 @@ export function scanText(text, { file, role, explainedHosts = new Set(), repo = 
   const code = codeRanges(text);
 
   // Prompt injection: phrasing that tries to override the agent or hide things from the user.
+  const folded = foldForRules(text);
   for (const re of INJECTION) {
     const g = new RegExp(re.source, 'gi');
-    for (const m of text.matchAll(g)) {
-      const example = role === 'readme' && (inRanges(code, m.index) || quotedOnLine(text, m.index));
-      add('prompt-injection', example ? 'low' : 'high', m.index,
+    for (const m of folded.text.matchAll(g)) {
+      const idx = folded.at ? folded.at[m.index] : m.index;
+      const example = role === 'readme' && (inRanges(code, idx) || quotedOnLine(text, idx));
+      add('prompt-injection', example ? 'low' : 'high', idx,
         example ? 'injection phrasing quoted in README (probably an example)' : 'text tries to override instructions or hide actions from the user');
     }
   }
