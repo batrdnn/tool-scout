@@ -16,4 +16,6 @@ Before each release, check that `git diff <last tag> HEAD` on these paths prints
 **Use Sonnet for routine rounds.** For routine work (small fixes, doc updates, test runs, mechanical changes), use Sonnet. That includes subagents. Save Opus for design work and for anything that touches ranking.
 
 **Never bypass the freeze hook.** If it blocks something harmless, report it as a hook bug.
+
+**Stage files by name.** Never use `git add -A` or `git add .`; stage files by name.
 <!-- tool-scout:end working-rules -->
