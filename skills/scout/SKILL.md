@@ -215,7 +215,9 @@ reference repo:
 
 1. Ask at most 2 short questions, in one AskUserQuestion call, and only what you can't tell from
    the conversation: what exactly it should do, and which scope ("All my projects" = user, "This
-   project only" = project; a hook defaults to this project). Never more than 2 questions.
+   project only" = project; a hook defaults to this project). For a hook, offer a third scope:
+   "Just me, this project" = personal (its entry goes into the project's `.claude/settings.local.json`,
+   which isn't shared, and its script stays outside the project). Never more than 2 questions.
 2. Choose the form that fits: a skill, a slash command, a subagent, a hook (something that must
    happen automatically on an event) or memory (a standing rule for CLAUDE.md).
 3. For a pick, read its idea: `… head <owner/repo> --plain` prints the first lines of its skill
@@ -231,7 +233,7 @@ reference repo:
    and the files the form needs. Write those files there with the Write tool, in your own words.
    Never write into ~/.claude or the project directly: the plan is the only way anything gets there.
 6. Make the plan: `… build --form <form> --name <name> --from <folder> --plan --plain`, adding
-   `--scope project` or `--scope user` as answered, and `--source <owner/repo>` for a pick (it
+   `--scope project`, `--scope user` or (hooks only) `--scope personal` as answered, and `--source <owner/repo>` for a pick (it
    checks the license and refuses copied text). If it says "Blocked", fix the draft and make a new
    plan; never work around a check (a draft must pass the trust scan with nothing above low, and a
    hook script must not use the network). When the user is updating something they already have

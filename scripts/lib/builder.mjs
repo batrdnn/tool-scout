@@ -151,12 +151,13 @@ const FORM = {
     if (files.length !== 2) p.blockers.push(`a hook draft is hook.json and its script only (found: ${files.map((f) => f.rel).join(', ')})`);
     const text = script.buf.toString('utf8');
     text.split('\n').forEach((l, i) => { if (NETWORK.test(l)) p.blockers.push(`the hook script must not use the network (${script.rel}:${i + 1})`); });
+    // personal: the script lives outside the project (~/.claude/hooks), the entry in its settings.local.json.
     const dir = p.scope === 'project' ? path.join(p.cwd, '.claude', 'hooks', p.name) : path.join(p.home, '.claude', 'hooks', p.name);
     const dest = path.join(dir, script.rel);
     if (/["$`\\]/.test(dest)) { p.blockers.push(`the hook's path ${dest} has characters a command can't quote safely`); return; }
     if (fs.existsSync(dir)) p.blockers.push(`${tilde(dir, p.home)} already exists: Tool Scout never overwrites it`);
     const command = `${RUNNERS[ext]} "${p.scope === 'project' ? `$CLAUDE_PROJECT_DIR/.claude/hooks/${p.name}/${script.rel}` : dest}"`;
-    const file = p.scope === 'project' ? path.join(p.cwd, '.claude', 'settings.json') : path.join(p.home, '.claude', 'settings.json');
+    const file = p.scope === 'project' ? path.join(p.cwd, '.claude', 'settings.json') : p.scope === 'personal' ? path.join(p.cwd, '.claude', 'settings.local.json') : path.join(p.home, '.claude', 'settings.json');
     if (fs.existsSync(file) && !readJson(file)) p.blockers.push(`${tilde(file, p.home)} is not valid JSON: Tool Scout won't change it`);
     if (JSON.stringify(readJson(file)?.hooks || {}).includes(JSON.stringify(command).slice(1, -1))) p.blockers.push('that hook command is already in the settings');
     p.place(script, dest);
@@ -221,7 +222,8 @@ async function sourceCheck(p, client, source, texts) {
 export async function makeBuildPlan({ client = null, form, name, from, scope = null, source = null, home, cwd, dataDir, now = Date.now(), save = true, replace = false }) {
   checkFormName(form, name);
   scope = scope || (form === 'hook' ? 'project' : 'user');
-  if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
+  if (!['user', 'project', 'personal'].includes(scope)) throw new Error('--scope must be user, project or personal');
+  if (scope === 'personal' && form !== 'hook') throw new Error('the personal scope is for hooks (this project, only you): use user or project');
   const blockers = []; const notes = []; const writes = [];
   const p = { form, name, scope, home, cwd, blockers, notes, writes, extra: {}, source: null, replace,
     place: (f, dest) => writes.push({ path: dest, rel: f.rel, sha256: sha256(f.buf), size: f.buf.length, mode: f.mode }),
@@ -266,7 +268,7 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
   const out = [
     `Build plan ${rec.id} (expires ${rec.expiresAt.slice(11, 16)} UTC, ${PLAN_TTL_MIN} minutes after it was made)`,
     `What:      ${b.form} ${b.name} (from Claude's draft; nothing in it is run)`,
-    `Scope:     ${b.scope}`,
+    `Scope:     ${b.scope === 'personal' ? 'personal (this project, only you)' : b.scope}`,
     `Draft:     ${t(b.from)}`,
     `Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`,
     ...b.writes.map((w) => `           ${t(w.path)}`),

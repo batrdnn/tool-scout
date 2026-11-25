@@ -24,7 +24,8 @@
 //                                              --replace: swap an existing skill folder for this version in one step (undo restores it)
 //   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
 //   scout.mjs build --start --form F --name N          makes drafts/N/ in the data folder for Claude's draft
-//   scout.mjs build --form F --name N --from DIR [--scope user|project] [--replace] [--source owner/repo] --plan
+//   scout.mjs build --form F --name N --from DIR [--scope user|project|personal] [--replace] [--source owner/repo] --plan
+//                                              personal (hooks only): this project's .claude/settings.local.json, script in ~/.claude/hooks
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
 //   scout.mjs build --confirm-hook <planId>            a hook's second, separate confirmation (after --confirm)
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
