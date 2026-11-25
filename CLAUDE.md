@@ -14,4 +14,6 @@ Before each release, check that `git diff <last tag> HEAD` on these paths prints
 **Report in 10 lines max.** Keep the end-of-round report in chat to 10 lines or fewer.
 
 **Use Sonnet for routine rounds.** For routine work (small fixes, doc updates, test runs, mechanical changes), use Sonnet. That includes subagents. Save Opus for design work and for anything that touches ranking.
+
+**Never bypass the freeze hook.** If it blocks something harmless, report it as a hook bug.
 <!-- tool-scout:end working-rules -->
