@@ -56,3 +56,36 @@ test('Bash: a heredoc that names a frozen path but writes elsewhere passes', opt
   assert.equal(bash("cat > /tmp/notes.md <<'EOF'\nsed -i x scripts/lib/rank.mjs\nEOF"), 0);
   assert.equal(bash('git commit -F - <<-EOT\n\tfreeze: test/eval/labels.json => untouched\n\tEOT'), 0);
 });
+
+// v0.11.3 item 3: a chained command is judged one piece at a time (split on && || ; | and newlines,
+// outside quotes). A piece that writes a non-frozen file but only names a frozen path passes.
+test('Bash: chained commands that write a non-frozen file but merely name a frozen path pass', opts, () => {
+  for (const c of [
+    'echo x > /tmp/out.txt && cat scripts/lib/rank.mjs',
+    'cat scripts/lib/rank.mjs > /tmp/copy.txt',
+    'git diff v0.11.2 HEAD -- scripts/lib/rank.mjs > /tmp/rank.diff',
+    'git diff v0.11.2 HEAD -- scripts/lib/rank.mjs test/eval/ > /tmp/d; echo done',
+    'npm run eval > /tmp/eval.txt; git diff v0.11.2 HEAD --stat -- scripts/lib/rank.mjs',
+    'sed -i "" s/a/b/ notes.md && cat scripts/lib/stack.mjs',
+    'cat scripts/lib/rank.mjs | tee /tmp/copy.txt',
+    'git diff v0.11.2 HEAD -- test/eval/labels.json > /tmp/l.diff && echo "checked scripts/lib/crawl.mjs" >> /tmp/log.txt',
+    'echo x > /tmp/a\ngrep -n foo scripts/lib/momentum.mjs',
+  ]) assert.equal(bash(c), 0, c);
+});
+
+test('Bash: a write to a frozen path stays blocked wherever it sits in a chain', opts, () => {
+  for (const c of [
+    'echo ok && echo x > scripts/lib/rank.mjs',
+    'echo x > /tmp/a; echo y >> test/eval/labels.json',
+    'cat notes.md; sed -i s/a/b/ scripts/lib/stack.mjs',
+    'echo x > /tmp/a && rm test/eval/catalog.json',
+    'true && git checkout v0.10.0 -- scripts/lib/pipeline.mjs',
+    'echo x >| scripts/lib/rank.mjs',
+    'cat a | tee scripts/lib/crawl.mjs',
+    'echo x > /tmp/a && bash -c "echo x > scripts/lib/rank.mjs"',
+    'echo "a;b" > scripts/lib/rank.mjs',
+    'cat scripts/lib/rank.mjs > scripts/lib/stack.mjs',
+    'echo hi || cp /tmp/x scripts/lib/taxonomy.mjs',
+    'echo x > /tmp/a\necho y > scripts/lib/profile.mjs',
+  ]) assert.equal(bash(c), 2, c);
+});
