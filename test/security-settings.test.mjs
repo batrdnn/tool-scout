@@ -92,3 +92,21 @@ test('a concurrent edit by Claude Code during undo is not lost', { todo: 'M8: re
   try { await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run }); } finally { fs.writeFileSync = write; }
   assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).model, 'opus');
 });
+
+test('a settings file that is a symlink stays a symlink: the change lands in its target, and no temp file is left', async () => {
+  const sb = sandbox();
+  const { settings, cj } = logged(sb);
+  const other = path.join(sb.root, 'dotfiles'); fs.mkdirSync(other);
+  for (const [link, body] of [[settings, { theme: 'dark', enabledPlugins: { 'guard@o-tools': true } }], [cj, { numStartups: 3, declinedPlugins: ['old@x', 'guard@o-tools'] }]]) {
+    const target = path.join(other, path.basename(link));
+    fs.writeFileSync(target, JSON.stringify(body, null, 2));
+    fs.chmodSync(target, 0o600);
+    fs.rmSync(link); fs.symlinkSync(target, link);
+  }
+  await undoInstall({ name: 'guard@o-tools', dataDir: sb.dataDir, run });
+  for (const link of [settings, cj]) assert.ok(fs.lstatSync(link).isSymbolicLink(), `${link} is still a symlink`);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(other, 'settings.json'), 'utf8')).enabledPlugins['guard@o-tools'], false);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(other, '.claude.json'), 'utf8')).declinedPlugins, ['old@x']);
+  assert.equal(fs.statSync(path.join(other, '.claude.json')).mode & 0o777, 0o600);
+  for (const d of [other, path.dirname(settings), sb.home]) assert.deepEqual(fs.readdirSync(d).filter((f) => /tool-scout|\.tmp/.test(f)), [], `no temp file in ${d}`);
+});

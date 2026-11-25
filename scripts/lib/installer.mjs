@@ -64,7 +64,9 @@ function setKey(file, key, value) {
   writeJsonStyled(file, o);
 }
 /** Write JSON in the file's own style (indent, trailing newline), so an undo can leave it byte-identical. */
-export function writeJsonStyled(file, o) {
+export function writeJsonStyled(link, o) {
+  // A dotfiles-managed settings file is a symlink: write through it, so the link stays a link.
+  let file = link; try { file = fs.realpathSync(link); } catch { /* new file */ }
   let raw = ''; try { raw = fs.readFileSync(file, 'utf8'); } catch { /* new file */ }
   const indent = raw.match(/^\{\n([ \t]+)"/)?.[1] ?? 2;
   // A temp file renamed over the original: a crash or a concurrent reader never sees half a file,
