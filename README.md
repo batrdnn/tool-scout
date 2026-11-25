@@ -108,6 +108,7 @@ Example cards, made from synthetic profiles (`npm run gallery`).
 - A project plan you give to `/tool-scout:kickoff` is kept only in the data folder
   (`kickoff/needs.json`) and is never sent anywhere: matching uses the local catalog and your
   project's dependency files.
+- To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Check before you install
 
