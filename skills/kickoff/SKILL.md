@@ -115,6 +115,12 @@ next. Never in bulk: never one plan, one question or one confirmation for severa
   already has that section, plan with `--replace`. When there is no CLAUDE.md note item, every
   convention is already in CLAUDE.md: relay that from `notes` and offer no note.
 
+**Doubts.** An item has doubts when its `doubts` list is not empty (heavy setup, a middling trust
+tier) or when you have any of your own after the plan (something in the plan's verdict, a license
+or credential you would not want in this project). Then its one yes/no question lists
+"Skip (recommended)" first, ahead of "Yes, install it" / "Yes, build it", and says the doubt in
+one line. With no doubts, the options are the usual two.
+
 Each item gets its own yes/no, after its own plan. If an item's plan says "Blocked", explain why
 and go on to the next item. If the user says "No" to one, skip it and go on. Never pass --confirm
 without that item's yes for that exact plan ID.

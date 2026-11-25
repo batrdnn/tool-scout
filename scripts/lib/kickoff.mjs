@@ -165,6 +165,8 @@ export function heavySetup(rec, planText) {
   if (cc > MAX_FREE_CREDENTIALS && !CREDENTIAL_WORDS.test(planText)) parts.push(`${cc} credentials to set`);
   return parts.length ? parts.join(', ') : null;
 }
+/** What the script itself has doubts about; Claude adds its own from the judgment step. */
+const doubtsOf = (rec, heavy) => [...(heavy ? [`heavy setup: ${heavy}`] : []), ...(rec.trust?.tier && rec.trust.tier !== 'high' ? [`trust tier is ${rec.trust.tier}`] : [])];
 const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.flags || []).some((f) => f.severity === 'high');
 
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
@@ -223,6 +225,7 @@ export async function buildToolkit(n, catalog, { home, project = null, dataDir, 
       } else {
         item = { action: 'install', repo: match.name, kind: match.kind, scope: 'project', next: `install ${match.name} --scope project --plan`,
           ...(match.effort ? { effort: match.effort.adviceLabel } : {}), trust: match.trust?.tier, ...(heavy ? { heavy } : {}),
+          ...(doubtsOf(match, heavy).length ? { doubts: doubtsOf(match, heavy) } : {}),
           reason: `${said}${uses}; ${match.name} is built for that (${match.kind}, ★ ${match.stars}).${heavy ? ` Heavy setup: ${heavy}.` : ''}` };
       }
     } else if (!NATIVE.has(need.topic) && need.lines.length >= 2) {
