@@ -45,7 +45,7 @@ test('the commands skills run print no escape codes, even with a color TERM insi
     .map((c) => c.replace(/<owner\/repo>/g, 'acme/x').replace(/useful\|not/, 'useful').replace(/<folder name or path>|<name>/g, 'proj'));
   assert.ok(runnable.length >= 6, runnable.join('\n'));
   for (const c of runnable) {
-    const args = c.replace(/^node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/scout\.mjs" /, '').replace(/"\$\{CLAUDE_PLUGIN_DATA\}"/g, data).split(/\s+/);
+    const args = c.replace(/^node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/scout\.mjs" /, '').replace(/"?\$\{CLAUDE_PLUGIN_DATA\}([^"\s]*)"?/g, (_, rest) => path.join(data, rest)).split(/\s+/);
     const out = execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'scout.mjs'), ...args, '--home', home, '--offline'], { encoding: 'utf8', env, cwd: data, stdio: ['ignore', 'pipe', 'pipe'] });
     assert.ok(!out.includes('\u001b'), `escape codes from: ${c}`);
   }
