@@ -61,6 +61,7 @@ import { whoAmI, formatMe, meCard } from './me.mjs';
 import { formatProfile, formatAll } from './output.mjs';
 import { prettyProfile, prettyAll, prettyMe, prettyCheck, prettyAudit, prettyStats } from './pretty.mjs';
 import { detectStyle, painter } from './term.mjs';
+import { supportsTruecolor } from './sprites.mjs';
 import { matchCollections } from './effort.mjs';
 import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
@@ -90,6 +91,7 @@ const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, e
 const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
 const style = detectStyle({ isTTY: process.stdout.isTTY, env: process.env, opts, platform: process.platform });
+if (style.pretty) style.truecolor = supportsTruecolor(process.env); // 24-bit sprites, or the 256-color fallback
 const P = painter(style, { width: Math.min(process.stdout.columns || 80, 100) });
 // By default the session running this command is not part of the profile (see buildProfile).
 // Projects left out: the persistent setting plus any --exclude-project for this run.

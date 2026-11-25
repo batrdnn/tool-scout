@@ -4,7 +4,8 @@
 
 import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT, TOOL_SCOUT_INSTALL } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
-import { NBSP } from './term.mjs';
+import { NBSP, strWidth } from './term.mjs';
+import { halfBlocks } from './sprites.mjs';
 import { effortLine } from './effort.mjs';
 
 const SEV = { high: 'red', medium: 'yellow', low: 'dim' };
@@ -94,7 +95,10 @@ export function prettyAll(p, notes, recs, { profilePath, withProfile = true }, P
 
 export function prettyMe(r, P) {
   const w = r.window;
-  const aw = Math.max(...r.art.map((l) => l.length));
+  // Color + Unicode: the half-block sprite. Otherwise the ASCII art (NO_COLOR and ASCII rules unchanged).
+  const sprite = P.style.color && P.style.unicode;
+  const art = sprite ? halfBlocks(r.animal, { truecolor: P.style.truecolor === true }) : r.art;
+  const aw = Math.max(...art.map((l) => strWidth(l)));
   const infoW = P.inner - aw - 3;
   const info = [
     P.bold(P.magenta(r.animal.toUpperCase())), P.magenta(r.title), '',
@@ -102,11 +106,12 @@ export function prettyMe(r, P) {
     ...P.wrap(`Your last ${w.days} days: ${plural(w.sessions, 'session')} across ${plural(w.projects, 'project')}`, infoW),
     ...(!r.hatched ? P.wrap(`Come back after ${EGG_SESSIONS} sessions to see your animal.`, infoW).map((l) => P.dim(l)) : []),
   ];
-  const n = Math.max(r.art.length, info.length);
-  const artTop = Math.floor((n - r.art.length) / 2);
+  const n = Math.max(art.length, info.length);
+  const artTop = Math.floor((n - art.length) / 2);
   const rows = Array.from({ length: n }, (_, i) => {
-    const a = r.art[i - artTop] ?? '';
-    return `${P.magenta(a.padEnd(aw))}   ${info[i] ?? ''}`.trimEnd();
+    const a = art[i - artTop] ?? '';
+    const cell = a + ' '.repeat(Math.max(0, aw - strWidth(a)));
+    return `${sprite ? cell : P.magenta(cell)}   ${info[i] ?? ''}`.trimEnd();
   });
   const out = [...P.box('Your Claude Code animal', rows, { tone: 'magenta' }), ''];
   if (r.evidence.length) {

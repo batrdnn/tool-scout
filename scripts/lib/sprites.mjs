@@ -180,3 +180,50 @@ export function pixels(name) {
   const { palette, rows } = SPRITES[name];
   return rows.map((row) => [...row].map((ch) => (ch === '.' ? null : palette[ch])));
 }
+
+// ---- Terminal: half-block characters with 24-bit color, or the 256-color palette -----------
+
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const CUBE = [0, 95, 135, 175, 215, 255];
+
+/** The nearest xterm-256 color (cube 16-231 or grey ramp 232-255) to a '#rrggbb' color. */
+export function ansi256(hex) {
+  const c = rgb(hex);
+  const near = (v) => CUBE.reduce((best, lvl, i) => (Math.abs(lvl - v) < Math.abs(CUBE[best] - v) ? i : best), 0);
+  const ci = c.map(near);
+  const cube = ci.map((i) => CUBE[i]);
+  const g = Math.min(23, Math.max(0, Math.round((((c[0] + c[1] + c[2]) / 3) - 8) / 10)));
+  const grey = 8 + 10 * g;
+  const dist = (p) => p.reduce((s, v, i) => s + (v - c[i]) ** 2, 0);
+  return dist([grey, grey, grey]) < dist(cube) ? 232 + g : 16 + 36 * ci[0] + 6 * ci[1] + ci[2];
+}
+
+/** COLORTERM=truecolor or 24bit: the terminal takes 24-bit color. Otherwise use 256 colors. */
+export const supportsTruecolor = (env = {}) => /^(truecolor|24bit)$/i.test(env.COLORTERM || '');
+
+/**
+ * The sprite as 8 text rows of 16 columns: each row covers two pixel rows, drawn with ▀ (top
+ * pixel as foreground, bottom as background), ▄ (only the bottom pixel) and █ (both the same).
+ */
+export function halfBlocks(name, { truecolor = true } = {}) {
+  const px = pixels(name);
+  const fg = (h) => (truecolor ? `38;2;${rgb(h).join(';')}` : `38;5;${ansi256(h)}`);
+  const bg = (h) => (truecolor ? `48;2;${rgb(h).join(';')}` : `48;5;${ansi256(h)}`);
+  const out = [];
+  for (let y = 0; y < SIZE; y += 2) {
+    let line = '';
+    let cur = '';
+    for (let x = 0; x < SIZE; x++) {
+      const top = px[y][x], bot = px[y + 1][x];
+      let sgr = '', ch = ' ';
+      if (top && bot && top === bot) { sgr = fg(top); ch = '█'; }
+      else if (top && bot) { sgr = `${fg(top)};${bg(bot)}`; ch = '▀'; }
+      else if (top) { sgr = fg(top); ch = '▀'; }
+      else if (bot) { sgr = fg(bot); ch = '▄'; }
+      if (sgr !== cur) { line += (cur ? '\u001b[0m' : '') + (sgr ? `\u001b[${sgr}m` : ''); cur = sgr; }
+      line += ch;
+    }
+    out.push(line + (cur ? '\u001b[0m' : ''));
+  }
+  return out;
+}
