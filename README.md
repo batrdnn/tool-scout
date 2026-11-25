@@ -166,10 +166,18 @@ domain and conventions.
 
 - **Private:** the plan text is never sent anywhere. It is kept only in the data folder
   (`kickoff/needs.json`). Matching uses the local catalog and the project's dependency files.
-- **Toolkit, at most 5 items, by impact,** each with one reason tied to your plan: the best catalog
-  match for a need (the same ranking, effort estimate and trust checks as the scout), or a
-  proposal to build your own, or "nothing needed: Claude handles this without a tool". A CLAUDE.md
-  note with the plan's conventions is always offered.
+- **Toolkit, at most 5 items, by impact,** each with one reason tied to your plan. Candidates are
+  Anthropic's official marketplace and built-in Claude Code features (like `/ultrareview`) first,
+  then the best catalog match (the same ranking, effort estimate and trust checks as the scout), or
+  a proposal to build your own, or "nothing needed: Claude handles this without a tool".
+- **Claude judges every match** with the scout's own filtering before showing it, and never shows
+  one it calls weak: that need becomes "nothing needed" or a build proposal.
+- **Not a tool need:** CI config files, icons and posts are "nothing needed: Claude does this
+  directly", with one line on how.
+- **Heavy setup:** a match that needs a local service, or more than 3 credentials your plan
+  doesn't mention, is ranked lower and labeled "heavy setup".
+- **CLAUDE.md note:** only the conventions not already in your CLAUDE.md; none is offered when all
+  are covered. An item Claude has doubts about gets "Skip (recommended)" first in its yes/no.
 - **You choose** the items in one multi-select question. Then each one goes through its own plan,
   in plain words, and its own yes/no before anything is installed or built: never in bulk.
 - **Summary:** what was installed or built, each with its undo command.

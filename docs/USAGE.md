@@ -173,9 +173,32 @@ build, with the repo as the idea's source).
 backend, database, data, security, planning) is "nothing needed: Claude handles this without a
 tool"; other work that takes two or more lines of the plan is a proposal to build a small skill.
 
+**Candidates first.** Before the catalog, each need is checked against Anthropic's official
+marketplace (`anthropics/claude-plugins-official`, its `marketplace.json`, fetched by repo name only
+and cached for a week) and a short list of built-in Claude Code features (`/ultrareview`,
+`/security-review`, `/simplify`). They are preferred over trending repos for the same need. An
+official plugin is installed with its `claude plugin install` command after one yes/no; a built-in
+feature is something you type yourself.
+
+**Judgment.** Before showing the toolkit, Claude applies the scout skill's filtering (steps 2-4) to
+every match. A repo it calls weak goes into `rejects` in the needs file and `--rematch` offers the
+next fit, "nothing needed" or a build proposal: a weak fit is never shown.
+
+**Not tool needs.** CI config files, icons and posts are listed apart as `toolkit.direct`: "nothing
+needed: Claude does this directly", with one line on how. They are not among the 5 items.
+
+**Setup cost.** A match that needs a local service, or more than 3 credentials, that the plan
+doesn't mention is labeled "heavy setup", counts 0.6 of its impact, and loses to a lighter match
+for the same need.
+
+**The memory note** has only the conventions not already in CLAUDE.md (a convention counts as covered
+when most of its words are in one paragraph there). If all are covered, no note is offered and the
+output says so. An item with `doubts` (heavy setup, a middling trust tier, or Claude's own) gets
+"Skip (recommended)" first in its yes/no.
+
 **The list.** Items are ordered by impact (the plan lines a need covers, half a point per project
 library, one more for the domain; installs count fully, builds 0.9, nothing needed 0.4). The list has
-at most 5 items: the memory note with the plan's conventions is always one of them, so at most 4 others.
+at most 5 items: the memory note takes one slot unless all its conventions are covered, so at most 4 others.
 `kickoff --summary` lists what was installed or built since the kickoff, each with its undo command.
 
 ## How trust scoring works
