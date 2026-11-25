@@ -18,6 +18,9 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `head <owner/repo> [--part NAME] [--json]` | the first 40 lines of the SKILL.md(s) a close call rests on, as fenced data, from the scan's cache; refuses repos the content scan flagged for injection-type content. The skills use it to decide Build your own vs Install |
 | `install <owner/repo> [--part NAME] [--scope user\|project] --plan` | writes nothing: prints the plan (files, settings, commands, scope, pinned commit, check verdict and coverage, credentials to set yourself) and its ID, valid for 15 minutes. For an MCP server not from a known vendor it looks up npx/uvx package versions on npm or PyPI (the package name only) to pin them |
 | `install <owner/repo> --confirm <planId>` | does exactly that plan, and only if nothing changed (re-checked at the pinned commit) and the verdict isn't "do not install"; logged in the data folder |
+| `build --start --form F --name N` | makes `drafts/N/` in the data folder and says which files form F needs (skill, command, subagent, hook, memory) |
+| `build --form F --name N --from DIR [--scope user\|project] [--source owner/repo] --plan` | writes nothing: checks Claude's draft and prints the plan (files and where they go, the trust scan, any source repo's license) and its ID, valid for 15 minutes |
+| `build --confirm <planId>` | writes exactly that plan, logged like an install |
 | `undo <name>` | removes exactly what an install logged and restores the logged settings |
 | `installed [--json]` | what Tool Scout installed and hasn't undone |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
@@ -132,8 +135,8 @@ and service-backed repos keep the rules' advice.
 
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a
-time. The facts are cached with the scan; the advice is worked out when read. It's advice only:
-Tool Scout never builds or installs anything. Results are in `effort` in the JSON, an "Effort"
+time. The facts are cached with the scan; the advice is worked out when read. It's advice:
+Nothing is built or installed without a plan and your yes. Results are in `effort` in the JSON, an "Effort"
 line in the text output, and `check`.
 
 ## How trust scoring works

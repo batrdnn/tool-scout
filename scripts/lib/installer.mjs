@@ -38,9 +38,9 @@ export function defaultRun(cmd, argv) {
   return execFileSync(cmd, argv, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180_000 });
 }
 
-const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+export const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const gitBlobSha = (buf) => crypto.createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
-const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+export const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
 /** A dotted key's first segment is the top-level key; the rest (which may contain dots) is one sub-key. */
 function getKey(file, key) {
   const [top, ...rest] = key.split('.');
@@ -56,13 +56,16 @@ function setKey(file, key, value) {
     if (value == null) delete sub[rest.join('.')]; else sub[rest.join('.')] = value;
     o[top] = sub;
   }
-  // Keep the file's own style (indent, trailing newline), so an undo can leave it byte-identical.
+  writeJsonStyled(file, o);
+}
+/** Write JSON in the file's own style (indent, trailing newline), so an undo can leave it byte-identical. */
+export function writeJsonStyled(file, o) {
   let raw = ''; try { raw = fs.readFileSync(file, 'utf8'); } catch { /* new file */ }
   const indent = raw.match(/^\{\n([ \t]+)"/)?.[1] ?? 2;
   fs.writeFileSync(file, JSON.stringify(o, null, indent) + (raw && !raw.endsWith('\n') ? '' : '\n'));
 }
 /** A JSON file left with nothing in it: {} or a registry whose lists are empty ({"version": 2, "plugins": {}}). */
-const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
+export const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
 const isEmptyValue = (v) => v != null && typeof v === 'object' && !Object.keys(v).length;
 
 // ---- npx / uvx packages pinned to one version -----------------------------------------------------
@@ -204,8 +207,8 @@ const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every ti
 
 // ---- the plan -----------------------------------------------------------------------------------
 
-const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
-const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(home.length)}` : p);
+export const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
+export const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(home.length)}` : p);
 
 /**
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.
@@ -364,8 +367,8 @@ export function formatPlan(rec, { home = '' } = {}) {
 
 // ---- install --------------------------------------------------------------------------------------
 
-const loadLog = (dataDir) => readJson(path.join(dataDir, LOG)) || { installs: [] };
-const saveLog = (dataDir, log) => { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(path.join(dataDir, LOG), JSON.stringify(log, null, 2)); };
+export const loadLog = (dataDir) => readJson(path.join(dataDir, LOG)) || { installs: [] };
+export const saveLog = (dataDir, log) => { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(path.join(dataDir, LOG), JSON.stringify(log, null, 2)); };
 function listTree(root) {
   const out = new Set();
   const walk = (d) => { let es; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of es) { const p = path.join(d, e.name); out.add(p); if (e.isDirectory()) walk(p); } };
@@ -500,7 +503,9 @@ export async function undoInstall({ name, dataDir, run = defaultRun }) {
   const entry = [...log.installs].reverse().find((e) => e.name === name && !e.undoneAt);
   if (!entry) return { ok: false, reason: `nothing installed by Tool Scout is called ${name} (see: scout.mjs installed)` };
   let kept = [];
-  if (entry.method === 'skill') {
+  if (entry.method === 'build') {
+    kept = (await import('./builder.mjs')).undoBuild(entry); // built by Tool Scout from a draft
+  } else if (entry.method === 'skill') {
     for (const f of entry.files) {
       if (!fs.existsSync(f.path)) continue;
       if (sha256(fs.readFileSync(f.path)) === f.sha256) fs.unlinkSync(f.path); else kept.push(f.path);

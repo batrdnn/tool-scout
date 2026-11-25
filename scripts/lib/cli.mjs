@@ -22,6 +22,9 @@
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
 //   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] --plan   writes nothing: prints the plan and its ID
 //   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
+//   scout.mjs build --start --form F --name N          makes drafts/N/ in the data folder for Claude's draft
+//   scout.mjs build --form F --name N --from DIR [--scope user|project] [--source owner/repo] --plan
+//   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
 //                                              --card writes a shareable SVG (default ./tool-scout-me.svg)
@@ -55,9 +58,10 @@ import { detectStyle, painter } from './term.mjs';
 import { matchCollections } from './effort.mjs';
 import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
+import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json', 'plan']);
+const BOOLEAN = new Set(['plain', 'json', 'plan', 'start']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -278,18 +282,44 @@ async function main() {
         `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
       break;
     }
+    case 'build': {
+      const str = (k) => (typeof opts[k] === 'string' ? opts[k] : null);
+      if (opts.start) {
+        const s = startDraft({ dataDir, form: str('form'), name: str('name') });
+        if (opts.json) { console.log(JSON.stringify(s, null, 2)); break; }
+        console.log([`Write the ${s.form} draft for ${s.name} into: ${s.dir}`, 'It needs:', ...s.expect.map((x) => `  - ${x}`),
+          `Then: scout.mjs build --form ${s.form} --name ${s.name} --from ${s.dir} --plan`].join('\n'));
+        break;
+      }
+      const ctx = { home, cwd: process.cwd(), dataDir };
+      const client = () => createClient({ token: githubToken(), log });
+      if (opts.plan) {
+        const rec = await makeBuildPlan({ ...ctx, client: str('source') ? client() : null, form: str('form'), name: str('name'), from: str('from'), scope: str('scope'), source: str('source') });
+        console.log(opts.json ? JSON.stringify(rec, null, 2) : formatBuildPlan(rec, { home }));
+        break;
+      }
+      const id = str('confirm');
+      if (!id) throw new Error('usage: build --start --form F --name N, then build --form F --name N --from DIR --plan, then build --confirm <planId>');
+      const res = await confirmBuild({ ...ctx, client: client(), id });
+      if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
+      if (!res.ok) { console.log(`Not built: ${res.reason}`); process.exitCode = 1; break; }
+      const e = res.entry;
+      console.log([`Built ${e.form} ${e.name} (${e.scope} scope).`, e.files.length ? `Wrote: ${e.files.map((f) => f.path).join(', ')}.` : '', `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
+      break;
+    }
     case 'undo': {
       if (!opts._[0]) throw new Error('usage: undo <name> (see: installed)');
       const res = await undoInstall({ name: opts._[0], dataDir, home, cwd: process.cwd() });
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); break; }
       if (!res.ok) { console.log(res.reason); process.exitCode = 1; break; }
+      if (res.entry.method === 'build') { console.log(`Undid ${res.entry.name}: removed what the build wrote.${res.kept.length ? `\nLeft in place (changed since the build): ${res.kept.join(', ')}` : ''}`); break; }
       console.log(`Undid ${res.entry.name}: removed what the install wrote${res.entry.method === 'skill' ? '' : ' (with claude ' + (res.entry.method === 'mcp' ? 'mcp remove' : 'plugin uninstall') + ')'} and restored the logged settings.${res.kept.length ? `\nLeft in place (changed since the install, or not empty): ${res.kept.join(', ')}` : ''}`);
       break;
     }
     case 'installed': {
       const list = listInstalled(dataDir);
       if (opts.json) { console.log(JSON.stringify(list, null, 2)); break; }
-      console.log(list.length ? list.map((e) => `${e.name}  ${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope, ${e.repo}@${e.sha.slice(0, 7)}, ${e.at.slice(0, 10)}${e.files.length ? `, ${e.files.length} files` : ''}  (undo: scout.mjs undo ${e.name})`).join('\n') : 'Nothing installed by Tool Scout.');
+      console.log(list.length ? list.map((e) => e.method === 'build' ? `${e.name}  built ${e.form}, ${e.scope} scope, ${e.at.slice(0, 10)}  (undo: scout.mjs undo ${e.name})` : `${e.name}  ${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope, ${e.repo}@${e.sha.slice(0, 7)}, ${e.at.slice(0, 10)}${e.files.length ? `, ${e.files.length} files` : ''}  (undo: scout.mjs undo ${e.name})`).join('\n') : 'Nothing installed by Tool Scout.');
       break;
     }
     case 'exclude-project': {
@@ -318,7 +348,7 @@ async function main() {
         console.log(`Unknown command: ${cmd}. If a Tool Scout skill asked for it, this Tool Scout (${pkgVersion()}) is older than the skill: run claude plugin update tool-scout@tool-scout, then restart Claude Code.`);
         process.exitCode = 1;
       }
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|build|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 
