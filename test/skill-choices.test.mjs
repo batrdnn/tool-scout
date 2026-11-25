@@ -30,13 +30,13 @@ const ME_RAW = choices(ME, /^## Ask what's next/m);
 const SCOUT_SEC = flat(SCOUT_RAW);
 const ME_SEC = flat(ME_RAW);
 
-test('scout: after the picks, one multiple-choice question per pick with exactly the four existing actions', () => {
+test('scout: after the picks, one multiple-choice question per pick with four existing actions ("Build my own" in place of "Install it" for Build your own picks)', () => {
   assert.match(SCOUT_SEC, /AskUserQuestion/);
   assert.match(SCOUT_SEC, /one question per pick/i);
   assert.match(SCOUT_SEC, /multiSelect: true/);
   const opts = options(SCOUT_RAW);
-  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Install it', 'Rate useful / not', 'Not interested']);
-  assert.ok(opts.length <= 4, 'AskUserQuestion takes at most 4 options');
+  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Install it', 'Build my own', 'Rate useful / not', 'Not interested']);
+  assert.match(opts[2].does, /^instead of "Install it"/, 'still four options per question');
   for (const o of opts) assert.ok(o.label.split(/\s+/).length <= 5, `label too long: ${o.label}`);
 });
 
@@ -96,17 +96,17 @@ test('scout step 5 shows the build-or-install advice in one line per pick', () =
   assert.match(step5, /one line/i);
 });
 
-test('the advice is never an offer to build; installing is only the "Install it" plan flow', () => {
+test('building is offered only as "Build my own", through its plan flow; installing only as "Install it"', () => {
   for (const sec of [SCOUT_SEC, flat(choices(SCOUT, /^5\. \*\*Present\*\*/m))]) {
     assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create)\b/i.test(sec), sec);
   }
-  assert.match(SCOUT_SEC, /never offer to build/i);
+  assert.match(SCOUT_SEC, /never offer to build[^.]* except as "Build my own"/i);
 });
 
 test('the check skill presents the build-or-install estimate too', () => {
   const CHECK = read('skills/check/SKILL.md');
   assert.match(flat(CHECK), /\*\*Build or install:\*\*.*`effort\.adviceLabel`/);
-  assert.match(flat(CHECK), /never offer to build/i);
+  assert.match(flat(CHECK), /never offer to build[^.]* except as "Build my own"/i);
 });
 
 // ---- v0.8.1: Claude decides the close calls ------------------------------------------------
