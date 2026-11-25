@@ -21,6 +21,7 @@ import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
 import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
 import { OFFICIAL_ORGS } from './effort.mjs';
+import { currentVersion, replaceFiles, restoreReplaced, supersede, reinstate, replaceLine } from './replace.mjs';
 
 export { tokenize, mcpCommands } from './install.mjs';
 
@@ -214,7 +215,7 @@ export const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(h
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.
  * Saves it in the data folder (only there) and returns { id, createdAt, expiresAt, body }.
  */
-export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion }) {
+export async function makePlan({ client, repo, part = null, scope = 'user', sha = null, replace = false, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion }) {
   const full = normalizeRepo(repo || '');
   if (!full) throw new Error(`not a GitHub repo: ${repo}`);
   if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
@@ -237,7 +238,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
   const method = installMethod({ tree, readme, kind: check?.kind }) || (tree && mcp.length ? 'mcp' : null);
   if (tree && !method) blockers.push('no supported install method: no plugin marketplace, skill folder or claude mcp add command in the README');
 
-  let hooks = []; let hooksWhy = null;
+  let hooks = []; let hooksWhy = null; let replacing;
   let name = null; const writes = []; const commands = []; const settings = []; const managed = []; const credentials = new Set();
   for (const c of check?.effort?.needs?.credentials || []) if (/^[A-Z][A-Z0-9_]+$/.test(c)) credentials.add(c);
   if (check?.effort?.needs?.credentials?.includes('OAuth')) notes.push('It may ask you to sign in (OAuth) the first time it runs.');
@@ -251,7 +252,10 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       const dir = byName.get(name);
       if (!NAME_OK.test(name)) blockers.push(`unsafe skill name ${JSON.stringify(name)}`);
       const dest = scope === 'project' ? path.join(cwd, '.claude', 'skills', name) : path.join(home, '.claude', 'skills', name);
-      if (fs.existsSync(dest)) blockers.push(`${tilde(dest, home)} already exists: Tool Scout never overwrites it`);
+      if (replace) {
+        replacing = currentVersion(dest);
+        if (replacing.error) blockers.push(replacing.error);
+      } else if (fs.existsSync(dest)) blockers.push(`${tilde(dest, home)} already exists: Tool Scout never overwrites it (to swap it for this version, plan with --replace)`);
       const files = (tree || []).filter((t) => t.path.startsWith(dir) && (dir || !/^\.(git|github)\//.test(t.path)));
       for (const t of files) {
         const rel = t.path.slice(dir.length);
@@ -320,11 +324,13 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
     }
   }
 
+  if (replace && method && method !== 'skill') blockers.push(`--replace is for skill folders: undo or remove the ${method === 'mcp' ? 'MCP server' : method} first`);
   const body = {
     v: 1, repo: full, sha: pinned, method, name, part, scope,
     check: check ? { verdict: check.verdict, reasons: check.reasons, line: check.coverage.line, notes: check.coverage.notes, license: check.metadata.license || null, flags: check.flags.map((f) => ({ severity: f.severity, id: f.id, file: f.file, line: f.line ?? null })) } : null,
     writes, commands, settings, managed, credentials: [...credentials].sort(), notes, blockers,
     hooks, ...(hooksWhy ? { hooksWhy } : {}),
+    ...(replace ? { replace: replacing && !replacing.error ? replacing : null } : {}),
   };
   const id = sha256(JSON.stringify(body)).slice(0, 12);
   const rec = { id, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + PLAN_TTL_MIN * 60e3).toISOString(), body };
@@ -349,6 +355,7 @@ export function formatPlan(rec, { home = '' } = {}) {
   }
   out.push(`Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`);
   for (const w of b.writes) out.push(`           ${t(w.path)}`);
+  if (b.replace) out.push(replaceLine(b.replace, t));
   out.push(`Runs:      ${b.commands.length ? '' : 'nothing'}`.trimEnd());
   for (const c of b.commands) out.push(`           claude ${c.join(' ')}`);
   if (b.managed.length) out.push(`           (Claude Code writes its own files under ${b.managed.map(t).join(', ')})`);
@@ -388,7 +395,7 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
     if (head !== b.sha) return { ok: false, reason: `the repo moved since the plan (its head is now ${String(head).slice(0, 7)}, the plan pinned ${b.sha.slice(0, 7)}): make a new plan` };
   }
   let fresh;
-  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, versions }); } catch (e) {
+  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, versions, replace: 'replace' in b }); } catch (e) {
     // GitHub unreachable or rate-limited: nothing is known to have changed, so say what happened.
     if (e instanceof RateLimitError || /could not reach GitHub/.test(e.message)) return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was installed; try again later` };
     return { ok: false, reason: `changed since the plan: ${e.message}` };
@@ -408,7 +415,8 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
       contents.push([w, buf]);
     }
     try {
-      for (const [w, buf] of contents) {
+      if (b.replace) replaceFiles(entry, b.replace, contents.map(([w, buf]) => ({ path: w.path, buf, mode: w.mode === '100755' ? 0o755 : 0o644 })), { dataDir, id });
+      else for (const [w, buf] of contents) {
         for (let d = path.dirname(w.path), missing = []; ; d = path.dirname(d)) {
           if (fs.existsSync(d)) { for (const m of missing.reverse()) { fs.mkdirSync(m); entry.dirs.push(m); } break; }
           missing.push(d);
@@ -417,8 +425,8 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
         entry.files.push({ path: w.path, sha256: sha256(buf) });
       }
     } catch (e) {
-      rollbackFiles(entry);
-      return { ok: false, reason: `writing failed (${e.message}): everything written was removed` };
+      if (entry.replaced) restoreReplaced(entry); else rollbackFiles(entry);
+      return { ok: false, reason: `writing failed (${e.message}): ${entry.replaced ? 'the previous version was put back' : 'everything written was removed'}` };
     }
   } else {
     const roots = b.managed.map((m) => [m, listTree(m)]);
@@ -440,6 +448,7 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
     }
   }
   const log = loadLog(dataDir);
+  if (b.replace) supersede(log, entry);
   log.installs.push(entry);
   saveLog(dataDir, log);
   return { ok: true, entry };
@@ -500,11 +509,13 @@ function undoSteps(entry, b, run) {
 
 export async function undoInstall({ name, dataDir, run = defaultRun }) {
   const log = loadLog(dataDir);
-  const entry = [...log.installs].reverse().find((e) => e.name === name && !e.undoneAt);
+  const entry = [...log.installs].reverse().find((e) => e.name === name && !e.undoneAt && !e.replacedBy);
   if (!entry) return { ok: false, reason: `nothing installed by Tool Scout is called ${name} (see: scout.mjs installed)` };
   let kept = [];
   if (entry.method === 'build') {
     kept = (await import('./builder.mjs')).undoBuild(entry); // built by Tool Scout from a draft
+  } else if (entry.replaced) {
+    kept = restoreReplaced(entry); // a --replace: the previous version comes back
   } else if (entry.method === 'skill') {
     for (const f of entry.files) {
       if (!fs.existsSync(f.path)) continue;
@@ -516,8 +527,9 @@ export async function undoInstall({ name, dataDir, run = defaultRun }) {
   }
   entry.undoneAt = new Date().toISOString();
   entry.kept = kept;
+  if (entry.replacesEntry) reinstate(log, entry);
   saveLog(dataDir, log);
   return { ok: true, entry, kept };
 }
 
-export const listInstalled = (dataDir) => loadLog(dataDir).installs.filter((e) => !e.undoneAt);
+export const listInstalled = (dataDir) => loadLog(dataDir).installs.filter((e) => !e.undoneAt && !e.replacedBy);

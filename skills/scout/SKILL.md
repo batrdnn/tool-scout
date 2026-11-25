@@ -187,7 +187,10 @@ says "do not install":
    why (the repo isn't from a known vendor, so a new release can't change what runs).
    When its License line says there is none, say "No license: you have no formal permission to use
    or copy this." word for word.
-   If it says "Blocked", explain why and stop: don't ask.
+   If it says "Blocked", explain why and stop: don't ask. When the only blocker is that the skill
+   folder "already exists" and the user wants this version instead, make the plan again with
+   `--replace` (it swaps the folder in one step; undo puts the current version back) and show its
+   Replaces line.
 3. Ask one yes/no question with AskUserQuestion for that one item: "Install <name> as planned?",
    with the options "Yes, install it" and "No". One item per question, never several in one question or
    in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer. For a
@@ -231,7 +234,9 @@ reference repo:
    `--scope project` or `--scope user` as answered, and `--source <owner/repo>` for a pick (it
    checks the license and refuses copied text). If it says "Blocked", fix the draft and make a new
    plan; never work around a check (a draft must pass the trust scan with nothing above low, and a
-   hook script must not use the network).
+   hook script must not use the network). When the user is updating something they already have
+   (the plan says it "already exists" or "already has a … section"), plan with `--replace` instead:
+   it swaps the current version in one step, and undo puts it back. Hooks can't be replaced.
 7. Show the plan in plain words: which files go where, the trust scan line, the Source line word for
    word, and for memory the section text and for a hook the whole script.
 8. Ask one yes/no question with AskUserQuestion: "Build <name> as planned?", with the options

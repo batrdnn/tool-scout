@@ -20,10 +20,11 @@
 //                                              the only text a tester is asked to share
 //   scout.mjs head <owner/repo> [--part NAME]  first lines of the SKILL.md(s) a close call rests on, as fenced data
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
-//   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] --plan   writes nothing: prints the plan and its ID
+//   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] [--replace] --plan   writes nothing: prints the plan and its ID
+//                                              --replace: swap an existing skill folder for this version in one step (undo restores it)
 //   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
 //   scout.mjs build --start --form F --name N          makes drafts/N/ in the data folder for Claude's draft
-//   scout.mjs build --form F --name N --from DIR [--scope user|project] [--source owner/repo] --plan
+//   scout.mjs build --form F --name N --from DIR [--scope user|project] [--replace] [--source owner/repo] --plan
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
 //   scout.mjs build --confirm-hook <planId>            a hook's second, separate confirmation (after --confirm)
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
@@ -62,7 +63,7 @@ import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from
 import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
-const BOOLEAN = new Set(['plain', 'json', 'plan', 'start']);
+const BOOLEAN = new Set(['plain', 'json', 'plan', 'start', 'replace']);
 
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
@@ -269,7 +270,7 @@ async function main() {
       const ctx = { client: createClient({ token: githubToken(), log }), home, cwd: process.cwd(), dataDir };
       if (!repo || (!opts.plan && typeof opts.confirm !== 'string')) throw new Error('usage: install <owner/repo> [--part NAME] [--scope user|project] --plan, then install <owner/repo> --confirm <planId>');
       if (opts.plan) {
-        const rec = await makePlan({ ...ctx, repo, part: typeof opts.part === 'string' ? opts.part : null, scope });
+        const rec = await makePlan({ ...ctx, repo, part: typeof opts.part === 'string' ? opts.part : null, scope, replace: !!opts.replace });
         console.log(opts.json ? JSON.stringify(rec, null, 2) : formatPlan(rec, { home }));
         break;
       }
@@ -277,10 +278,10 @@ async function main() {
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
       if (!res.ok) { console.log(`Not installed: ${res.reason}`); process.exitCode = 1; break; }
       const e = res.entry;
-      console.log([`Installed ${e.name} (${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope) from ${e.repo} at ${e.sha.slice(0, 7)}.`,
+      console.log([`${e.replaced ? 'Replaced' : 'Installed'} ${e.name} (${e.method === 'mcp' ? 'MCP server' : e.method}, ${e.scope} scope) from ${e.repo} at ${e.sha.slice(0, 7)}.`,
         e.files.length ? `Wrote ${e.files.length} file${e.files.length === 1 ? '' : 's'} into ${e.dirs[0] || path.dirname(e.files[0].path)}.` : `Ran: ${e.commands.map((c) => `claude ${c.join(' ')}`).join('; ')}.`,
         e.credentials.length ? `Set these yourself before using it: ${e.credentials.join(', ')}.` : '',
-        `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
+        e.replaced ? `To undo (puts the previous version back): scout.mjs undo ${e.name}` : `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
       break;
     }
     case 'build': {
@@ -295,7 +296,7 @@ async function main() {
       const ctx = { home, cwd: process.cwd(), dataDir };
       const client = () => createClient({ token: githubToken(), log });
       if (opts.plan) {
-        const rec = await makeBuildPlan({ ...ctx, client: str('source') ? client() : null, form: str('form'), name: str('name'), from: str('from'), scope: str('scope'), source: str('source') });
+        const rec = await makeBuildPlan({ ...ctx, client: str('source') ? client() : null, form: str('form'), name: str('name'), from: str('from'), scope: str('scope'), source: str('source'), replace: !!opts.replace });
         console.log(opts.json ? JSON.stringify(rec, null, 2) : formatBuildPlan(rec, { home }));
         break;
       }
@@ -306,7 +307,7 @@ async function main() {
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); if (!res.ok) process.exitCode = 1; break; }
       if (!res.ok) { console.log(`Not built: ${res.reason}`); process.exitCode = 1; break; }
       const e = res.entry;
-      console.log([`Built ${e.form} ${e.name} (${e.scope} scope).`, e.files.length ? `Wrote: ${e.files.map((f) => f.path).join(', ')}.` : '', `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
+      console.log([`${e.replaced || e.memory?.replaced ? 'Replaced' : 'Built'} ${e.form} ${e.name} (${e.scope} scope).`, e.files.length ? `Wrote: ${e.files.map((f) => f.path).join(', ')}.` : '', e.replaced || e.memory?.replaced ? `To undo (puts the previous version back): scout.mjs undo ${e.name}` : `To undo: scout.mjs undo ${e.name}`].filter(Boolean).join('\n'));
       break;
     }
     case 'undo': {
@@ -314,6 +315,7 @@ async function main() {
       const res = await undoInstall({ name: opts._[0], dataDir, home, cwd: process.cwd() });
       if (opts.json) { console.log(JSON.stringify(res, null, 2)); break; }
       if (!res.ok) { console.log(res.reason); process.exitCode = 1; break; }
+      if (res.entry.replaced || res.entry.memory?.replaced) { console.log(`Undid ${res.entry.name}: put the previous version back.${res.kept.length ? `\nLeft in place (changed since): ${res.kept.join(', ')}` : ''}`); break; }
       if (res.entry.method === 'build') { console.log(`Undid ${res.entry.name}: removed what the build wrote.${res.kept.length ? `\nLeft in place (changed since the build): ${res.kept.join(', ')}` : ''}`); break; }
       console.log(`Undid ${res.entry.name}: removed what the install wrote${res.entry.method === 'skill' ? '' : ' (with claude ' + (res.entry.method === 'mcp' ? 'mcp remove' : 'plugin uninstall') + ')'} and restored the logged settings.${res.kept.length ? `\nLeft in place (changed since the install, or not empty): ${res.kept.join(', ')}` : ''}`);
       break;

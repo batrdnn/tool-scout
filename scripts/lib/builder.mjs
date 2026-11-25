@@ -14,6 +14,7 @@ import path from 'node:path';
 import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
+import { currentVersion, replaceFiles, restoreReplaced, supersede, replaceLine } from './replace.mjs';
 
 export const FORMS = ['skill', 'command', 'subagent', 'hook', 'memory'];
 const BUILD_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -108,7 +109,7 @@ const FORM = {
     if (!main) p.blockers.push('a skill draft needs SKILL.md at the top of the draft folder');
     else checkMeta(p, main, { needName: true, needWhen: true });
     const dest = p.scope === 'project' ? path.join(p.cwd, '.claude', 'skills', p.name) : path.join(p.home, '.claude', 'skills', p.name);
-    if (fs.existsSync(dest)) p.blockers.push(`${tilde(dest, p.home)} already exists: Tool Scout never overwrites it`);
+    p.existing(dest);
     for (const f of files) p.place(f, path.join(dest, ...f.rel.split('/')));
   },
   command(p, files) {
@@ -129,10 +130,16 @@ const FORM = {
     if (text.split('\n').length > 200) p.blockers.push('a memory section is at most 200 lines');
     const file = p.scope === 'project' ? path.join(p.cwd, 'CLAUDE.md') : path.join(p.home, '.claude', 'CLAUDE.md');
     if (fs.existsSync(file) && !fs.statSync(file).isFile()) p.blockers.push(`${tilde(file, p.home)} is not a file`);
-    else if (fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(MARK('begin', p.name))) p.blockers.push(`${tilde(file, p.home)} already has a ${p.name} section`);
+    else if (fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(MARK('begin', p.name))) {
+      const old = sectionIn(fs.readFileSync(file, 'utf8'), p.name);
+      if (!p.replace) p.blockers.push(`${tilde(file, p.home)} already has a ${p.name} section (to change it, plan with --replace)`);
+      else if (!old) p.blockers.push(`${tilde(file, p.home)}: its ${p.name} section is not exactly one begin/end pair: Tool Scout won't change it`);
+      else p.extra.replace = { root: file, files: [], section: old };
+    } else if (p.replace) p.extra.replace = { root: file, files: [] };
     p.extra.memory = { file, section: `${MARK('begin', p.name)}\n${text.trimEnd()}\n${MARK('end', p.name)}\n` };
   },
   hook(p, files) {
+    if (p.replace) { p.blockers.push('--replace is for skills, commands, subagents and memory: for a hook, undo the old one first'); return; }
     const spec = files.find((f) => f.rel === 'hook.json');
     if (!spec) { p.blockers.push('a hook draft needs hook.json: { "event": …, "matcher": …, "script": … }'); return; }
     let h; try { h = JSON.parse(spec.buf.toString('utf8')); } catch { p.blockers.push('hook.json is not valid JSON'); return; }
@@ -157,11 +164,19 @@ const FORM = {
   },
 };
 
+/** The marked section `name` in a CLAUDE.md text (begin marker through end marker and its newline), or null. */
+function sectionIn(raw, name) {
+  const a = raw.indexOf(MARK('begin', name)); const e = MARK('end', name);
+  const b = raw.indexOf(e, a);
+  if (a < 0 || b < 0 || raw.indexOf(MARK('begin', name), a + 1) >= 0 || raw.indexOf(e, b + 1) >= 0) return null;
+  return raw.slice(a, b + e.length + (raw[b + e.length] === '\n' ? 1 : 0));
+}
+
 /** A form whose draft is exactly one file, copied to <scope root>/<to>. */
 function single(p, files, want, to) {
   if (files.length !== 1 || files[0].rel !== want) { p.blockers.push(`a ${p.form} draft is exactly one file, ${want} (found: ${files.map((f) => f.rel).join(', ') || 'nothing'})`); return; }
   const dest = path.join(p.scope === 'project' ? p.cwd : p.home, to);
-  if (fs.existsSync(dest)) p.blockers.push(`${tilde(dest, p.home)} already exists: Tool Scout never overwrites it`);
+  p.existing(dest);
   p.place(files[0], dest);
   return files[0];
 }
@@ -203,13 +218,17 @@ async function sourceCheck(p, client, source, texts) {
  * Read-only: the plan for building `form` `name` from the draft folder `from`, with `scope`.
  * `source` (owner/repo) is the repo the idea came from, if any. Saves the plan in the data folder.
  */
-export async function makeBuildPlan({ client = null, form, name, from, scope = null, source = null, home, cwd, dataDir, now = Date.now(), save = true }) {
+export async function makeBuildPlan({ client = null, form, name, from, scope = null, source = null, home, cwd, dataDir, now = Date.now(), save = true, replace = false }) {
   checkFormName(form, name);
   scope = scope || (form === 'hook' ? 'project' : 'user');
   if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
   const blockers = []; const notes = []; const writes = [];
-  const p = { form, name, scope, home, cwd, blockers, notes, writes, extra: {}, source: null,
-    place: (f, dest) => writes.push({ path: dest, rel: f.rel, sha256: sha256(f.buf), size: f.buf.length, mode: f.mode }) };
+  const p = { form, name, scope, home, cwd, blockers, notes, writes, extra: {}, source: null, replace,
+    place: (f, dest) => writes.push({ path: dest, rel: f.rel, sha256: sha256(f.buf), size: f.buf.length, mode: f.mode }),
+    // Where the item goes: free, or (with --replace) its current version, swapped in one step.
+    existing: (dest) => {
+      if (replace) { const cur = currentVersion(dest); if (cur.error) blockers.push(cur.error); else p.extra.replace = cur; } else if (fs.existsSync(dest)) blockers.push(`${tilde(dest, home)} already exists: Tool Scout never overwrites it (to swap it for this draft, plan with --replace)`);
+    } };
   const want = draftDir(dataDir, name);
   const real = (d) => { try { return fs.realpathSync(d); } catch { return null; } };
   let files = [];
@@ -252,6 +271,7 @@ export function formatBuildPlan(rec, { home = '' } = {}) {
     `Writes:    ${b.writes.length ? `${b.writes.length} file${b.writes.length === 1 ? '' : 's'}` : 'no files directly'}`,
     ...b.writes.map((w) => `           ${t(w.path)}`),
   ];
+  if (b.replace) out.push(b.memory ? (b.replace.section ? `Replaces:  the ${b.name} section in ${t(b.replace.root)}, in place; undo puts the current text back` : `Replaces:  nothing (${t(b.replace.root)} has no ${b.name} section yet)`) : replaceLine(b.replace, t));
   if (b.memory) {
     out.push(`Memory:    adds a section to ${t(b.memory.file)}, between ${MARK('begin', b.name)} and ${MARK('end', b.name)}; undo removes exactly that section`);
     for (const l of b.memory.section.trimEnd().split('\n')) out.push(`           | ${l}`);
@@ -303,7 +323,7 @@ export async function confirmBuild({ client = null, id, home, cwd, dataDir, now 
   if (hook && !b.hook) return { ok: false, reason: `plan ${id} is not a hook: use --confirm` };
   if (hook && !rec.hookFirstConfirmAt) return { ok: false, reason: `first confirm the plan with --confirm ${id}; the hook confirmation is the second, separate one` };
   let fresh;
-  try { fresh = await makeBuildPlan({ client, form: b.form, name: b.name, from: b.from, scope: b.scope, source: rec.source || null, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false }); } catch (e) {
+  try { fresh = await makeBuildPlan({ client, form: b.form, name: b.name, from: b.from, scope: b.scope, source: rec.source || null, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false, replace: !!b.replace }); } catch (e) {
     return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was written` };
   }
   if (fresh.id !== id) {
@@ -317,21 +337,34 @@ export async function confirmBuild({ client = null, id, home, cwd, dataDir, now 
   }
   const entry = { name: b.name, method: 'build', form: b.form, scope: b.scope, repo: null, sha: null, source: b.source, planId: id, at: new Date(now).toISOString(), files: [], dirs: [], settings: [], commands: [], credentials: [] };
   try {
-    for (const w of b.writes) {
+    const bufs = b.writes.map((w) => {
       const buf = fs.readFileSync(path.join(b.from, ...w.rel.split('/')));
       if (sha256(buf) !== w.sha256) throw new Error(`${w.rel} changed since the plan`);
-      writeFile(entry, w, buf);
-    }
-    if (b.memory) addSection(entry, b.memory);
+      return [w, buf];
+    });
+    if (b.replace && !b.memory) replaceFiles(entry, b.replace, bufs.map(([w, buf]) => ({ path: w.path, buf, mode: w.mode === '100755' ? 0o755 : 0o644 })), { dataDir, id });
+    else for (const [w, buf] of bufs) writeFile(entry, w, buf);
+    if (b.memory && b.replace?.section) replaceSection(entry, b.memory, b.replace.section);
+    else if (b.memory) addSection(entry, b.memory);
     if (b.hook) addHook(entry, b.hook);
   } catch (e) {
     undoBuild(entry);
     return { ok: false, reason: `writing failed (${e.message}): everything written was removed` };
   }
   const log = loadLog(dataDir);
+  if (b.replace) supersede(log, entry);
   log.installs.push(entry);
   saveLog(dataDir, log);
   return { ok: true, entry };
+}
+
+/** Swap the marked section's text in place (where it is in the file); the log keeps both texts. */
+function replaceSection(entry, m, old) {
+  const raw = fs.readFileSync(m.file, 'utf8');
+  const at = raw.indexOf(old);
+  if (at < 0 || raw.indexOf(old, at + 1) >= 0) throw new Error(`the ${entry.name} section in ${m.file} changed since the plan`);
+  fs.writeFileSync(m.file, raw.slice(0, at) + m.section + raw.slice(at + old.length));
+  entry.memory = { file: m.file, replaced: { old, now: m.section } };
 }
 
 function mkdirs(entry, d) {
@@ -442,7 +475,13 @@ export function undoBuild(entry) {
       if (!h.fileExisted && !Object.keys(o).length) fs.unlinkSync(h.file); else writeJsonStyled(h.file, o);
     }
   }
-  if (entry.memory) {
+  if (entry.memory?.replaced) {
+    const { file, replaced: r } = entry.memory;
+    const raw = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    const at = raw.indexOf(r.now);
+    if (at < 0 || raw.indexOf(r.now, at + 1) >= 0) kept.push(`${file} (the section was changed since)`);
+    else fs.writeFileSync(file, raw.slice(0, at) + r.old + raw.slice(at + r.now.length));
+  } else if (entry.memory) {
     const m = entry.memory;
     const raw = fs.existsSync(m.file) ? fs.readFileSync(m.file, 'utf8') : null;
     const at = raw == null ? -1 : raw.lastIndexOf(m.added);
@@ -451,6 +490,7 @@ export function undoBuild(entry) {
       if (!m.fileExisted && !rest) fs.unlinkSync(m.file); else fs.writeFileSync(m.file, rest);
     }
   }
+  if (entry.replaced) return [...kept, ...restoreReplaced(entry)]; // a --replace: the previous version comes back
   for (const f of entry.files) {
     if (!fs.existsSync(f.path)) continue;
     if (sha256(fs.readFileSync(f.path)) === f.sha256) fs.unlinkSync(f.path); else kept.push(f.path);
