@@ -2,6 +2,24 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.14.0 (2026-11-26)
+
+Your animal's blind spot now points at a tool.
+
+- Each animal's blind spot maps to one topic: Owl testing, Beaver docs, Bee debugging, Octopus
+  security, Ant refactoring, Fox planning, Turtle git. The map is in docs/USAGE.md. The Egg has no
+  blind-spot tool; it still says to come back after 10 sessions.
+- `me --blind-spot` prints one line, "Your blind spot (<topic>): <tool> (<why>)", with the single
+  best tool for that topic: official plugins and built-in features first, then the catalog, with
+  the content scan applied. If nothing is good enough it says "nothing needed: Claude covers this
+  directly".
+- `/tool-scout:me` has a new option, "Look at my blind-spot tool". It goes through
+  `/tool-scout:check`, then "Install it" with the usual plan and one yes/no, and never installs on
+  its own.
+- Nothing new leaves your machine: matching is local, and the only request is the existing content
+  scan of the one matched repo, by name. It is covered by the network-capture test.
+- The README roadmap lists v1.1: animal evolution and a status line companion.
+
 ## v0.12.2 (2026-11-25)
 
 Security release: update with `claude plugin update tool-scout@tool-scout`.
