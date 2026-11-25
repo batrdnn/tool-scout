@@ -2,6 +2,22 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.11.2 (2026-11-25)
+
+- Pixel-art animals for `/tool-scout:me`: each of Beaver, Owl, Bee, Octopus, Ant, Fox, Turtle and
+  Egg is now an original 16x16 sprite. The Beaver has a flat tail, the Owl big round eyes and no
+  ears, the Ant three body segments and six legs, the Octopus thick curling tentacles, and the Egg
+  a crack.
+- In a color terminal the sprite is drawn with half-block characters, in 24-bit color when your
+  terminal supports it and in 256 colors otherwise. With `NO_COLOR` or `--plain` (and inside Claude
+  Code) it is drawn in two tones plus an accent (█, ▓ and blank), with no escape codes. ASCII-only
+  terminals keep the old ASCII art.
+- The shareable SVG card and the README gallery draw the same sprites as crisp pixel squares.
+- `me --card <file> --open` opens the saved card (`open` on macOS, `xdg-open` on Linux; skipped
+  without a message if that fails). The `/tool-scout:me` skill now saves the card in the plugin's
+  data folder and opens it, so you see the full-color version.
+- Plain `me` output changes: the old ASCII art is replaced by the shaded sprite.
+
 ## v0.11.1 (2026-11-25)
 
 - Kickoff fix round after a first run where none of the 5 items was worth keeping. Claude now
