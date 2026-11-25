@@ -32,3 +32,8 @@ test('docs/USAGE.md documents the map, and says the Egg has no blind-spot tool',
   assert.match(sec, /blind-spot tool/i);
   assert.match(sec, new RegExp(`Egg[^\\n]*no blind-spot tool[^\\n]*come back after ${EGG_SESSIONS} sessions`, 'i'));
 });
+
+test('the README roadmap lists v1.1: animal evolution and a status line companion', () => {
+  const road = section(read('README.md'), 'Roadmap');
+  assert.match(road, /^- v1\.1: animal evolution \(Egg → hatchling → adult → legendary\) and a status line companion$/m);
+});

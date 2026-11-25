@@ -251,3 +251,4 @@ Testers: see [TESTING.md](TESTING.md). Eval setup: [docs/USAGE.md](docs/USAGE.md
 - One-click install with a confirmation prompt
 - Weekly digest via a Claude Code hook ("3 new tools match your work")
 - Learn from feedback: down-weight topics whose picks keep getting dismissed
+- v1.1: animal evolution (Egg → hatchling → adult → legendary) and a status line companion
