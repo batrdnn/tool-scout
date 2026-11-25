@@ -2,7 +2,23 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.12.1 (2026-11-25)
+
+Security release: update with `claude plugin update tool-scout@tool-scout`.
+
+- Fixes from an independent review of 0.12.0: repo text can no longer forge the end of a plan's
+  fence, and a plan's expiry and a hook's first confirmation can't be changed in the plan file.
+  `build --confirm-hook` now takes the ID that the first `--confirm` prints.
+- Skills with binary files (docx, wasm, …) install again, and binary files are still read for
+  hidden text. A repo's own installer is shown as MEDIUM instead of blocking. Each file is fetched
+  once per step, not three times.
+- Settings files that are symlinks stay symlinks. An undo that had to skip a file it couldn't
+  parse says what is left and finishes when you run undo again.
+- New SECURITY.md: how to report a vulnerability privately.
+
 ## v0.12.0 (2026-11-25)
+
+Security release: update with `claude plugin update tool-scout@tool-scout`.
 
 - Security review before v1.0: the threat model and every finding are in
   [docs/security-review.md](docs/security-review.md). All 8 high findings are fixed; mediums and
