@@ -62,7 +62,7 @@ export function formatCheck(r) {
   ];
   if (!r.flags.length) lines.push('Flags: none.');
   for (const f of r.flags) lines.push(`  ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
-  if (r.effort) lines.push(`Effort: ${effortLine(r.effort)}`);
+  if (r.effort) lines.push(`Effort: ${effortLine(r.effort, { where: '/tool-scout:check' })}`);
   lines.push(r.install.commands.length
     ? `Install (from the README; review before running): ${r.install.commands.join(' then ')}${r.install.note ? `, ${r.install.note}` : ''}`
     : `Install: no Claude Code command in the README. See the README: ${r.url}#readme`);

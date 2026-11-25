@@ -4,6 +4,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estimateEffort, THRESHOLDS, OFFICIAL_ORGS, BYTES_PER_LINE as L, BYTES_PER_MD_LINE as M } from '../scripts/lib/effort.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 const blob = (path, size = 1000) => ({ path, type: 'blob', size });
 const est = (o) => estimateEffort({ readme: '', files: {}, kind: 'mcp-server', pushedAt: '2025-06-01T00:00:00Z', now: Date.parse('2026-11-25T00:00:00Z'), ...o });
 const pkg = (deps) => ({ 'package.json': JSON.stringify({ dependencies: Object.fromEntries(deps.map((d) => [d, '1'])) }) });
@@ -26,7 +30,7 @@ test('thin wrapper: small own code around one big library → Install, "most of 
 test('not a thin wrapper: small own code with small dependencies, or lots of own code', () => {
   const small = est({ name: 'someone/notes-mcp', tree: [blob('package.json'), blob('src/index.ts', 200 * L)], files: pkg(['zod', '@modelcontextprotocol/sdk']) });
   assert.equal(small.wraps, null);
-  assert.equal(small.advice, 'build');
+  assert.equal(rule(small), 'build');
   const own = est({ name: 'someone/playwright-mcp', tree: [blob('package.json'), blob('src/index.ts', (THRESHOLDS.THIN_MAX_LOC + 200) * L)], files: pkg(['playwright']) });
   assert.equal(own.wraps, null);
 });

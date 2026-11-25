@@ -5,6 +5,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estimateEffort, KNOWN_APIS, BYTES_PER_LINE as L } from '../scripts/lib/effort.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 const blob = (path, size = 1000) => ({ path, type: 'blob', size });
 const est = (o) => estimateEffort({ readme: '', files: {}, kind: 'tool', pushedAt: '2025-06-01T00:00:00Z', now: Date.parse('2026-11-25T00:00:00Z'), tree: [blob('.env.example'), blob('main.py', 200 * L)], ...o });
 const env = (text, readme = '') => est({ files: { '.env.example': text }, readme }).needs;
@@ -61,7 +65,7 @@ test('an API is named from the known list, or from a prefix whose domain is in t
 
 test('advice: an unnamed credential still ties a small repo to something external, said as "needs N credentials"', () => {
   const e = est({ files: { '.env.example': 'ACME_API_KEY=\nACME_SECRET=\n' } });
-  assert.equal(e.advice, 'either');
+  assert.equal(rule(e), 'either');
   assert.match(e.reason, /needs 2 credentials/);
   const named = est({ files: { '.env.example': 'OPENAI_API_KEY=\n' } });
   assert.match(named.reason, /the OpenAI API/);

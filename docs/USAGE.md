@@ -15,6 +15,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `all [--refresh]` | profile + crawl (if older than 20 h, or `--refresh`) + recommend |
 | `check <owner/repo \| URL> [--json]` | trust check of one repo before installing |
 | `audit [--json]` | local scan of installed skills, plugins and MCP server commands; no network |
+| `head <owner/repo> [--part NAME] [--json]` | the first 40 lines of the SKILL.md(s) a close call rests on, as fenced data, from the scan's cache; refuses repos the content scan flagged for injection-type content. The skills use it to decide Build your own vs Install |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
 | `undismiss <owner/repo> \| --all` | bring it back |
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
@@ -108,6 +109,15 @@ vendor (`OFFICIAL_ORGS` in effort.mjs: anthropics, microsoft, github, awslabs, �
 the vendor"; and a thin wrapper, at most `THIN_MAX_LOC` = 1,000 lines of its own code around one
 big library (Playwright, Puppeteer, LangChain, boto3, …) or the library it's named after, "most of
 the work is in …". A vendor collection still names its typical and largest parts.
+
+**Close calls are Claude's.** For instructions-only and small repos (at most `SMALL_LOC` lines of
+code, no running service), and for a collection's typical part, the script doesn't advise: it
+reports the facts with `advice: "judge"` ("Judgment needed"), the form and time if built, and the
+rules' fallback in `judgment.ruleAdvice`. The scout and check skills then read the head of the
+SKILL.md(s) with `scout.mjs head` and decide: general knowledge Claude already has → Build your
+own; specialized or curated expertise, or tricky domain rules → Install ("text only, low risk,
+check passed" when the scan raised no medium or high flags). Vendor repos, thin wrappers, large
+and service-backed repos keep the rules' advice.
 
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a

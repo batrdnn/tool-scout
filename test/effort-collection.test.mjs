@@ -4,6 +4,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estimateEffort, effortLine, matchPart, THRESHOLDS, BYTES_PER_LINE as L, BYTES_PER_MD_LINE as M } from '../scripts/lib/effort.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 const NOW = Date.parse('2026-11-25T00:00:00Z');
 const OLD = '2025-06-01T00:00:00Z';
 const blob = (path, size = 1000) => ({ path, type: 'blob', size });
@@ -25,9 +29,9 @@ test('a repo of 5 skills is a "collection of 5 skills": typical and largest part
   assert.equal(e.collection.count, 5);
   assert.deepEqual(e.collection.typical, { name: 'release', loc: 0, instructionLines: 100 }, 'the median part, ties by name');
   assert.deepEqual(e.collection.largest, { name: 'pdf', loc: 900, instructionLines: 150 });
-  assert.equal(e.advice, 'build', 'a typical part is 100 lines of instructions');
+  assert.equal(rule(e), 'build', 'a typical part is 100 lines of instructions');
   assert.equal(e.buildForm, 'skill');
-  assert.equal(e.collection.largestAdvice.advice, 'either', 'the 900-line part on its own');
+  assert.equal(rule(e.collection.largestAdvice), 'either', 'the 900-line part on its own');
   assert.match(e.reason, /^Collection of 5 skills: a typical one is ~100 lines of Markdown; the largest, pdf, ~900 lines of Python/);
 });
 
@@ -36,7 +40,7 @@ test('never judged by total size: 40 small parts adding up to a large repo are s
   const e = est({ tree });
   assert.ok(e.loc >= THRESHOLDS.LARGE_LOC, `total ${e.loc} is large`);
   assert.equal(e.collection.count, 40);
-  assert.equal(e.advice, 'build');
+  assert.equal(rule(e), 'build');
   assert.doesNotMatch(e.reason, /4,800/);
 });
 
@@ -69,7 +73,7 @@ test('matchPart points to the part that fits the user\'s topic', () => {
 test('the Effort line names the matching part when there is one', () => {
   const e = est({ tree: ['pdf', 'webapp-testing', 'docx'].map((n) => blob(`skills/${n}/SKILL.md`, 80 * M)) });
   e.collection.match = { name: 'webapp-testing', topic: 'testing' };
-  assert.match(effortLine(e), /For your testing work: webapp-testing\.$/);
+  assert.match(effortLine(e), /For your testing work: webapp-testing\.( Claude decides in \/tool-scout:scout\.)?$/);
 });
 
 test('matchCollections: each collection pick points to the part for its own evidence topics first, then the profile\'s', async () => {

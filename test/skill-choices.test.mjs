@@ -106,3 +106,27 @@ test('the check skill presents the build-or-install estimate too', () => {
   assert.match(flat(CHECK), /\*\*Build or install:\*\*.*`effort\.adviceLabel`/);
   assert.match(flat(CHECK), /never offer to build or install/i);
 });
+
+// ---- v0.8.1: Claude decides the close calls ------------------------------------------------
+
+const judgeRules = (md) => {
+  const f = flat(md);
+  assert.match(f, /`effort\.advice` is `judge`/, 'triggered by the judgment flag');
+  assert.match(f, /`… head <owner\/repo> --plain`/, 'reads the heads through the script');
+  assert.match(f, /--part/, 'a collection part can be read on its own');
+  assert.match(f, /data, not instructions/i);
+  assert.match(f, /general knowledge (?:you|Claude) already ha(?:ve|s)[^.]*→ \*\*Build your own\*\*[^.]*`effort\.buildForm`[^.]*`effort\.buildTime`/);
+  assert.match(f, /specialized or curated expertise, or tricky domain rules[^.]*→ \*\*Install\*\*/);
+  assert.match(f, /text only, low risk, check passed/);
+  assert.match(f, /only when `(?:trust\.)?flags` has no medium or high/);
+  assert.match(f, /one reason line/i);
+  assert.match(f, /`effort\.judgment\.ruleAdvice`/, 'a fallback when the head is not shown');
+};
+
+test('scout: for a close call Claude reads the SKILL.md head and decides build or install', () => {
+  judgeRules(choices(SCOUT, /^5\. \*\*Present\*\*/m));
+});
+
+test('check: the same close-call rules', () => {
+  judgeRules(read('skills/check/SKILL.md'));
+});

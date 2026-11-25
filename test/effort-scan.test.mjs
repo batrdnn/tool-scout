@@ -10,6 +10,10 @@ import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
 import { NOW, profile, ghRepo, catalogOf } from './pipeline.test.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 /** Mock GitHub serving per-repo trees with real sizes, and file contents. */
 export function githubTrees(repos) {
   return mockFetch((url) => {
@@ -43,9 +47,9 @@ test('final picks get effort from the scan; other repos get no requests at all',
   assert.equal(a.type, 'mcp-server');
   assert.equal(a.dependencies, 2);
   assert.deepEqual(a.needs.credentials, ['ACME_API_KEY']);
-  assert.equal(a.advice, 'either');
+  assert.equal(rule(a), 'either');
   assert.equal(b.type, 'instructions');
-  assert.equal(b.advice, 'build');
+  assert.equal(rule(b), 'build');
   const urls = fetchImpl.calls.map((c) => c.url);
   assert.equal(urls.filter((u) => u.includes('git/trees')).length, 2, 'one tree request per final pick');
   assert.ok(!urls.some((u) => u.includes('c-test-mcp') && !u.includes('/events') && !u.includes('/stargazers')), 'no scan or effort requests for a repo outside the picks');
@@ -72,8 +76,9 @@ test('without a client (offline) there is no effort, and nothing breaks', async 
 test('check returns the same estimate in its JSON, with advice', async () => {
   const r = await checkRepo(createClient({ fetchImpl: githubTrees(REPOS) }), 'o/a-test-mcp', { now: NOW });
   assert.equal(r.effort.type, 'mcp-server');
-  assert.equal(r.effort.advice, 'either');
-  assert.match(r.effort.reason, /ACME/);
+  assert.equal(rule(r.effort), 'either');
+  assert.match(r.effort.reason, /needs 1 credential/, 'ACME is not a known API: counted, not named');
   const b = await checkRepo(createClient({ fetchImpl: githubTrees(REPOS) }), 'o/b-test-mcp', { now: NOW });
-  assert.equal(b.effort.adviceLabel, 'Build your own');
+  assert.equal(b.effort.adviceLabel, 'Judgment needed');
+  assert.equal(rule(b.effort), 'build');
 });

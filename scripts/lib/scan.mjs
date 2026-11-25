@@ -14,7 +14,7 @@ import { effortFiles, effortFacts, advise } from './effort.mjs';
 const CACHE_FILE = 'trust-cache.json';
 const MAX_FILE_BYTES = 300_000;
 const MAX_FILES = 8; // per repo, besides the README
-export const SCAN_VERSION = 12; // bump when rules change so cached scans are redone (12: effort facts)
+export const SCAN_VERSION = 13; // bump when rules change so cached scans are redone (12: effort facts; 13: collections, heads)
 
 // --- file roles -------------------------------------------------------------
 const base = (p) => p.split('/').pop();
@@ -225,7 +225,21 @@ export async function scanRepo(client, fullName, meta = {}) {
   // Build-or-install facts from the same tree, plus the few small manifests not fetched above.
   for (const p of effortFiles(treeRes.data?.tree)) if (!(p in texts)) texts[p] = await contents(p);
   const effort = effortFacts({ tree: treeRes.data?.tree || [], truncated: !!treeRes.data?.truncated, readme: readme || '', files: texts, kind: meta.kind, name: fullName });
-  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, effortFacts: effort };
+  // The first lines of the files Claude reads for a close call (served by `scout.mjs head`, never in --json).
+  const heads = [];
+  for (const p of effort.judgmentHeads || []) {
+    const text = /^readme(\.\w+)?$/i.test(p) ? readme : (texts[p] ?? await contents(p));
+    if (text) heads.push({ path: p, text: headOf(text) });
+  }
+  return { flags: dedupe(flags), scannedFiles: scanned, skillFiles, treeTruncated: !!treeRes.data?.truncated, install: hint.commands, installNote: hint.note, effortFacts: effort, heads };
+}
+
+export const HEAD_LINES = 40;
+const HEAD_CHARS = 3000;
+/** First HEAD_LINES lines (at most HEAD_CHARS), without control, bidi, zero-width or tag characters. */
+export function headOf(text) {
+  return String(text).replace(/\r/g, '').replace(/[\u0000-\u0008\u000B-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu, '')
+    .split('\n').slice(0, HEAD_LINES).join('\n').slice(0, HEAD_CHARS);
 }
 
 function dedupe(flags) {

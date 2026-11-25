@@ -221,12 +221,15 @@ function collectionOf(blobs, codeBlobs, mdBlobs, kind) {
   const parts = list.map((p) => ({
     name: p.name, loc: Math.round(sum(codeBlobs, p) / BYTES_PER_LINE), instructionLines: Math.round(sum(mdBlobs, p) / BYTES_PER_MD_LINE),
     hooks: !!p.prefix && blobs.some((t) => t.path.startsWith(p.prefix) && /(^|\/)hooks\/hooks\.json$/i.test(t.path)),
+    file: p.file || (unit === 'skill' ? `${p.prefix}SKILL.md` : null),
   })).sort((a, b) => a.loc - b.loc || a.instructionLines - b.instructionLines || a.name.localeCompare(b.name));
   const pick = ({ name, loc, instructionLines }) => ({ name, loc, instructionLines });
   return {
     unit, count: parts.length,
     typical: pick(parts[Math.floor((parts.length - 1) / 2)]), largest: pick(parts.at(-1)),
     hooks: parts.some((p) => p.hooks), names: parts.map((p) => p.name).sort().slice(0, MAX_PART_NAMES),
+    // Each part's own file (SKILL.md or agent), for reading its head: `scout.mjs head owner/repo --part name`.
+    paths: Object.fromEntries(parts.filter((p) => p.file).slice(0, MAX_PART_NAMES).map((p) => [p.name, p.file])),
   };
 }
 
@@ -318,7 +321,15 @@ export function effortFacts({ tree = [], truncated = false, readme = '', files =
       : loc === 0 ? 'instructions'
         : (kind !== 'app' && (parts.skills ? skillCodeShare >= 0.5 : parts.pluginManifest || parts.commands)) ? 'skill-scripts'
           : 'app';
+  // What Claude reads for a close call: the typical part's file, else up to 3 SKILL.md / agent files, else the README.
+  const skillFiles = blobs.filter((t) => /(^|\/)SKILL\.md$/i.test(t.path)).map((t) => t.path).sort((a, b) => depth(a) - depth(b) || a.localeCompare(b));
+  const agentFiles = blobs.filter((t) => /(^|\/)agents\/[^/]+\.md$/i.test(t.path) && !IN_SKILL.test(t.path)).map((t) => t.path).sort();
+  const readmeFile = blobs.filter((t) => /^readme(\.\w+)?$/i.test(t.path)).map((t) => t.path)[0];
+  const judgmentHeads = collection
+    ? [collection.paths[collection.typical.name]].filter(Boolean)
+    : skillFiles.length ? skillFiles.slice(0, 3) : agentFiles.length ? agentFiles.slice(0, 3) : readmeFile ? [readmeFile] : [];
   return {
+    judgmentHeads,
     type, typeLabel: collection ? `collection of ${collection.count} ${UNIT_PLURAL[collection.unit]}` : TYPE_LABEL[type], files: blobs.length, codeFiles: codeBlobs.length, loc, instructionLines, languages,
     dependencies: deps ? deps.length : null,
     needs: {
@@ -376,14 +387,15 @@ function adviseCollection(f, opts) {
   if (f.vendor) {
     return { advice: 'install', adviceLabel: 'Install', buildForm: null, buildTime: null, reason: `${head} Maintained by the vendor (${f.vendor}): install the part you need.`, collectionAdvice: { typical, largest } };
   }
-  return { ...typical, reason: `${head} Take only the part you need.`, collectionAdvice: { typical, largest } };
+  return { ...typical, reason: `${head} Take only the part you need.`, collectionAdvice: { typical, largest },
+    ...(typical.advice === 'judge' ? { judgment: { ...typical.judgment, heads: f.judgmentHeads || [] } } : {}) };
 }
 
 /** Build your own / Either / Install, with a form, a time and one plain reason. */
 export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
   if (f.collection) {
     const { collectionAdvice, ...rest } = adviseCollection(f, { pushedAt, now });
-    return { ...rest, collection: { ...f.collection, typicalAdvice: collectionAdvice.typical.advice, largestAdvice: { advice: collectionAdvice.largest.advice, adviceLabel: collectionAdvice.largest.adviceLabel } } };
+    return { judgment: null, ...rest, collection: { ...f.collection, typicalAdvice: collectionAdvice.typical.advice, largestAdvice: { advice: collectionAdvice.largest.advice, adviceLabel: collectionAdvice.largest.adviceLabel } } };
   }
   const T = THRESHOLDS;
   const days = pushedAt ? Math.floor((now - Date.parse(pushedAt)) / 86400e3) : null;
@@ -435,11 +447,22 @@ export function advise(f, { pushedAt = null, now = Date.now() } = {}) {
     reason = `Medium-sized (${size}), no external API: building is real work; installing is quicker if it fits as it is.`;
   }
   const label = { build: 'Build your own', either: 'Either', install: 'Install' }[advice];
+  // A close call (instructions-only or small, nothing vendor-made, wrapped or service-backed) is Claude's to make,
+  // after reading the head of the SKILL.md(s): generic knowledge → build; specialized expertise → install.
+  const close = !f.vendor && !f.wraps && !f.truncated && !services.length && (f.type === 'instructions' || f.loc <= T.SMALL_LOC);
+  if (close) {
+    const what2 = `${f.loc ? `A small ${f.typeLabel}` : what} (${size})`;
+    return {
+      advice: 'judge', adviceLabel: 'Judgment needed', buildForm: buildForm(f), buildTime: buildTime(f),
+      reason: `${what2}, ${external ? `needs ${tiedTo}` : 'no external API'}: easy to write if it's general knowledge, worth installing if it's specialized.`,
+      judgment: { needed: true, ruleAdvice: advice, heads: f.judgmentHeads || [] },
+    };
+  }
   return {
     advice, adviceLabel: label,
     buildForm: advice === 'install' ? null : buildForm(f),
     buildTime: advice === 'install' ? null : buildTime(f),
-    reason,
+    reason, judgment: null,
   };
 }
 
@@ -449,8 +472,9 @@ export function estimateEffort({ pushedAt = null, now = Date.now(), ...input } =
 }
 
 /** One line for text output: "Build your own (skill, under an hour): …" / "Install: …". */
-export function effortLine(e) {
-  const extra = e.advice === 'install' ? '' : ` (${e.buildForm}, ${e.buildTime})`;
+export function effortLine(e, { where = '/tool-scout:scout' } = {}) {
+  const extra = e.advice === 'install' ? '' : e.advice === 'judge' ? ` (${e.buildForm} if built, ${e.buildTime})` : ` (${e.buildForm}, ${e.buildTime})`;
   const match = e.collection?.match ? ` For your ${e.collection.match.topic} work: ${e.collection.match.name}.` : '';
-  return `${e.adviceLabel}${extra}: ${e.reason}${match}`;
+  const judge = e.advice === 'judge' ? ` Claude decides in ${where}.` : '';
+  return `${e.adviceLabel}${extra}: ${e.reason}${match}${judge}`;
 }

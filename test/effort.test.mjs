@@ -4,6 +4,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estimateEffort, effortFacts, advise, effortFiles, effortLine, THRESHOLDS, BYTES_PER_LINE, BYTES_PER_MD_LINE, KNOWN_APIS } from '../scripts/lib/effort.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 const NOW = Date.parse('2026-11-25T00:00:00Z');
 const OLD = '2025-06-01T00:00:00Z';
 const blob = (path, size = 1000) => ({ path, type: 'blob', size });
@@ -22,8 +26,8 @@ test('instructions-only skill: just .md files → build your own, as a skill', (
   assert.equal(e.type, 'instructions');
   assert.equal(e.loc, 0);
   assert.equal(e.instructionLines, 180);
-  assert.equal(e.advice, 'build');
-  assert.equal(e.adviceLabel, 'Build your own');
+  assert.equal(rule(e), 'build');
+  assert.equal(e.adviceLabel, 'Judgment needed', 'a close call: Claude decides');
   assert.equal(e.buildForm, 'skill');
   assert.equal(e.buildTime, 'under an hour');
 });
@@ -40,7 +44,7 @@ test('skill with scripts: small code, tests and docs not counted → build, skil
   assert.equal(e.loc, 150);
   assert.equal(e.codeFiles, 1);
   assert.deepEqual(e.languages, ['Python']);
-  assert.equal(e.advice, 'build');
+  assert.equal(rule(e), 'build');
   assert.equal(e.buildForm, 'skill with a script');
   assert.equal(e.buildTime, '2–4 hours');
 });
@@ -48,7 +52,7 @@ test('skill with scripts: small code, tests and docs not counted → build, skil
 test('plugin with hooks or agents → its form is a hook / subagent', () => {
   const hooks = est({ kind: 'plugin', tree: [blob('.claude-plugin/plugin.json', 300), blob('hooks/hooks.json', 400), code('hooks/guard.sh', 60), md('agents/reviewer.md', 50)] });
   assert.equal(hooks.type, 'plugin');
-  assert.equal(hooks.advice, 'build');
+  assert.equal(rule(hooks), 'build');
   assert.equal(hooks.buildForm, 'hook');
   assert.equal(hooks.buildTime, 'about an hour');
   const agents = est({ kind: 'plugin', tree: [blob('.claude-plugin/plugin.json', 300), md('agents/reviewer.md', 80), md('agents/tester.md', 80)] });
@@ -82,8 +86,8 @@ test('small but tied to one API → either', () => {
   assert.equal(e.dependencies, 2);
   assert.deepEqual(e.needs.apis, [], 'WEATHER is not a known API and no weather domain is in the README');
   assert.match(e.reason, /needs 1 credential/);
-  assert.equal(e.advice, 'either');
-  assert.equal(e.adviceLabel, 'Either');
+  assert.equal(rule(e), 'either');
+  assert.equal(e.adviceLabel, 'Judgment needed', 'small: Claude decides');
 });
 
 test('app needing docker and a database → install', () => {
@@ -103,7 +107,7 @@ test('a Dockerfile alone is not a required service', () => {
 test('medium size, no API → either; large → install', () => {
   const medium = est({ tree: [md('SKILL.md', 50), code('lib/a.py', 900), code('lib/b.py', 600)] });
   assert.equal(medium.loc, 1500);
-  assert.equal(medium.advice, 'either');
+  assert.equal(rule(medium), 'either');
   assert.match(medium.buildTime, /day/);
   const large = est({ tree: [md('SKILL.md', 50), ...Array.from({ length: 10 }, (_, i) => code(`lib/m${i}.go`, 400))] });
   assert.equal(large.advice, 'install');
@@ -113,8 +117,8 @@ test('medium size, no API → either; large → install', () => {
 test('SMALL_LOC boundary: at the limit → build, one line over → either', () => {
   const at = est({ tree: [md('SKILL.md', 30), code('a.js', THRESHOLDS.SMALL_LOC)] });
   const over = est({ tree: [md('SKILL.md', 30), code('a.js', THRESHOLDS.SMALL_LOC + 1)] });
-  assert.equal(at.advice, 'build');
-  assert.equal(over.advice, 'either');
+  assert.equal(rule(at), 'build');
+  assert.equal(rule(over), 'either');
 });
 
 test('actively maintained and not small → install; the same repo, quiet for months → either', () => {
@@ -157,7 +161,7 @@ test('credentials: env-style names and API-key/OAuth wording; "no API key needed
 test('instructions-only but needs an API key → either, not build', () => {
   const e = est({ tree: [md('skills/x/SKILL.md', 100)], readme: 'Requires FIRECRAWL_API_KEY.' });
   assert.equal(e.type, 'instructions');
-  assert.equal(e.advice, 'either');
+  assert.equal(rule(e), 'either');
 });
 
 test('the reason is one plain line; repo text never gets into it beyond env-style names', () => {
@@ -186,7 +190,9 @@ test('effortFiles: only a few small root-level manifests, never shipped tests or
 
 test('effortLine: "Build your own (skill, under an hour): …"', () => {
   const b = est({ tree: [md('skills/a/SKILL.md', 100)] });
-  assert.match(effortLine(b), /^Build your own \(skill, under an hour\): \S/);
+  assert.match(effortLine(b), /^Judgment needed \(skill if built, under an hour\): \S/);
+  const m = est({ tree: [md('SKILL.md', 30), code('a.ts', 1500)] });
+  assert.match(effortLine(m), /^Either \(skill with a script, a few days\): \S/);
   const i = est({ kind: 'app', tree: Array.from({ length: 200 }, (_, n) => code(`src/f${n}.rs`, 100)) });
   assert.match(effortLine(i), /^Install: \S/);
 });
@@ -237,7 +243,7 @@ test('docker in the README is a required service only when it is the only way to
 test('apps follow the size rules like everything else (a 450-line tool is not an automatic install)', () => {
   const e = est({ kind: 'tool', tree: [blob('pyproject.toml'), code('cli/main.py', 450)] });
   assert.equal(e.type, 'app');
-  assert.equal(e.advice, 'either');
+  assert.equal(rule(e), 'either');
 });
 
 test('test-*.py and other test-named scripts are not counted as code', () => {
@@ -268,12 +274,12 @@ test('identical copies of a file (same name and size) count once', () => {
 });
 
 test('a large instruction set is not "quick": the reason says to take the part you need, and never calls it small', () => {
-  const big = est({ tree: Array.from({ length: 80 }, (_, i) => md(`agents/a${i}.md`, 110)) });
-  assert.equal(big.advice, 'build');
+  const big = est({ tree: [md('skills/x/SKILL.md', 110), ...Array.from({ length: 79 }, (_, i) => md(`skills/x/reference/r${i}.md`, 110))] });
+  assert.equal(rule(big), 'build');
   assert.doesNotMatch(big.reason, /quick|small/i);
-  assert.match(big.reason, /part you need/);
+  assert.equal(big.buildTime, 'a few hours for the part you need');
   const tied = est({ tree: [md('skills/x/SKILL.md', 3000)], readme: 'Set FIRECRAWL_API_KEY first.' });
-  assert.equal(tied.advice, 'either');
+  assert.equal(rule(tied), 'either');
   assert.doesNotMatch(tied.reason, /^Small/);
 });
 

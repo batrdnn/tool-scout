@@ -12,6 +12,10 @@ import { BYTES_PER_LINE as L, BYTES_PER_MD_LINE as M } from '../scripts/lib/effo
 import { githubTrees } from './effort-scan.test.mjs';
 import { NOW, profile, ghRepo, catalogOf } from './pipeline.test.mjs';
 
+/** The rules' own advice: for a close call it's the fallback under `judgment`, since Claude decides. */
+const rule = (e) => e.judgment?.ruleAdvice ?? e.advice;
+
+
 const files = (n, prefix, lines, ext) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`${prefix}${i}.${ext}`, lines * L]));
 const RECENT = new Date(NOW - 2 * 86400e3).toISOString();
 
@@ -69,7 +73,8 @@ for (const [name, { want }] of Object.entries(TYPES)) {
     const r = await checkRepo(createClient({ fetchImpl: githubTrees(repos) }), `o/${name}`, { now: NOW });
     const e = r.effort;
     assert.equal(e.type, want.type);
-    assert.equal(e.advice, want.advice, e.reason);
+    assert.equal(rule(e), want.advice, e.reason);
+    if (e.judgment) assert.equal(e.advice, 'judge', 'a close call is Claude\'s');
     if (want.buildForm) assert.equal(e.buildForm, want.buildForm);
     if (want.loc != null) assert.equal(e.loc, want.loc);
     if (want.apis) assert.deepEqual(e.needs.apis, want.apis);
