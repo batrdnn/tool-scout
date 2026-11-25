@@ -162,3 +162,20 @@ test('build plans: each flag stays on its own line, and nothing else adds one', 
   const text = formatBuildPlan(await makeBuildPlan({ ...s.ctx(), client: null, form: 'memory', name: 'n', from: dir }));
   assert.ok(text.split('\n').filter((l) => /^ {11}⚑ /.test(l)).length >= 2, text);
 });
+
+// ---- binary files are told apart by content, so they do not block a skill ---------------------------
+test('ZIP containers and other binary files (docx, wasm) do not block the plan; the plan names them', async () => {
+  const docx = Buffer.concat([Buffer.from('PK\x03\x04'), Buffer.from([0xff, 0xfe, 0x00, 0x80])]);
+  const wasm = Buffer.concat([Buffer.from('\0asm'), Buffer.alloc(8, 0xff)]);
+  const p = await skillPlan({ 'SKILL.md': SKILL_MD('x'), 'template.docx': docx, 'lib.wasm': wasm });
+  assert.deepEqual(p.body.blockers, []);
+  assert.match(formatPlan(p), /Binary files, not scanned.*template\.docx/);
+  assert.match(formatPlan(p), /Binary files, not scanned.*lib\.wasm/);
+});
+
+test('a text-like file that is not valid UTF-8, or any file starting with a UTF-16 byte-order mark, still blocks', async () => {
+  for (const [name, buf] of [['notes.md', Buffer.from([0x68, 0x69, 0xff, 0x80])], ['data.bin', Buffer.from([0xff, 0xfe, 0x68, 0x00])], ['data.dat', Buffer.from([0xfe, 0xff, 0x00, 0x68])]]) {
+    const p = await skillPlan({ 'SKILL.md': SKILL_MD('x'), [name]: buf });
+    assert.ok(p.body.blockers.some((b) => b.includes(`${name} is not plain UTF-8 text`)), `${name}: ${p.body.blockers.join('\n')}`);
+  }
+});

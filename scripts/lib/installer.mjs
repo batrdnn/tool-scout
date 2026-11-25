@@ -265,7 +265,10 @@ const hookLine = (h) => `${h.event}${h.matcher ? ` [${h.matcher}]` : ' (every ti
 
 // ---- a skill's files, scanned as they will be written ------------------------------------------------
 
-const BINARY = /\.(?:png|jpe?g|gif|webp|ico|bmp|pdf|zip|gz|tgz|woff2?|ttf|otf|mp[34]|wav|ogg)$/i;
+// Binary is decided by content (not valid UTF-8, or a NUL). Only a file meant to be text, by its name
+// or a UTF-16 byte-order mark, is blocked when it can't be read; any other unreadable file is binary.
+const TEXT_LIKE = /(?:^|\/)(?:[^./]+|[^/]*\.(?:md|markdown|txt|json|ya?ml|toml|sh|bash|zsh|py|m?js|cjs|ts|rb|pl|ps1|html|css|xml|csv))$/i;
+const utf16Bom = (buf) => buf.length >= 2 && ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff));
 const SCRIPT = /\.(?:sh|bash|zsh|mjs|cjs|js|ts|py|rb|pl|ps1)$/i;
 
 /**
@@ -282,8 +285,9 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra }) 
     let text = null;
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
     // Text is decided by content, not by name: a notes.png that is really text is scanned like any other.
-    if ((text == null || text.includes('\u0000')) && BINARY.test(w.rel)) { binary.push(w.rel); continue; }
-    if (text == null || text.includes('\u0000')) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
+    const unreadable = text == null || text.includes('\u0000');
+    if (unreadable && !TEXT_LIKE.test(w.rel) && !utf16Bom(buf)) { binary.push(w.rel); continue; }
+    if (unreadable) { blockers.push(`${w.rel} is not plain UTF-8 text: the scan can't read it, so Tool Scout won't install it`); continue; }
     flags.push(...scanText(text, { file: `${dir}${w.rel}`, role: SCRIPT.test(w.rel) ? 'script' : 'skill' }));
   }
   const high = flags.filter((f) => f.severity === 'high');
