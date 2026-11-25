@@ -45,7 +45,7 @@ test('the toolkit lists them as "nothing needed: Claude does this directly", apa
 });
 
 test('a plan line is not a direct need just because a word fits: a README or a CI library is not', () => {
-  const n = extractNeeds('- Polish the README with a short demo GIF and a FAQ\n- Use the pytest library\n');
+  const n = extractNeeds('- Polish the README and make the install steps clearer\n- Use the pytest library\n');
   assert.deepEqual(n.direct, []);
 });
 

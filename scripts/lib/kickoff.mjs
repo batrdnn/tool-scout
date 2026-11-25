@@ -22,7 +22,7 @@ import { loadLog } from './installer.mjs';
 import { OFFICIAL_REPO, OFFICIAL_MARKETPLACE, loadOfficial, pickCandidate } from './kickoff-sources.mjs';
 
 export const MAX_ITEMS = 5;
-export const NEEDS_VERSION = 2; // 2: direct needs, rejects, wrapped bullets, stack headings
+export const NEEDS_VERSION = 3; // 3: outside needs, built-ins by line, unmatched lines; 2: direct needs, rejects, wrapped bullets, stack headings
 const MAX_PLAN_BYTES = 200_000;
 const STALE_HOURS = 20;
 // Topics that are a project's domain (what it is about) rather than a kind of task.
@@ -86,7 +86,16 @@ function segments(text) {
 const DIRECT = [
   { id: 'ci', label: 'CI config', re: /\bCI\b|\bCI\/CD\b|continuous integration|GitHub Actions/i, how: 'Claude writes the workflow file (.github/workflows/*.yml) and runs the same commands locally to check them' },
   { id: 'icon', label: 'icon', re: /\b(?:icons?|logo|favicon)\b/i, how: 'Claude draws it as an SVG, or writes a small script that renders the PNG sizes, and saves it in the repo' },
-  { id: 'post', label: 'launch post', re: /\b(?:write|draft)\b[^.]{0,40}\b(?:posts?|blog|announcement|article|newsletter|tweet|thread)\b/i, how: 'Claude drafts the text in the chat from your README and plan; you edit and publish it' },
+  { id: 'post', label: 'launch post', re: /\b(?:write|draft)\b[^.]{0,40}\b(?:posts?|blog|announcement|article|newsletter|tweet|thread)\b|\blaunch (?:posts?|announcement)\b/i, how: 'Claude drafts the text in the chat from your README and plan; you edit and publish it' },
+  { id: 'faq', label: 'FAQ', re: /\bFAQs?\b/, how: 'Claude drafts the questions and answers from your README and the code; you review them' },
+  { id: 'art', label: 'artwork', re: /\b(?:sprites?|pixel[- ]art|illustrations?|mascots?)\b/i, how: 'Claude draws it as SVG or pixel data in a small script and saves the files in the repo' },
+];
+// Tasks that happen outside Claude Code, or between people: never a tool need, even when the line
+// mentions GitHub or git. One line on what to do instead.
+const OUTSIDE = [
+  { id: 'recruit', label: 'recruiting', re: /\brecruit\w*|\binvit\w* (?:testers?|users?|people)\b|\bfind (?:testers|volunteers)\b/i, how: 'finding and asking people happens between you and them; Claude can draft the invitation message' },
+  { id: 'submit', label: 'submission', re: /\b(?:submit\w*|publish\w*)\b/i, how: 'you submit or publish it yourself in the marketplace or registry; Claude can prepare the files and the description' },
+  { id: 'recording', label: 'recording', re: /\b(?:GIF|screencast|screen recording)\b/i, how: 'record it with a terminal recorder such as asciinema or VHS, then Claude can add the file to the README' },
 ];
 const STACK_HEADING = /\b(?:stack|tech(?:nology)?|built with)\b/i;
 
@@ -95,12 +104,16 @@ const STACK_HEADING = /\b(?:stack|tech(?:nology)?|built with)\b/i;
  * project's dependency files), the domain (the most-mentioned domain topic) and the conventions.
  */
 export function extractNeeds(text, { project = null } = {}) {
-  const tasks = {}; const conventions = []; const direct = {};
+  const tasks = {}; const conventions = []; const direct = {}; const outside = {};
   for (const s of segments(text)) {
     if (CONVENTION_LINE.test(s.text) || (CONVENTION_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading))) { conventions.push(s.text); continue; }
     if (STACK_HEADING.test(s.heading) && !/\btasks?\b/i.test(s.heading)) continue; // describes the stack, not a task
-    const d = DIRECT.find((x) => x.re.test(s.text));
-    if (d) { (direct[d.id] ||= []).push(s.text); continue; }
+    const ds = DIRECT.filter((x) => x.re.test(s.text)); const os = OUTSIDE.filter((x) => x.re.test(s.text));
+    if (ds.length || os.length) { // not a tool need, whatever else the line mentions
+      for (const d of ds) (direct[d.id] ||= []).push(s.text);
+      for (const o of os) (outside[o.id] ||= []).push(s.text);
+      continue;
+    }
     for (const t of topicsIn(s.text)) (tasks[t] ||= []).push(s.text);
   }
   const libraries = project ? [...librariesIn(project)].sort() : [];
@@ -117,6 +130,7 @@ export function extractNeeds(text, { project = null } = {}) {
     domain,
     conventions: conventions.slice(0, 20),
     direct: DIRECT.filter((d) => direct[d.id]).map((d) => ({ id: d.id, label: d.label, lines: direct[d.id], how: d.how })),
+    outside: OUTSIDE.filter((o) => outside[o.id]).map((o) => ({ id: o.id, label: o.label, lines: outside[o.id], how: o.how })),
     needs,
   };
 }
@@ -133,7 +147,9 @@ function validate(n) {
   n.conventions = Array.isArray(n.conventions) ? n.conventions.map(String) : [];
   if (n.rejects != null && !Array.isArray(n.rejects)) throw new Error('rejects in the needs file must be a list of owner/repo names');
   n.rejects = (n.rejects || []).map(String);
-  n.direct = Array.isArray(n.direct) ? n.direct.filter((d) => d?.id && d?.how).map((d) => ({ id: String(d.id), label: String(d.label || d.id), lines: (d.lines || []).map(String), how: String(d.how) })) : [];
+  const group = (g) => (Array.isArray(g) ? g.filter((d) => d?.id && d?.how).map((d) => ({ id: String(d.id), label: String(d.label || d.id), lines: (d.lines || []).map(String), how: String(d.how) })) : []);
+  n.direct = group(n.direct);
+  n.outside = group(n.outside);
 }
 
 /** The profile one need stands for: only its topic, its plan words and its libraries. */

@@ -13,7 +13,7 @@ const edit = (sb, fn) => { const f = needsPath(sb.dataDir); const n = JSON.parse
 test('a new needs file has the current format version', async () => {
   const sb = sandbox({ plan: PLAN });
   const r = await runKickoff({ planFile: sb.planFile, home: sb.home, dataDir: sb.dataDir, now: NOW, client: null });
-  assert.equal(NEEDS_VERSION, 2);
+  assert.equal(NEEDS_VERSION, 3);
   assert.equal(r.needs.v, NEEDS_VERSION);
 });
 

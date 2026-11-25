@@ -43,7 +43,7 @@ test('run 1 plan: the right tool for issue triage and the security review', asyn
 
 test('run 1 plan: CI, the icon and the launch post are "nothing needed: Claude does this directly"', async () => {
   const { toolkit } = await kick(launchSandbox());
-  assert.deepEqual(toolkit.direct.map((d) => d.id).sort(), ['ci', 'icon', 'post']);
+  assert.deepEqual(toolkit.direct.map((d) => d.id).sort(), ['ci', 'faq', 'icon', 'post']);
   for (const d of toolkit.direct) assert.match(d.reason, /nothing needed: Claude does this directly: \S/);
 });
 
