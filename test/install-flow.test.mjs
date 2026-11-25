@@ -95,7 +95,13 @@ function github(R, { head = {} } = {}) {
   });
 }
 
-/** Mock `claude` (and `git rev-parse`): writes what the real CLI writes, and records every call. */
+/**
+ * Mock `claude` (and `git rev-parse`): writes what the real CLI writes, and records every call.
+ * Like the real CLI (seen in a sandbox run of v0.9.0): install keeps a registry in
+ * installed_plugins.json and a .last_inuse_sweep stamp; uninstall leaves the plugin's cache with an
+ * .orphaned_at marker and records the plugin in ~/.claude.json declinedPlugins; mcp remove leaves an
+ * empty mcpServers object behind.
+ */
 function mockClaude(sb, R, { headOf = (n) => R[n]?.sha } = {}) {
   const calls = [];
   const json = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -114,10 +120,18 @@ function mockClaude(sb, R, { headOf = (n) => R[n]?.sha } = {}) {
       put(known, { ...json(known, {}), [name]: { source: { source: 'github', repo }, installLocation: loc } });
     } else if (a === 'plugin' && b === 'install') {
       const f = scopeFile(scope); const s = json(f, {}); put(f, { ...s, enabledPlugins: { ...(s.enabledPlugins || {}), [c]: true } });
-      fs.mkdirSync(path.join(sb.home, '.claude', 'plugins', 'cache', c.replace('@', '-')), { recursive: true });
+      const cache = path.join(sb.home, '.claude', 'plugins', 'cache', c.split('@')[1], c.split('@')[0], '1.0.0');
+      fs.mkdirSync(cache, { recursive: true }); fs.writeFileSync(path.join(cache, 'plugin.json'), '{"name":"guard"}'); fs.mkdirSync(path.join(cache, '.in_use'));
+      const reg = path.join(sb.home, '.claude', 'plugins', 'installed_plugins.json');
+      const r = json(reg, { version: 2, plugins: {} }); r.plugins[c] = [{ scope }]; put(reg, r);
+      fs.writeFileSync(path.join(sb.home, '.claude', 'plugins', '.last_inuse_sweep'), String(Date.now()));
     } else if (a === 'plugin' && b === 'uninstall') {
       const f = scopeFile(scope); const s = json(f, {}); delete s.enabledPlugins?.[c]; put(f, s);
-      fs.rmSync(path.join(sb.home, '.claude', 'plugins', 'cache', c.replace('@', '-')), { recursive: true, force: true });
+      const cache = path.join(sb.home, '.claude', 'plugins', 'cache', c.split('@')[1], c.split('@')[0], '1.0.0');
+      fs.rmSync(path.join(cache, '.in_use'), { recursive: true, force: true }); fs.writeFileSync(path.join(cache, '.orphaned_at'), String(Date.now()));
+      const reg = path.join(sb.home, '.claude', 'plugins', 'installed_plugins.json');
+      const r = json(reg, { version: 2, plugins: {} }); delete r.plugins[c]; put(reg, r);
+      const cj = path.join(sb.home, '.claude.json'); const g = json(cj, {}); put(cj, { ...g, declinedPlugins: [...(g.declinedPlugins || []), c] });
     } else if (a === 'plugin' && b === 'marketplace' && c === 'remove') {
       const k = json(known, {}); const loc = k[argv[3]]?.installLocation; delete k[argv[3]]; put(known, k);
       if (loc) fs.rmSync(loc, { recursive: true, force: true });
@@ -332,4 +346,55 @@ test('undo of a skill file the user changed since: left in place and reported, e
   assert.equal(u.ok, true);
   assert.deepEqual(u.kept, [f]);
   assert.ok(fs.existsSync(f) && !fs.existsSync(path.join(sb.home, '.claude', 'skills', 'pdf', 'scripts')));
+});
+
+test('regression (antivibe): folders in the tree are not reported as submodules; real submodules are skipped', async () => {
+  const { ctx, R } = setup();
+  const base = github(R);
+  const fetchImpl = Object.assign(async (url, o) => {
+    const res = await base(url, o);
+    if (!/git\/trees\//.test(url) || !url.includes('skill-pack')) return res;
+    const body = await res.json();
+    body.tree.push({ path: 'skills/pdf/scripts', type: 'tree', mode: '040000' }, { path: 'skills/pdf/vendor-lib', type: 'commit', mode: '160000' });
+    return { ...res, json: async () => body };
+  }, { calls: [] });
+  const p = await makePlan({ ...ctx({ client: createClient({ fetchImpl }) }), repo: 'o/skill-pack', part: 'pdf' });
+  assert.deepEqual(p.body.notes.filter((n) => /Skipped/.test(n)), ['Skipped vendor-lib (a submodule).']);
+});
+
+test('a re-check that cannot reach GitHub says so (not "changed"), and installs nothing', async () => {
+  const { sb, ctx } = setup();
+  const plan = await makePlan({ ...ctx(), repo: 'o/skill-pack', part: 'pdf' });
+  const down = mockFetch(() => ({ __status: 403 }), { remaining: 0 });
+  const before = snapshot(sb);
+  const res = await confirmInstall({ ...ctx({ client: createClient({ fetchImpl: down, maxWaitMs: 0 }) }), id: plan.id });
+  assert.equal(res.ok, false);
+  assert.match(res.reason, /^could not re-check the plan \(GitHub rate limit reached/);
+  assert.deepEqual(changed(before, snapshot(sb)), []);
+});
+
+test('MCP undo removes the empty mcpServers that mcp remove leaves when there was none before', async () => {
+  const { sb, ctx } = setup();
+  fs.writeFileSync(path.join(sb.home, '.claude.json'), JSON.stringify({ numStartups: 3 }, null, 2));
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/thing-mcp' });
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  await undoInstall({ ...ctx(), name: 'thing' });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(sb.home, '.claude.json'), 'utf8')), { numStartups: 3 });
+  assert.deepEqual(changed(before, snapshot(sb)).filter((p) => !p.endsWith('.claude.json')), []);
+});
+
+test('plugin undo when ~/.claude/plugins already existed with another plugin: only this plugin\'s traces go', async () => {
+  const { sb, ctx } = setup();
+  const reg = path.join(sb.home, '.claude', 'plugins', 'installed_plugins.json');
+  fs.mkdirSync(path.join(sb.home, '.claude', 'plugins', 'cache', 'mine', 'mine', '1.0.0'), { recursive: true });
+  fs.writeFileSync(reg, JSON.stringify({ version: 2, plugins: { 'mine@mine': [{ scope: 'user' }] } }, null, 2));
+  fs.writeFileSync(path.join(sb.home, '.claude', 'plugins', '.last_inuse_sweep'), '1');
+  const before = snapshot(sb);
+  const plan = await makePlan({ ...ctx(), repo: 'o/plugin-repo' });
+  assert.equal((await confirmInstall({ ...ctx(), id: plan.id })).ok, true);
+  await undoInstall({ ...ctx(), name: 'guard@o-tools' });
+  const left = changed(before, snapshot(sb));
+  assert.deepEqual(left.filter((p) => !p.endsWith('.last_inuse_sweep') && !p.endsWith('installed_plugins.json')), [], left.join('\n'));
+  assert.deepEqual(JSON.parse(fs.readFileSync(reg, 'utf8')).plugins, { 'mine@mine': [{ scope: 'user' }] }, 'the other plugin is untouched');
 });

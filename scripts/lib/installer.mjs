@@ -18,6 +18,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { checkRepo } from './check.mjs';
 import { normalizeRepo } from './feedback.mjs';
+import { RateLimitError } from './github.mjs';
 
 export const PLAN_TTL_MIN = 15;
 const MAX_FILES = 300;
@@ -51,10 +52,14 @@ function setKey(file, key, value) {
     if (value == null) delete sub[rest.join('.')]; else sub[rest.join('.')] = value;
     o[top] = sub;
   }
-  fs.writeFileSync(file, `${JSON.stringify(o, null, 2)}\n`);
+  // Keep the file's own style (indent, trailing newline), so an undo can leave it byte-identical.
+  let raw = ''; try { raw = fs.readFileSync(file, 'utf8'); } catch { /* new file */ }
+  const indent = raw.match(/^\{\n([ \t]+)"/)?.[1] ?? 2;
+  fs.writeFileSync(file, JSON.stringify(o, null, indent) + (raw && !raw.endsWith('\n') ? '' : '\n'));
 }
-/** A JSON file left with nothing in it ({}, or only empty objects), which an install created. */
-const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => v && typeof v === 'object' && !Object.keys(v).length); };
+/** A JSON file left with nothing in it: {} or a registry whose lists are empty ({"version": 2, "plugins": {}}). */
+const emptyJson = (f) => { const o = readJson(f); return !!o && typeof o === 'object' && Object.values(o).every((v) => (v && typeof v === 'object' ? !Object.keys(v).length : true)); };
+const isEmptyValue = (v) => v != null && typeof v === 'object' && !Object.keys(v).length;
 
 // ---- README `claude mcp add` commands, tokenized without a shell -------------------------------
 
@@ -164,6 +169,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       const files = (tree || []).filter((t) => t.path.startsWith(dir) && (dir || !/^\.(git|github)\//.test(t.path)));
       for (const t of files) {
         const rel = t.path.slice(dir.length);
+        if (t.type === 'tree') continue; // a folder: its files are listed on their own
         if (t.type !== 'blob') { notes.push(`Skipped ${rel} (a submodule).`); continue; }
         if (t.mode === '120000') { notes.push(`Skipped ${rel} (a symlink).`); continue; }
         if (!rel || rel.split('/').some((s) => s === '..' || s === '.' || !s) || path.isAbsolute(rel)) { blockers.push(`unsafe path in the repo: ${JSON.stringify(rel)}`); continue; }
@@ -195,6 +201,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
       managed.push(path.join(home, '.claude', 'plugins'));
       notes.push(`Claude Code adds the marketplace from the repo's current head. Tool Scout checks it is still ${pinned.slice(0, 7)} right before, and that the checkout is ${pinned.slice(0, 7)} right after; otherwise it undoes the install.`);
       if (blobs.some((t) => /(^|\/)hooks\/hooks\.json$/.test(t.path))) notes.push('This plugin has hooks: commands that run automatically on Claude Code events.');
+      notes.push("Running claude also updates Claude Code's own ~/.claude.json (it may back it up under ~/.claude/backups). On undo, Tool Scout puts back what the uninstall changes there.");
     }
   } else if (method === 'mcp') {
     const ok = mcp.filter((c) => !c.rejected);
@@ -279,7 +286,11 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
     if (head !== b.sha) return { ok: false, reason: `the repo moved since the plan (its head is now ${String(head).slice(0, 7)}, the plan pinned ${b.sha.slice(0, 7)}): make a new plan` };
   }
   let fresh;
-  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false }); } catch (e) { return { ok: false, reason: `changed since the plan: ${e.message}` }; }
+  try { fresh = await makePlan({ client, repo: b.repo, part: b.part, scope: b.scope, sha: b.sha, home, cwd, dataDir, now: Date.parse(rec.createdAt), save: false }); } catch (e) {
+    // GitHub unreachable or rate-limited: nothing is known to have changed, so say what happened.
+    if (e instanceof RateLimitError || /could not reach GitHub/.test(e.message)) return { ok: false, reason: `could not re-check the plan (${e.message}): nothing was installed; try again later` };
+    return { ok: false, reason: `changed since the plan: ${e.message}` };
+  }
   if (fresh.id !== id) {
     const diff = Object.keys(b).filter((k) => JSON.stringify(b[k]) !== JSON.stringify(fresh.body[k]));
     return { ok: false, reason: `changed since the plan (${diff.join(', ')}): make a new plan and review it` };
@@ -309,7 +320,10 @@ export async function confirmInstall({ client, id, home, cwd, dataDir, now = Dat
     }
   } else {
     const roots = b.managed.map((m) => [m, listTree(m)]);
-    for (const s of b.settings) entry.settings.push({ ...s, fileExisted: fs.existsSync(s.file) });
+    entry.managedRoots = b.managed.map((m) => ({ root: m, existed: fs.existsSync(m) }));
+    for (const s of b.settings) entry.settings.push({ ...s, fileExisted: fs.existsSync(s.file), topExisted: readJson(s.file)?.[s.key.split('.')[0]] !== undefined });
+    // `claude plugin uninstall` records the plugin in ~/.claude.json declinedPlugins: undo puts it back as it was.
+    if (b.method === 'plugin') entry.restore = [{ file: path.join(home, '.claude.json'), key: 'declinedPlugins', before: getKey(path.join(home, '.claude.json'), 'declinedPlugins') ?? null }];
     const fail = (reason) => { undoSteps(entry, b, run); return { ok: false, reason: `${reason}: rolled back` }; };
     try {
       for (const c of b.commands) { run('claude', c); entry.commands.push(c); }
@@ -345,7 +359,32 @@ function undoSteps(entry, b, run) {
   }
   for (const s of entry.settings) {
     if (s.before !== null && typeof s.after !== 'string' && getKey(s.file, s.key) === s.after) setKey(s.file, s.key, s.before);
+    const top = s.key.split('.')[0];
+    if (s.topExisted === false && fs.existsSync(s.file) && isEmptyValue(readJson(s.file)?.[top])) setKey(s.file, top, null); // e.g. an empty mcpServers left by mcp remove
     if (!s.fileExisted && fs.existsSync(s.file) && emptyJson(s.file)) fs.unlinkSync(s.file);
+  }
+  for (const r of entry.restore || []) {
+    if (!fs.existsSync(r.file)) continue;
+    const now = getKey(r.file, r.key);
+    if (JSON.stringify(now ?? null) !== JSON.stringify(r.before)) setKey(r.file, r.key, r.before);
+  }
+  // A plugin's own cache folder, created by this install, is left behind by the uninstall (marked .orphaned_at).
+  if (b.name?.includes('@')) {
+    const [plugin, mkt] = b.name.split('@');
+    for (const root of (entry.managedRoots || []).map((m) => m.root)) {
+      const cache = path.join(root, 'cache', mkt, plugin);
+      if (entry.managedNew.includes(cache)) fs.rmSync(cache, { recursive: true, force: true });
+      const mdir = path.join(root, 'cache', mkt);
+      if (entry.managedNew.includes(mdir) && fs.existsSync(mdir) && !fs.readdirSync(mdir).length) fs.rmdirSync(mdir);
+    }
+  }
+  // A managed root the install created (~/.claude/plugins on a first plugin) goes entirely, once no
+  // plugin or marketplace is left registered in it.
+  for (const m of entry.managedRoots || []) {
+    if (m.existed || !fs.existsSync(m.root)) continue;
+    const reg = ['installed_plugins.json', 'known_marketplaces.json'].map((f) => path.join(m.root, f)).filter((f) => fs.existsSync(f));
+    const leftovers = [...listTree(m.root)].filter((p) => p !== m.root && !entry.managedNew.includes(p));
+    if (reg.every(emptyJson) && !leftovers.some((p) => !fs.statSync(p).isDirectory() && !/\.(orphaned_at|last_inuse_sweep)$/.test(p))) fs.rmSync(m.root, { recursive: true, force: true });
   }
   for (const p of [...entry.managedNew].sort((x, y) => y.length - x.length)) {
     try {
