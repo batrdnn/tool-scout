@@ -2,6 +2,19 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.12.2 (2026-11-25)
+
+Security release: update with `claude plugin update tool-scout@tool-scout`.
+
+- An MCP server added over http or sse must point at an `http(s)://` URL; a README line that puts
+  an option there instead is refused.
+- The scan now catches injection phrasing disguised with soft hyphens, invisible characters,
+  accents, full-width or look-alike (Cyrillic, Greek, Armenian) letters.
+- The data folder (profile, plans, install log, backups) is private to you: the folder is 0700
+  and its files lose group and other access, including in a folder made by an older version.
+- The security review says why a settings edit made by Claude Code at the same moment as an
+  install or undo can still be lost, and why that is accepted.
+
 ## v0.12.1 (2026-11-25)
 
 Security release: update with `claude plugin update tool-scout@tool-scout`.
