@@ -26,8 +26,8 @@ claude plugin update tool-scout@tool-scout
 
 ## Safe mode (v0.17) and the experimental installer
 
-An [independent review of v0.16.1](docs/reviews/independent-v0.16.1.pdf) reproduced failures in the
-installer, so since v0.17 Tool Scout only recommends and checks. Installing, building and turning on
+An independent review of v0.16.1 reproduced failures in the
+installer (full independent review: coming soon; [docs/security-review.md](docs/security-review.md) is the published one), so since v0.17 Tool Scout only recommends and checks. Installing, building and turning on
 hooks are off by default; the installer is still in the code, behind a setting you turn on yourself
 (`scout.mjs experimental on`), which warns on every run. Reports about the experimental installer are
 welcome, but these four are **known, fixed in v0.18**, so they are not new:

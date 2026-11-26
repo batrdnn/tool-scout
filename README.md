@@ -6,7 +6,8 @@ Picks trending Claude Code skills, plugins and MCP servers that fit how you actu
 
 > **Early beta.** Expect rough edges, and please rate the picks: that's how it gets better.
 
-> **Safe mode (v0.17).** An [independent review of v0.16.1](docs/reviews/independent-v0.16.1.pdf) found
+> **Safe mode (v0.17).** An independent review of v0.16.1 (full independent review: coming soon; the earlier
+> [security review](docs/security-review.md) is the one published now) found
 > that Tool Scout's installer can't be trusted yet: an agent can confirm its own install plan, an
 > existing marketplace name can bring in a different plugin than the one you reviewed, a project-scoped
 > write can follow a symlink out of the project, and undo can report success while the change is still

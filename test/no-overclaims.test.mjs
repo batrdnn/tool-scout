@@ -43,7 +43,9 @@ test('README: safe mode is the first thing said about install, and the installer
   const i = md.search(/safe mode/i);
   assert.ok(i > 0 && i < md.indexOf('## Install'), 'a safe-mode note before the Install section');
   for (const re of [/experimental/i, /off by default/i, /manual (?:install )?steps/i, /project scope/i, /v0\.18/, /independent review/i]) assert.match(md, re);
-  assert.match(md, /\[?docs\/reviews\/independent-v0\.16\.1/, 'links the review');
+  assert.match(md, /full independent review: coming soon/, 'says the full review is coming');
+  assert.match(md, /\]\(docs\/security-review\.md\)/, 'links the published review');
+  assert.doesNotMatch(md, /docs\/reviews\//, 'no link to a file that is not there');
 });
 
 test('README: the plan/install/undo and build sections are marked experimental, with the review\'s findings', () => {
@@ -77,7 +79,9 @@ test('SECURITY.md: the known limits of the experimental installer, by the review
   for (const id of ['C1', 'C2', 'C5', 'C6']) assert.match(md, new RegExp(`\\b${id}\\b`), id);
   assert.match(md, /known, fixed in v0\.18|planned for v0\.18|fixed in v0\.18/i);
   assert.match(md, /off by default/i);
-  assert.match(md, /docs\/reviews\/independent-v0\.16\.1/);
+  assert.match(md, /full independent review: coming soon/);
+  assert.match(md, /\]\(docs\/security-review\.md\)/);
+  assert.doesNotMatch(md, /docs\/reviews\//);
   assert.match(md, /not a (?:human )?authorization|human decision/i);
 });
 
