@@ -6,8 +6,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeBuildPlan, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
+import { makeBuildPlan as makeBuildPlanDefault, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx } from './build-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makeBuildPlan = (a) => makeBuildPlanDefault({ scope: a.form === 'hook' ? null : 'user', ...a }); // a hook has always defaulted to project
 
 const plan = (sb, form, name, files, o = {}) => makeBuildPlan({ ...ctx(sb), form, name, from: draft(sb, name, files), ...o });
 const blocked = async (sb, form, name, files, re, o) => {

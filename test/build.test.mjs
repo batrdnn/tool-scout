@@ -6,13 +6,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeBuildPlan, confirmBuild, formatBuildPlan, startDraft } from '../scripts/lib/builder.mjs';
+import { makeBuildPlan as makeBuildPlanDefault, confirmBuild, formatBuildPlan, startDraft } from '../scripts/lib/builder.mjs';
 import { undoInstall, listInstalled, NO_LICENSE, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
 import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx, NOW } from './build-helpers.mjs';
 import { fileURLToPath } from 'node:url';
 import { setExperimental } from '../scripts/lib/experimental.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makeBuildPlan = (a) => makeBuildPlanDefault({ scope: a.form === 'hook' ? null : 'user', ...a }); // a hook has always defaulted to project
 
 
 test('start makes drafts/<name>/ in the data folder and says which files the form needs', () => {
@@ -145,7 +147,7 @@ test('CLI: build --start, --plan, --confirm, then installed and undo', async () 
   assert.ok(start.stdout.includes(dir) && start.stdout.includes('standup.md'), start.stdout);
   fs.writeFileSync(path.join(dir, 'standup.md'), '---\ndescription: Summarize what changed since yesterday for a standup\n---\nList the commits since yesterday and group them by area.\n');
   const before = snapshot(sb);
-  const plan = cli('build', '--form', 'command', '--name', 'standup', '--from', dir, '--plan');
+  const plan = cli('build', '--form', 'command', '--name', 'standup', '--from', dir, '--scope', 'user', '--plan');
   assert.equal(plan.status, 0, plan.stderr);
   const id = plan.stdout.match(/^Build plan ([0-9a-f]{12})/m)[1];
   assert.match(plan.stdout, /~\/\.claude\/commands\/standup\.md/);

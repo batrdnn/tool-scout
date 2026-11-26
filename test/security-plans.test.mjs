@@ -6,10 +6,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { makePlan, confirmInstall, planFile, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
-import { startDraft, makeBuildPlan, confirmBuild } from '../scripts/lib/builder.mjs';
+import { makePlan as makePlanDefault, confirmInstall, planFile, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
+import { startDraft, makeBuildPlan as makeBuildPlanDefault, confirmBuild } from '../scripts/lib/builder.mjs';
 import { setup, snapshot, changed, SKILL_MD, gitSha } from './security-helpers.mjs';
 import { fileURLToPath } from 'node:url';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
+const makeBuildPlan = (a) => makeBuildPlanDefault({ scope: a.form === 'hook' ? null : 'user', ...a }); // a hook has always defaulted to project
 
 const REPOS = () => ({
   good: { readme: '# good', files: { 'SKILL.md': SKILL_MD('good') } },

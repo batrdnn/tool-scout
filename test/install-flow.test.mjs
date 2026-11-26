@@ -8,9 +8,11 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createClient } from '../scripts/lib/github.mjs';
-import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan, latestVersion, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
+import { makePlan as makePlanDefault, confirmInstall, undoInstall, listInstalled, formatPlan, latestVersion, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
 import { mockFetch } from './helpers.mjs';
 import { relPosix } from './build-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
 
 const NOW = Date.parse('2026-11-25T12:00:00Z');
 const gitSha = (text) => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');

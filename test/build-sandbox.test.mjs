@@ -6,11 +6,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { makeBuildPlan, confirmBuild } from '../scripts/lib/builder.mjs';
+import { makeBuildPlan as makeBuildPlanDefault, confirmBuild } from '../scripts/lib/builder.mjs';
 import { undoInstall, listInstalled } from '../scripts/lib/installer.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx, relPosix } from './build-helpers.mjs';
 import { fileURLToPath } from 'node:url';
 import { setExperimental } from '../scripts/lib/experimental.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makeBuildPlan = (a) => makeBuildPlanDefault({ scope: a.form === 'hook' ? null : 'user', ...a }); // a hook has always defaulted to project
 
 const DRAFTS = {
   skill: ['pytest-fixtures', { 'SKILL.md': SKILL('pytest-fixtures'), 'templates/conftest.py': 'import pytest\n\n@pytest.fixture\ndef user():\n    return {"id": 1}\n' }],

@@ -62,7 +62,7 @@ test('a full run sends no profile, plan or path data anywhere, and the token onl
   assert.ok(reqs.some((r) => r.url.includes('registry.npmjs.org')), 'npm was asked for a version');
   assert.ok(reqs.some((r) => r.headers.authorization), 'the token was used (so the checks below are live)');
   assert.match(fs.readFileSync(path.join(w.root, 'claude-calls.txt'), 'utf8'), /mcp add thing[\s\S]*mcp remove thing/, 'install and undo ran the (fake) claude CLI');
-  assert.ok(fs.existsSync(path.join(w.home, '.claude', 'skills', 'tbl', 'SKILL.md')), 'the build was written');
+  assert.ok(fs.existsSync(path.join(w.cwd, '.claude', 'skills', 'tbl', 'SKILL.md')), 'the build was written, in the project (the default scope)');
   const secrets = [PROJECT, PROMPT, PLAN_TEXT, w.root, w.home, w.cwd, w.data, idIn(plan), idIn(bplan), os.userInfo().username, 'pytest-helper/engine', 'tbl'];
   for (const r of reqs) {
     const { authorization, ...rest } = r.headers;

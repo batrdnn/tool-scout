@@ -5,8 +5,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makePlan, confirmInstall } from '../scripts/lib/installer.mjs';
+import { makePlan as makePlanDefault, confirmInstall } from '../scripts/lib/installer.mjs';
 import { setup, snapshot, changed, SKILL_MD, SHA } from './security-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
 
 const skillRepo = (files, extra = []) => ({ x: { readme: '# x', files: { 'skills/tbl/SKILL.md': SKILL_MD('tbl'), ...files }, extra } });
 

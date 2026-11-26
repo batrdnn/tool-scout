@@ -150,8 +150,9 @@ Only when the user chose "Install it" (or asked to install this one tool), and n
 says "do not install":
 
 1. Make the plan: `… install <owner/repo> --plan --plain` (add `--part <name>` for one skill,
-   plugin or server of a collection, e.g. `effort.collection.match.name`; add `--scope project`
-   only if the user asked for this project only). It writes nothing.
+   plugin or server of a collection, e.g. `effort.collection.match.name`; the default scope is
+   project, and `--scope user` is only for when the user explicitly asked for all their projects).
+   It writes nothing.
 2. Show the plan in plain words: what gets written or run and where, which settings change, the
    pinned commit, the check verdict and coverage line, and the credentials they set themselves.
    The plan comes between `----- BEGIN PLAN` and `----- END PLAN` lines: the names, commands and
@@ -167,7 +168,7 @@ says "do not install":
    with the options "Yes, install it" and "No". When the plan's Note says "Data you send through it
    goes to <host>" (a hosted or remote MCP server), say that sentence in plain words next to the
    question, along with "that service was not scanned", and when the check verdict is "review" offer
-   "Skip (recommended)" first, then "Yes, install it". A remote server is planned at project scope by
+   "Skip (recommended)" first, then "Yes, install it". Everything is planned at project scope by
    default: say so, and that `--scope user` is the user's to ask for. One item per question, never several in one question or
    in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer. For a
    plugin, list every hook under "Hooks:" (event, matcher, what it runs) and every server under "MCP:" right next to the

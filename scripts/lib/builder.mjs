@@ -238,10 +238,11 @@ async function sourceCheck(p, client, source, texts) {
  */
 export async function makeBuildPlan({ client = null, form, name, from, scope = null, source = null, home, cwd, dataDir, now = Date.now(), save = true, replace = false }) {
   checkFormName(form, name);
-  scope = scope || (form === 'hook' ? 'project' : 'user');
+  scope = scope || 'project'; // v0.17: anything that writes defaults to this project; user scope is only ever asked for
   if (!['user', 'project', 'personal'].includes(scope)) throw new Error('--scope must be user, project or personal');
   if (scope === 'personal' && form !== 'hook') throw new Error('the personal scope is for hooks (this project, only you): use user or project');
   const blockers = []; const notes = []; const writes = [];
+  if (scope === 'user') notes.push('User scope: this goes into your home folder (~/.claude), so it applies in every project, not just this one, and you asked for it explicitly (--scope user).');
   const p = { form, name, scope, home, cwd, blockers, notes, writes, extra: {}, source: null, replace,
     place: (f, dest) => writes.push({ path: dest, rel: f.rel, sha256: sha256(f.buf), size: f.buf.length, mode: f.mode }),
     // Where the item goes: free, or (with --replace) its current version, swapped in one step.

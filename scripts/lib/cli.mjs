@@ -23,11 +23,11 @@
 //   scout.mjs head <owner/repo> [--part NAME]  first lines of the SKILL.md(s) a close call rests on, as fenced data
 //   scout.mjs line <owner/repo> <file>:<line>  one line the check flagged, fenced, invisible characters written out
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
-//   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] [--replace] --plan   writes nothing: prints the plan and its ID
+//   scout.mjs install <owner/repo> [--part NAME] [--scope project|user] [--replace] --plan   EXPERIMENTAL (off by default). Writes nothing: prints the plan and its ID; scope defaults to project
 //                                              --replace: swap an existing skill folder for this version in one step (undo restores it)
 //   scout.mjs install <owner/repo> --confirm <planId>   does exactly that plan (15 minutes), logged in the data folder
 //   scout.mjs build --start --form F --name N [--fresh]  makes drafts/N/ in the data folder for Claude's draft (refuses an old one; --fresh clears it)
-//   scout.mjs build --form F --name N --from DIR [--scope user|project|personal] [--replace] [--source owner/repo] --plan
+//   scout.mjs build --form F --name N --from DIR [--scope project|user|personal] [--replace] [--source owner/repo] --plan
 //                                              personal (hooks only): this project's .claude/settings.local.json, script in ~/.claude/hooks
 //   scout.mjs build --confirm <planId>                 writes exactly that plan, logged like an install
 //   scout.mjs build --confirm-hook <hookId>            a hook's second, separate confirmation, with the ID --confirm printed
@@ -315,7 +315,7 @@ async function main() {
     }
     case 'install': {
       const repo = opts._[0];
-      const scope = typeof opts.scope === 'string' ? opts.scope : null; // none: user, or project for a remote MCP server
+      const scope = typeof opts.scope === 'string' ? opts.scope : null; // none: project (v0.17); user only when asked for
       const ctx = { client: createClient({ token: githubToken(), log }), home, cwd: process.cwd(), dataDir };
       if (!repo || (!opts.plan && typeof opts.confirm !== 'string')) throw new Error('usage: install <owner/repo> [--part NAME] [--scope user|project] --plan, then install <owner/repo> --confirm <planId>');
       if (opts.plan) {

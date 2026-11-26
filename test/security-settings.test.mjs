@@ -7,8 +7,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { undoInstall, saveLog, makePlan, confirmInstall } from '../scripts/lib/installer.mjs';
+import { undoInstall, saveLog, makePlan as makePlanDefault, confirmInstall } from '../scripts/lib/installer.mjs';
 import { sandbox, setup } from './security-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
 
 /** A logged plugin install whose undo restores enabledPlugins (was false) and declinedPlugins. */
 function logged(sb) {
@@ -139,7 +141,7 @@ test('an install rolled back while a settings file did not parse says what is le
   const s = setup({ p: { readme: '# p', topics: ['claude-code-plugin'], files: { '.claude-plugin/marketplace.json': JSON.stringify({ name: 'p-tools', plugins: [{ name: 'guard', source: './guard' }] }) } } });
   const settings = path.join(s.sb.home, '.claude', 'settings.json');
   fs.writeFileSync(settings, JSON.stringify({ enabledPlugins: { 'guard@p-tools': false } }));
-  const plan = await makePlan({ ...s.ctx(), repo: 'o/p' });
+  const plan = await makePlan({ ...s.ctx(), repo: 'o/p', scope: 'user' });
   assert.deepEqual(plan.body.blockers, []);
   const failing = (cmd, argv) => {
     if (argv[1] === 'install') { fs.writeFileSync(settings, '{"enabledPlugins": {"guard@p-tools": true},'); throw Object.assign(new Error('x'), { stderr: 'boom' }); }

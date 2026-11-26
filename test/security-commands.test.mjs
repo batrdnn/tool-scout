@@ -3,9 +3,11 @@
 // without a shell; env and header values are never kept. (docs/security-review.md, "Commands")
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makePlan } from '../scripts/lib/installer.mjs';
+import { makePlan as makePlanDefault } from '../scripts/lib/installer.mjs';
 import { mcpCommands } from '../scripts/lib/install.mjs';
 import { setup } from './security-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
 
 const mcp = (line) => mcpCommands('```\n' + line + '\n```')[0];
 async function planFor(readme) {
@@ -63,5 +65,5 @@ test('an http server\'s target is a URL, never an option', async () => {
   assert.deepEqual(p.body.commands, []);
   assert.ok(p.body.blockers.length, 'the plan is blocked');
   const ok = await planFor('```\nclaude mcp add --transport http srv https://srv.example/mcp\n```');
-  assert.deepEqual(ok.body.commands, [['mcp', 'add', 'srv', '--transport', 'http', '--scope', 'project', 'https://srv.example/mcp']]); // a remote server defaults to project scope (v0.16.1)
+  assert.deepEqual(ok.body.commands, [['mcp', 'add', 'srv', '--transport', 'http', '--scope', 'user', 'https://srv.example/mcp']]); // (this file plans at user scope: see the shim above)
 });

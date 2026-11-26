@@ -354,10 +354,11 @@ export const tilde = (p, home, sep = path.sep) => (p.startsWith(home + sep) ? `~
 export async function makePlan({ client, repo, part = null, scope: scopeArg = null, sha = null, replace = false, home, cwd, dataDir, now = Date.now(), save = true, versions = latestVersion, blobCache = null }) {
   const full = normalizeRepo(repo || '');
   if (!full) throw new Error(`not a GitHub repo: ${repo}`);
-  let scope = scopeArg ?? 'user'; // a remote MCP server defaults to project scope below
+  let scope = scopeArg ?? 'project'; // v0.17: anything that writes defaults to this project; user scope is only ever asked for
   if (!['user', 'project'].includes(scope)) throw new Error('--scope must be user or project');
   const api = `https://api.github.com/repos/${full}`;
   const blockers = []; const notes = [];
+  if (scope === 'user') notes.push('User scope: this applies in every project, not just this one, and you asked for it explicitly (--scope user).');
   const pinned = sha || (await client.request(`${api}/commits/HEAD`)).data?.sha;
   if (!pinned) throw new Error(`${full}: could not read its latest commit`);
   const treeRes = await client.request(`${api}/git/trees/${pinned}?recursive=1`);
@@ -456,8 +457,6 @@ export async function makePlan({ client, repo, part = null, scope: scopeArg = nu
           for (const [spec, why] of p.unpinned) notes.push(`${spec} is not pinned (${why}): it runs whatever ${p.label} serves when Claude Code starts it.`);
           unpinned = false;
         }
-        if (c.url && scopeArg == null) scope = 'project';
-        if (c.url && scope === 'project') notes.push('A remote server defaults to project scope (this project\'s .mcp.json), so it is not in every project: pass --scope user to install it for all projects.');
         commands.push(['mcp', 'add', c.name, ...c.opts, '--scope', scope, ...(c.url ? [c.target] : ['--', c.target, ...args])]);
         for (const k of c.env) credentials.add(k);
         for (const d of c.dropped) notes.push(`The README sets a ${d}: add it yourself if the server needs it (Tool Scout never handles secrets).`);

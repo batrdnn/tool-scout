@@ -7,10 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createClient } from '../scripts/lib/github.mjs';
-import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan } from '../scripts/lib/installer.mjs';
-import { makeBuildPlan, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
+import { makePlan as makePlanDefault, confirmInstall, undoInstall, listInstalled, formatPlan } from '../scripts/lib/installer.mjs';
+import { makeBuildPlan as makeBuildPlanDefault, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
 import { mockFetch } from './helpers.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx, NOW, relPosix } from './build-helpers.mjs';
+// v0.17: the default scope is project (test/scope-default.test.mjs). These tests exercise user scope, so they ask for it.
+const makePlan = (a) => makePlanDefault({ scope: 'user', ...a });
+const makeBuildPlan = (a) => makeBuildPlanDefault({ scope: a.form === 'hook' ? null : 'user', ...a }); // a hook has always defaulted to project
 
 const gitSha = (t) => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(t)}\0`).update(t).digest('hex');
 const SHA = 'e'.repeat(40);
