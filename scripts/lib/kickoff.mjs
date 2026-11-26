@@ -51,6 +51,18 @@ export function uncoveredConventions(conventions, claudeText) {
   });
 }
 
+/** Plugins the project's own settings switch on (settings.json, settings.local.json): detectInstalled reads only the user's. */
+export function projectPlugins(project) {
+  if (!project) return [];
+  const names = new Set();
+  for (const f of ['settings.json', 'settings.local.json']) {
+    let j = null;
+    try { j = JSON.parse(fs.readFileSync(path.join(project, '.claude', f), 'utf8')); } catch { continue; }
+    for (const [k, on] of Object.entries(j?.enabledPlugins || {})) if (on === true) names.add(k.split('@')[0]);
+  }
+  return [...names];
+}
+
 function claudeMdOf(project) {
   if (!project) return '';
   return ['CLAUDE.md', path.join('.claude', 'CLAUDE.md')].map((f) => { try { return fs.readFileSync(path.join(project, f), 'utf8'); } catch { return ''; } }).join('\n\n');
@@ -200,6 +212,7 @@ export const flaggedHigh = (rec) => rec.trust?.tier === 'low' || (rec.trust?.fla
 /** The toolkit for a needs list: at most MAX_ITEMS items, ordered by impact, one reason line each. */
 export async function buildToolkit(n, catalog, { home, project = null, dataDir, now = Date.now(), platform = process.platform, scan = null, official = null } = {}) {
   const installed = detectInstalled(home, project || home);
+  installed.names = [...new Set([...installed.names, ...projectPlugins(project)])].sort();
   // Repos Claude judged a weak fit (the scout skill's steps 2-4) are never offered, whatever their rank.
   const exclude = new Set([...(dataDir ? dismissedSet(dataDir) : []), ...(n.rejects || []).map((r) => String(r).toLowerCase())]);
   const used = new Set();
