@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const PROFILE = fileURLToPath(new URL('./fixtures/output/profile.json', import.meta.url));
@@ -22,7 +22,7 @@ function world({ catalog = 'stale' } = {}) {
   fs.writeFileSync(preload, `import fs from 'node:fs'; globalThis.fetch = async (u) => { fs.appendFileSync(${JSON.stringify(capture)}, String(u?.url || u) + '\\n'); return new Response('{}', { status: 404 }); };\n`);
   fs.copyFileSync(PROFILE, path.join(data, 'profile.json'));
   if (catalog === 'stale') { const c = JSON.parse(fs.readFileSync(EVAL_CATALOG, 'utf8')); c.updatedAt = '2020-01-01T00:00:00.000Z'; fs.writeFileSync(path.join(data, 'catalog.json'), JSON.stringify(c)); }
-  const run = (...a) => spawnSync(process.execPath, ['--import', preload, SCOUT, ...a, '--data', data, '--home', home], { encoding: 'utf8', cwd: root, env: { ...process.env, GITHUB_TOKEN: 'x', GH_TOKEN: 'x' } });
+  const run = (...a) => spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, SCOUT, ...a, '--data', data, '--home', home], { encoding: 'utf8', cwd: root, env: { ...process.env, GITHUB_TOKEN: 'x', GH_TOKEN: 'x' } });
   const requests = () => (fs.existsSync(capture) ? fs.readFileSync(capture, 'utf8').trim().split('\n') : []);
   return { root, data, home, run, requests };
 }

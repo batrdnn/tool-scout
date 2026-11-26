@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { openFile } from '../scripts/lib/open.mjs';
 import { testArgs } from './run-tests.mjs';
 
@@ -37,7 +37,7 @@ test('under the test runner the default opener launches nothing', async () => {
 
 test('SCOUT_NO_OPEN=1 disables it outside the test runner too', async () => {
   const t = trap();
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', `import { openFile } from ${JSON.stringify(path.join(ROOT, 'scripts/lib/open.mjs'))}; console.log(openFile('/tmp/c.svg', { platform: 'linux' }))`],
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e', `import { openFile } from ${JSON.stringify(pathToFileURL(path.join(ROOT, 'scripts/lib/open.mjs')).href)}; console.log(openFile('/tmp/c.svg', { platform: 'linux' }))`],
     { encoding: 'utf8', env: { PATH: `${t.bin}:/usr/bin:/bin`, HOME: t.dir, SCOUT_NO_OPEN: '1' } });
   assert.equal(r.stdout.trim(), 'false', r.stderr);
   await wait(200);

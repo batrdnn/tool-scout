@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { seedStarter, startBackgroundRefresh, finishCrawl, STARTER_FILE } from '../scripts/lib/starter.mjs';
 import { KEPT } from '../scripts/lib/privacy.mjs';
 
@@ -84,7 +84,7 @@ function run(args, d) {
   const requests = path.join(side, 'req.txt');
   const preload = path.join(side, 'preload.mjs');
   fs.writeFileSync(preload, `import fs from 'node:fs'; globalThis.fetch = async (u) => { fs.appendFileSync(${JSON.stringify(requests)}, String(u?.url || u) + '\\n'); const search = String(u?.url || u).includes('/search/repositories'); return new Response(search ? JSON.stringify({ total_count: 0, items: [] }) : '{}', { status: search ? 200 : 404, headers: { 'x-ratelimit-remaining': '4999', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600) } }); };\n`);
-  const r = spawnSync(process.execPath, ['--import', preload, SCOUT, ...args, '--data', d, '--home', home, '--json'], { encoding: 'utf8', cwd: side, env: { ...process.env, GITHUB_TOKEN: 'x', SCOUT_NO_BACKGROUND: '1' } });
+  const r = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, SCOUT, ...args, '--data', d, '--home', home, '--json'], { encoding: 'utf8', cwd: side, env: { ...process.env, GITHUB_TOKEN: 'x', SCOUT_NO_BACKGROUND: '1' } });
   const reqs = fs.existsSync(requests) ? fs.readFileSync(requests, 'utf8').trim().split('\n') : [];
   return { ...r, reqs };
 }
