@@ -300,7 +300,7 @@ async function main() {
     }
     case 'install': {
       const repo = opts._[0];
-      const scope = typeof opts.scope === 'string' ? opts.scope : 'user';
+      const scope = typeof opts.scope === 'string' ? opts.scope : null; // none: user, or project for a remote MCP server
       const ctx = { client: createClient({ token: githubToken(), log }), home, cwd: process.cwd(), dataDir };
       if (!repo || (!opts.plan && typeof opts.confirm !== 'string')) throw new Error('usage: install <owner/repo> [--part NAME] [--scope user|project] --plan, then install <owner/repo> --confirm <planId>');
       if (opts.plan) {

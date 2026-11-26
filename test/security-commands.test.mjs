@@ -63,5 +63,5 @@ test('an http server\'s target is a URL, never an option', async () => {
   assert.deepEqual(p.body.commands, []);
   assert.ok(p.body.blockers.length, 'the plan is blocked');
   const ok = await planFor('```\nclaude mcp add --transport http srv https://srv.example/mcp\n```');
-  assert.deepEqual(ok.body.commands, [['mcp', 'add', 'srv', '--transport', 'http', '--scope', 'user', 'https://srv.example/mcp']]);
+  assert.deepEqual(ok.body.commands, [['mcp', 'add', 'srv', '--transport', 'http', '--scope', 'project', 'https://srv.example/mcp']]); // a remote server defaults to project scope (v0.16.1)
 });

@@ -203,7 +203,8 @@ says "do not install":
    with the options "Yes, install it" and "No". When the plan's Note says "Data you send through it
    goes to <host>" (a hosted or remote MCP server), say that sentence in plain words next to the
    question, along with "that service was not scanned", and when the check verdict is "review" offer
-   "Skip (recommended)" first, then "Yes, install it". One item per question, never several in one question or
+   "Skip (recommended)" first, then "Yes, install it". A remote server is planned at project scope by
+   default: say so, and that `--scope user` is the user's to ask for. One item per question, never several in one question or
    in bulk. Without AskUserQuestion, ask the same in one line and wait for the answer. For a
    plugin, list every hook under "Hooks:" (event, matcher, what it runs) and every server under "MCP:" right next to the
    question, in its text or the "Yes, install it" description, so they are seen before answering;
