@@ -5,9 +5,13 @@ import { spawn as nodeSpawn } from 'node:child_process';
 export const openCommand = (platform = process.platform) => (platform === 'darwin' ? 'open' : platform === 'linux' ? 'xdg-open' : platform === 'win32' ? 'cmd.exe' : null);
 
 /** Start the opener without waiting for it. Returns true if it was launched, false if skipped. */
-export function openFile(file, { platform = process.platform, spawn = nodeSpawn, env = process.env } = {}) {
+/** The real opener is off under the test runner (NODE_TEST_CONTEXT) and when SCOUT_NO_OPEN is set: tests must never launch programs. */
+export const openDisabled = (env = process.env) => !!(env.SCOUT_NO_OPEN || env.NODE_TEST_CONTEXT);
+
+export function openFile(file, { platform = process.platform, spawn = null, env = process.env } = {}) {
   const cmd = openCommand(platform);
   if (!cmd) return false;
+  if (!spawn) { if (openDisabled(process.env)) return false; spawn = nodeSpawn; } // an injected spawn (a unit test's) is always used
   try {
     // Windows: `start` is a cmd.exe built-in. The path travels in an environment variable inside double
     // quotes, so cmd.exe never parses it as syntax (a path can hold & or %, but not a double quote).

@@ -12,6 +12,6 @@ export const testFiles = (dir) => fs.readdirSync(dir).filter((f) => f.endsWith('
 export const testArgs = (argv, files) => ['--test', `--test-reporter=${argv[0] === 'spec' ? 'spec' : './test/reporter.mjs'}`, ...files];
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const r = spawnSync(process.execPath, testArgs(process.argv.slice(2), testFiles(HERE)), { stdio: 'inherit', cwd: path.join(HERE, '..') });
+  const r = spawnSync(process.execPath, testArgs(process.argv.slice(2), testFiles(HERE)), { stdio: 'inherit', cwd: path.join(HERE, '..'), env: { ...process.env, SCOUT_NO_OPEN: '1' } });
   process.exit(r.status ?? 1);
 }
