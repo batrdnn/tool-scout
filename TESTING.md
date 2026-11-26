@@ -1,20 +1,23 @@
 # Testing Tool Scout
 
-Thanks for trying Tool Scout. It takes about 10 minutes, and the only thing we ask you to send
-back is one short block of text, shown in full below **before** you share anything.
+Thanks for trying Tool Scout. It takes about 15 minutes. We ask for your ratings, for a GitHub
+issue when something is wrong, and for one short block of text, shown in full below **before**
+you share anything.
 
 ## 1. Install
 
-You need Claude Code and Node 20 or newer. From a local copy of this repo, inside Claude Code:
+You need Claude Code running locally (terminal or desktop app) and Node 20 or newer. Inside
+Claude Code:
 
 ```text
-/plugin marketplace add ./tool-scout
+/plugin marketplace add batrdnn/tool-scout
 /plugin install tool-scout@tool-scout
 ```
 
-Use the path to your copy instead of `./tool-scout` if it lives elsewhere. Restart Claude Code if
-the skill doesn't show up. Optional: set `GITHUB_TOKEN`, or log in with `gh auth login`, to make
-the first run faster (it crawls public GitHub search results).
+Prefer a local copy of this repo? Use `/plugin marketplace add ./tool-scout` (the path to your
+copy) instead of the first line. Restart Claude Code, or run `/reload-plugins`, if the skills
+don't show up. Optional: set `GITHUB_TOKEN`, or log in with `gh auth login`, to make the first run
+faster (it crawls public GitHub search results).
 
 ## 2. Run it
 
@@ -38,7 +41,24 @@ If you're working on this plugin itself, leave that project out first:
 "tool-scout: exclude the tool-scout project" (or
 `node scripts/scout.mjs exclude-project tool-scout` from the repo).
 
-## 3. Rate every pick
+## 3. What to try
+
+Do these in any order, in a project you really work on. Each takes a few minutes.
+
+- **Scout:** `/tool-scout:scout`. Do the picks fit how you work? Is the "why" true for you? Try
+  `/tool-scout:scout mcp` or a topic, like `/tool-scout:scout testing`.
+- **Check:** `/tool-scout:check owner/repo` on a skill, plugin or MCP server you've been
+  wondering about. Is the verdict fair? Does it point at the file and line behind each flag?
+  Heuristics aren't proof: tell us when it flags something harmless, or misses something.
+- **Me:** `/tool-scout:me`. Does your animal match how you work? Ask for "a card" if you like it.
+  It's for fun and doesn't change your picks.
+- **Kickoff:** `/tool-scout:kickoff` and paste a few lines of a plan, for a real project or a
+  made-up one, for example "Write pytest tests for every strategy. Deploy with Docker on every
+  merge. Track bugs as GitHub issues." You get at most 5 items. Each one you choose gets its own
+  plan and its own yes/no before anything is installed or built. Answer "no" at least once, to
+  see that nothing happens, and try `undo` on something you did install.
+
+## 4. Rate every pick
 
 After the picks, Claude asks whether each one was useful. Answer in one line, for example:
 
@@ -49,7 +69,24 @@ After the picks, Claude asks whether each one was useful. Answer in one line, fo
 Rate honestly: "not" is just as useful to us. Changed your mind? "rate #2 as useful".
 Run the scout again on other days or in other projects and rate those picks too.
 
-## 4. Share your stats, and only those
+## 5. File an issue
+
+Something wrong, confusing or missing? Open an issue:
+https://github.com/batrdnn/tool-scout/issues/new
+
+Please include:
+
+- the version (`version` in `package.json`, or the first line of `stats --share`)
+- the command you ran, or what you asked Claude
+- what happened, with any error text
+- what you expected instead
+
+Don't paste your profile, `profile.json`, prompts or screenshots of your picks into an issue:
+the words above are enough, and a repo name you rated is fine. A **security** problem is
+different: don't open a public issue, report it privately as described in
+[SECURITY.md](SECURITY.md).
+
+## 6. Share your stats, and only those
 
 When you're done, ask Claude: "show my tool scout share stats". It runs `stats --share` and
 prints the text below. This is the **only** thing we ask you to share. It holds aggregate counts,
@@ -82,6 +119,9 @@ folder.
 
 ## Undo everything
 
-- `/plugin uninstall tool-scout@tool-scout` removes the plugin.
-- Everything Tool Scout stored is in its data folder (the plugin's data directory, or
-  `~/.tool-scout` when run from the repo). Delete that folder to remove it all.
+In this order, because the list of what Tool Scout installed lives in its data folder:
+
+1. `node scripts/scout.mjs installed` lists what it installed or built for you (run it from your
+   copy of the repo), and `node scripts/scout.mjs undo <name>` removes each one.
+2. `/plugin uninstall tool-scout@tool-scout` removes the plugin and its data folder.
+3. If you ran it from a copy of the repo, delete `~/.tool-scout` as well.
