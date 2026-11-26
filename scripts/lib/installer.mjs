@@ -187,6 +187,9 @@ async function pinPackages(target, args, versions) {
 const CONTROL = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu;
 const clean = (t) => { const c = String(t ?? '').replace(CONTROL, '').replace(/\s+/g, ' ').trim(); return c.length > 300 ? `${c.slice(0, 299)}…` : c; };
 
+/** The host of a URL, written out (no hidden characters), for plain-words notes. */
+const hostOf = (u) => { try { return visible(new URL(u).host); } catch { return visible(u); } };
+
 /** Repo text shown in full on one line: newlines, escapes and invisible characters written out as \n, \u{…}. */
 export { visible }; // defined in scan.mjs (shared with `line`)
 
@@ -460,7 +463,7 @@ export async function makePlan({ client, repo, part = null, scope = 'user', sha 
         if (getKey(file, `mcpServers.${c.name}`) != null) blockers.push(`an MCP server named ${c.name} is already configured`);
         settings.push({ file, key: `mcpServers.${c.name}`, before: null, after: '(set by claude mcp add)' });
         if (unpinned) notes.push(`The server runs \`${[c.target, ...c.args].join(' ')}\` each time Claude Code starts it. That package comes from its registry and is not pinned by this commit.`);
-        if (c.url) notes.push(`The server is hosted at ${c.target}: Tool Scout only checked this repo, not that service.`);
+        if (c.url) notes.push(`The server is hosted at ${c.target}: Tool Scout only checked this repo, not that service.`, `Data you send through it goes to ${hostOf(c.target)}.`);
       }
     }
   }
