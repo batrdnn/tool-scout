@@ -161,6 +161,6 @@ test('--replace is refused for a hook (its settings entry is not swapped in plac
 test('the CLI takes --replace for install and build plans', () => {
   const cli = fs.readFileSync(new URL('../scripts/lib/cli.mjs', import.meta.url), 'utf8');
   assert.match(cli, /BOOLEAN = new Set\(\[[^\]]*'replace'/);
-  assert.match(cli, /install <owner\/repo> \[--part NAME\] \[--scope user\|project\] \[--replace\] --plan/);
+  assert.match(cli, /install <owner\/repo> \[--part NAME\] \[--scope project\|user\] \[--replace\] --plan/);
   assert.match(cli, /build --form F --name N --from DIR \[--scope [^\]]+\] \[--replace\]/);
 });

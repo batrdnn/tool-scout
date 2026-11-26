@@ -63,7 +63,7 @@ test('personal is a hook scope only', async () => {
 
 test('the CLI, the scout skill and USAGE offer the personal scope for hooks', () => {
   const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-  assert.match(read('scripts/lib/cli.mjs'), /build --form F --name N --from DIR \[--scope user\|project\|personal\]/);
+  assert.match(read('scripts/lib/cli.mjs'), /build --form F --name N --from DIR \[--scope project\|user\|personal\]/);
   const skill = read('skills/scout/SKILL.md');
   assert.match(skill, /"Just me, this project" = personal/);
   assert.match(skill, /settings\.local\.json/);
