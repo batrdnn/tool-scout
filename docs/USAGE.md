@@ -12,7 +12,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `profile [--show] [--json]` | build the profile from local history and save it (counts, command names and tool and library names: no prompt text); prints it and the data folder in use |
 | `crawl [--max-pages N]` | refresh the GitHub catalog (fixed topic searches) and save a daily star snapshot |
 | `recommend [--top 8]` | ranked picks from the saved profile and catalog |
-| `all [--refresh]` | profile + recommend from the saved catalog. A first run starts from the starter catalog (`data/starter-catalog.json`, marked in `notes`); a catalog older than 20 h, or the starter, is refreshed by a background `crawl` (one at a time, `crawl.lock`) that the next run uses. `--refresh` crawls first, in the foreground |
+| `all [--refresh]` | profile + recommend from the saved catalog. A first run starts from the starter catalog (`data/starter-catalog.json`, marked in `notes`; regenerated at each release by `npm run starter` from a fresh crawl, keeping only repos with no high scan flag, and kept apart from the ranking's scoring data); a catalog older than 20 h, or the starter, is refreshed by a background `crawl` (one at a time, `crawl.lock`) that the next run uses. `--refresh` crawls first, in the foreground |
 | `check <owner/repo \| URL> [--json]` | trust check of one repo before installing |
 | `audit [--json]` | local scan of installed skills, plugins and MCP server commands; no network |
 | `head <owner/repo> [--part NAME] [--json]` | the first 40 lines of the SKILL.md(s) a close call rests on, as fenced data, from the scan's cache; refuses repos the content scan flagged for injection-type content. The skills use it to decide Build your own vs Install |

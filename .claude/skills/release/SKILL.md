@@ -16,6 +16,14 @@ Cuts a release of Tool Scout from `main`. Never push without the user's explicit
 - Ranking freeze (see CLAUDE.md): `git diff <last tag> HEAD -- scripts/lib/{rank,taxonomy,profile,stack,pipeline,momentum,crawl}.mjs test/eval`
   prints nothing, and `npm run eval` still gives mean p@3 0.67 and p@5 0.67. If the freeze is broken, stop and tell the user. Don't release anyway.
 
+## 1b. Regenerate the starter catalog
+
+Run `npm run starter` (needs the network; a GitHub token makes it much faster). It writes
+`data/starter-catalog.json` from a fresh crawl, keeping only repos with no high scan flag, and it never
+reads `test/eval`. Check `git diff --stat data/starter-catalog.json`, and that it kept at least 40 repos.
+It is part of the release commit. If the crawl or the scan fails, say so and ask before releasing
+with the old starter.
+
 ## 2. Version
 
 Use the version from the arguments. If there is none, propose one from the commits (patch for
