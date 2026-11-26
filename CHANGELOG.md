@@ -2,6 +2,20 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.16.1 (2026-11-26)
+
+Three fixes from a real check and install of a hosted MCP server. No ranking change.
+
+- The check now looks at every flagged line before it offers a plan. A new command,
+  `scout.mjs line <owner/repo> <file>:<line>`, prints that one line fenced as data, with invisible
+  characters written out. The skill shows it and says what it is. It never offers "Install it" with
+  an unexamined medium or high flag. Text from injection-type flags is still never shown, and a file with one never has any line shown.
+- The plan for a hosted MCP server says in plain words "Data you send through it goes to <host>",
+  and that the service was not scanned. When the verdict is "review", the question offers
+  "Skip (recommended)" first.
+- A hosted MCP server is now planned at project scope (this project's `.mcp.json`) unless you ask
+  for `--scope user`. Local servers and everything else keep the user default.
+
 ## v0.16.0 (2026-11-26)
 
 A polish round before the tester round. No ranking change.
