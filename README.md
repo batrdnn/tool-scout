@@ -56,13 +56,14 @@ sessions, because it reads your local session history. To drive it from a browse
 - **Internet access to `api.github.com`** for the crawl, momentum and trust checks, and to
   `registry.npmjs.org` or `pypi.org` when an install plan pins an MCP server's package (`audit`
   needs none). Behind a proxy, set `NODE_USE_ENV_PROXY=1`.
-- **Optional: a GitHub token** (`GITHUB_TOKEN`, or `gh auth login`) makes the first crawl faster
-  than the usual 1 to 3 minutes.
+- **Optional: a GitHub token** (`GITHUB_TOKEN`, or `gh auth login`) makes the catalog refresh
+  (1 to 3 minutes, in the background) faster.
 
 ## Quick start
 
-1. **Scout:** run `/tool-scout:scout`. The first run crawls GitHub (1 to 3 minutes; set
-   `GITHUB_TOKEN` or run `gh auth login` to make it faster).
+1. **Scout:** run `/tool-scout:scout`. The first run starts at once from a small starter catalog
+   that ships with Tool Scout, and refreshes it from GitHub in the background (1 to 3 minutes; set
+   `GITHUB_TOKEN` or run `gh auth login` to make it faster). `/tool-scout:scout refresh` crawls first.
 2. **Rate:** reply like `1 useful, 2 not, 3 useful`.
 3. **Repeat weekly:** new tools trend every week, and your ratings show whether it helps.
 

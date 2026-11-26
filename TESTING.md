@@ -27,7 +27,7 @@ In any project, ask Claude:
 /tool-scout:scout
 ```
 
-or just "what Claude Code tools should I install?". The first run takes 1 to 3 minutes.
+or just "what Claude Code tools should I install?". The first run starts from a small starter catalog and refreshes it from GitHub in the background (1 to 3 minutes), so you don't wait.
 
 What happens on your machine:
 

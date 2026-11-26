@@ -44,8 +44,8 @@ Below, `…` stands for running the bundled script as in the Summary block: node
 
 2. **Make the needs list and the toolkit:**
    `… kickoff --plan-file <path> --project <folder> --json`
-   (leave out `--project` when there is no folder). The first run of a day may refresh the catalog
-   (about 1 to 3 minutes without a GitHub token).
+   (leave out `--project` when there is no folder). It uses the saved catalog, or the starter that ships
+   with Tool Scout on a first run, and refreshes it in the background; the next run uses the fresh one.
 
 3. **Check the needs list.** Read the plan yourself and compare it with `needs`: `needs[].topic`
    (from the shared topic list), `lines` (the plan's lines for it), `libraries` (from the project's

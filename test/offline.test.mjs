@@ -27,9 +27,9 @@ function world({ catalog = 'stale' } = {}) {
   return { root, data, home, run, requests };
 }
 
-test('sanity: without --offline, an old catalog makes `all` ask GitHub', () => {
+test('sanity: without --offline, `all --refresh` asks GitHub (an old catalog is now refreshed in the background instead)', () => {
   const w = world();
-  w.run('all', '--json');
+  w.run('all', '--refresh', '--json');
   assert.ok(w.requests().length > 0, 'the preload sees requests, so "zero" below means something');
 });
 
@@ -44,13 +44,11 @@ test('all --offline with an old catalog: ranks from it, makes no request, and sa
   assert.match(r.stderr, /offline/i);
 });
 
-test('all --offline with no catalog at all: fails with a clear message, no request', () => {
+test('all --offline with no catalog at all: ranks from the starter catalog, says so, no request', () => {
   const w = world({ catalog: 'none' });
   const r = w.run('all', '--offline', '--json');
-  assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /--offline/);
-  assert.match(r.stderr, /no catalog|catalog is empty/i);
-  assert.match(r.stderr, /without --offline/);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(JSON.parse(r.stdout).notes.join(' '), /starter catalog/i);
   assert.deepEqual(w.requests(), []);
 });
 

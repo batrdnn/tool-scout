@@ -77,6 +77,7 @@ import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
 import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
 import { runKickoff, formatKickoff, kickoffSummary } from './kickoff.mjs';
+import { seedStarter, startBackgroundRefresh, finishCrawl, starterNote } from './starter.mjs';
 import { privacyReport, formatPrivacy, pruneExpiredPlans } from './privacy.mjs';
 import { isExperimental, setExperimental, EXPERIMENTAL_WARNING, switchedOffMessage, withManualSteps } from './experimental.mjs';
 
@@ -160,22 +161,30 @@ async function main() {
     }
     case 'crawl': {
       await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
+      finishCrawl(dataDir); // a real crawl has merged into the starter: it is not a starter any more
       break;
     }
     case 'recommend':
     case 'all': {
       let p = readJSON('profile.json');
       if (cmd === 'all' || !p || oneOff.length) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days, excludeProjects: profileOpts.excludeProjects }); writeJSON('profile.json', p); }
+      // No catalog yet: start from the starter that ships with Tool Scout, so the first run doesn't wait for a crawl (review E1).
+      const seed = seedStarter(dataDir);
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
-      const offlineNotes = [];
-      if (opts.offline && !cat.updatedAt && cmd === 'all') throw new Error('--offline makes no requests, and there is no catalog saved yet (nothing to rank): run it once without --offline to fetch one');
-      if (cmd === 'all' && !opts.offline && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
+      const catalogNotes = [];
+      if (!cat.updatedAt && opts.offline && cmd === 'all') throw new Error('--offline makes no requests, and there is no catalog saved yet (nothing to rank): run it once without --offline to fetch one');
+      if (cmd === 'all' && !opts.offline && opts.refresh) { cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log }); finishCrawl(dataDir); cat = loadCatalog(dataDir); }
       else if (!cat.updatedAt) { log('catalog is empty; run `crawl` first'); }
-      else if (opts.offline && ageH > 20) {
-        const note = `Offline: using the saved catalog from ${cat.updatedAt.slice(0, 10)} (${Math.floor(ageH / 24)} day${Math.floor(ageH / 24) === 1 ? '' : 's'} old), because --offline makes no requests. Run without --offline to refresh it.`;
-        offlineNotes.push(note); log(note);
-      }
+      else if (opts.offline) {
+        if (cat.starter) catalogNotes.push(starterNote(cat.updatedAt, { refreshing: false }).replace(/Run with --refresh \(online\) for a fresh crawl\./, 'Run without --offline to refresh it.'));
+        else if (ageH > 20) catalogNotes.push(`Offline: using the saved catalog from ${cat.updatedAt.slice(0, 10)} (${Math.floor(ageH / 24)} day${Math.floor(ageH / 24) === 1 ? '' : 's'} old), because --offline makes no requests. Run without --offline to refresh it.`);
+      } else if (cmd === 'all' && (cat.starter || ageH > 20)) {
+        // Rank from what is saved now; the crawl runs in the background, and the next run uses it (review E1).
+        const refreshing = startBackgroundRefresh(dataDir);
+        catalogNotes.push(cat.starter ? starterNote(cat.updatedAt, { refreshing }) : `Using the saved catalog from ${cat.updatedAt.slice(0, 10)}. ${refreshing ? 'A fresh crawl is running in the background; the next run will use it.' : 'Run with --refresh for a fresh crawl now.'}`);
+      } else if (cat.starter) catalogNotes.push(starterNote(cat.updatedAt, { refreshing: false }));
+      for (const n of catalogNotes) log(n);
       const top = Number(opts.top || 8);
       const dismissed = dismissedSet(dataDir);
       const rankOpts = {
@@ -191,7 +200,7 @@ async function main() {
       matchCollections(recs, Object.keys(p.topicWeights || p.topics || {}), TOPICS);
       const LIMITED = 10;
       const limitedHistory = p.sessions < LIMITED;
-      const notes = [...offlineNotes];
+      const notes = [...catalogNotes];
       if (limitedHistory) notes.push(`Limited history: ${p.sessions} session${p.sessions === 1 ? '' : 's'} in the last ${p.windowDays} days (under ${LIMITED}), so these picks rest on little evidence.`);
       if (recs.thinOmitted) notes.push(`${recs.thinOmitted} match${recs.thinOmitted === 1 ? '' : 'es'} left out: they rest on a topic seen in a single session, with no friction.`);
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, topicWeights: p.topicWeights, topicSources: p.topicSources, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };
@@ -383,7 +392,11 @@ async function main() {
       if (!planFile && !opts.rematch) throw new Error('usage: kickoff --plan-file <path> [--project DIR], or kickoff --rematch, or kickoff --summary');
       // The plan text stays in the needs file: the log gets no messages that could quote it.
       const client = opts.offline ? null : createClient({ token: githubToken(), log });
-      const r = await runKickoff({ planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
+      // Start from the starter catalog and refresh in the background, so the first kickoff doesn't wait for a crawl (review E1).
+      seedStarter(dataDir);
+      const stale = !opts.offline && (() => { const c = loadCatalog(dataDir); return c.starter || !c.updatedAt || (Date.now() - Date.parse(c.updatedAt)) / 36e5 > 20; })();
+      if (stale) startBackgroundRefresh(dataDir);
+      const r = await runKickoff({ refresh: false, planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
       const toolkit = { ...r.toolkit, items: withManualSteps(r.toolkit.items, isExperimental(dataDir)) }; // installer off: manual steps, no Tool Scout install or build command
       console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit }, null, 2) : formatKickoff({ ...r, toolkit }));
       break;

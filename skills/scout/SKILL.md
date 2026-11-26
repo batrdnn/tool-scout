@@ -41,8 +41,10 @@ same text without them; `--json` is for reading results.
 
    If the user named a focus (e.g. "mcp", "skills", "testing"), add `--kind mcp-server`,
    `--kind skill`, or `--kind plugin` where it fits, or prefer that topic when you choose.
-   The first run crawls GitHub (about 1 to 3 minutes without a GitHub token; set `GITHUB_TOKEN`
-   or log in with `gh` to make it faster). If GitHub can't be reached and the user is behind
+   The first run starts at once from a small starter catalog (its `notes` say so, with its date) and
+   refreshes it from GitHub in the background, so relay that note: the next run will use the fresh
+   crawl. With `--refresh` it crawls first (about 1 to 3 minutes without a GitHub token; set
+   `GITHUB_TOKEN` or log in with `gh` to make it faster). If GitHub can't be reached and the user is behind
    a proxy, retry with `NODE_USE_ENV_PROXY=1` in front of the command.
 
 2. Read the JSON. `profile` shows what the user does (`topics` = sessions touching it;

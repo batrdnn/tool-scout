@@ -332,7 +332,7 @@ function readPlan(file) {
  * and save the needs and the toolkit to the needs file. With a client, a stale catalog is refreshed
  * (fixed topic searches) and each match gets the scout's content scan (effort and trust).
  */
-export async function runKickoff({ planFile = null, rematch = false, project = null, home, dataDir, now = Date.now(), client = null, fetchImpl, log = () => {}, platform = process.platform, scan = null }) {
+export async function runKickoff({ planFile = null, rematch = false, project = null, home, dataDir, now = Date.now(), client = null, fetchImpl, log = () => {}, platform = process.platform, scan = null, refresh = true }) {
   let n; let reextracted = false;
   const scratch = planFile && path.resolve(planFile) === scratchPath(dataDir);
   if (rematch) {
@@ -352,7 +352,7 @@ export async function runKickoff({ planFile = null, rematch = false, project = n
   }
   let catalog = loadCatalog(dataDir);
   const ageH = catalog.updatedAt ? (now - Date.parse(catalog.updatedAt)) / 36e5 : Infinity;
-  if (client && ageH > STALE_HOURS) {
+  if (client && refresh && ageH > STALE_HOURS) {
     try { catalog = await crawl({ dataDir, maxPages: 1, log, fetchImpl }); } catch (e) { log(`catalog refresh skipped: ${e.message}`); }
   }
   const memo = new Map();
