@@ -5,9 +5,10 @@ description: Show the user's Claude Code animal (Beaver, Owl, Bee, Octopus, Ant,
 
 # Tool Scout: your Claude Code animal
 
-A bundled script maps the user's local profile (counts only, built from their recent Claude Code
-sessions) to one animal. The mapping is fixed: the same profile always gives the same animal.
-Nothing leaves the machine.
+A bundled script maps the user's local profile (built from their recent Claude Code sessions) to one
+animal. The mapping is fixed: the same profile always gives the same animal. Tool Scout doesn't upload
+your history. When you run a skill, a summary goes into Claude's context like anything else you show
+Claude.
 
 ## Running the script
 

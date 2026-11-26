@@ -30,12 +30,19 @@ In any project, ask Claude:
 or just "what Claude Code tools should I install?". The first run takes 1 to 3 minutes.
 
 What happens on your machine:
+
+Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude.
+
 - Your recent Claude Code sessions (`~/.claude/projects`) and your projects' dependency files
-  (`package.json`, `requirements.txt`, `go.mod`, …) are read **locally**. Only counts are kept.
-- GitHub gets fixed topic searches and public repo names. An install plan for an MCP server may
-  also look up a package's current version on npm or PyPI (the package name only). Nothing about
-  you is sent.
-- Tool Scout installs only after you approve a plan, and every install can be undone. Without your yes to a plan, it only shows install steps for you to review.
+  (`package.json`, `requirements.txt`, `go.mod`, …) are read **locally**. Tool Scout saves a
+  profile: counts of topics and languages, the first word of commands you repeat, and the names of
+  the tools and libraries your projects use. No prompt text, no file contents.
+- GitHub gets fixed topic searches, then the names of public repos it checks. With the experimental
+  installer (off by default), an install plan for an MCP server may also look up a package's current
+  version on npm or PyPI (the package name only).
+- Tool Scout doesn't install anything in this version (safe mode). It shows manual steps for you to
+  read and follow yourself, at project scope. `node scripts/scout.mjs privacy` lists every file it
+  keeps and how to delete it.
 
 If you're working on this plugin itself, leave that project out first:
 "tool-scout: exclude the tool-scout project" (or
@@ -54,9 +61,10 @@ Do these in any order, in a project you really work on. Each takes a few minutes
   It's for fun and doesn't change your picks.
 - **Kickoff:** `/tool-scout:kickoff` and paste a few lines of a plan, for a real project or a
   made-up one, for example "Write pytest tests for every strategy. Deploy with Docker on every
-  merge. Track bugs as GitHub issues." You get at most 5 items. Each one you choose gets its own
-  plan and its own yes/no before anything is installed or built. Answer "no" at least once, to
-  see that nothing happens, and try `undo` on something you did install.
+  merge. Track bugs as GitHub issues." You get at most 5 items. Each one you choose gets its
+  manual steps; nothing is installed or built for you. Are the steps clear? Would you follow them?
+- **Privacy:** `node scripts/scout.mjs privacy` (or ask Claude "what does Tool Scout keep about me?").
+  Does the list match what you expected, and is it clear how to delete each file?
 
 ## 4. Rate every pick
 
@@ -119,9 +127,13 @@ folder.
 
 ## Undo everything
 
-In this order, because the list of what Tool Scout installed lives in its data folder:
+Tool Scout v0.17 installs nothing, so there is normally nothing to undo. Please don't turn on the
+experimental installer to test it: it has known problems (see [SECURITY.md](SECURITY.md)). If an
+older version installed things for you, in this order, because the list lives in the data folder:
 
 1. `node scripts/scout.mjs installed` lists what it installed or built for you (run it from your
-   copy of the repo), and `node scripts/scout.mjs undo <name>` removes each one.
-2. `/plugin uninstall tool-scout@tool-scout` removes the plugin and its data folder.
-3. If you ran it from a copy of the repo, delete `~/.tool-scout` as well.
+   copy of the repo), and `node scripts/scout.mjs undo <name>` tries to remove each one. Then check
+   by hand that it's gone: undo can say it worked when it didn't.
+2. `/plugin uninstall tool-scout@tool-scout` removes the plugin. It can leave the data folder behind.
+3. Delete the data folder: `node scripts/scout.mjs privacy` prints where it is and the command
+   (`~/.tool-scout` if you ran it from a copy of the repo).

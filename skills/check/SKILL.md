@@ -136,7 +136,7 @@ by default. The rules:
   `scout.mjs experimental on`. Never run `… experimental on --plain` yourself, never say you can do it
   for them, and when a script says the installer is off, relay that and stop.
 - When it is on, every run prints a warning: relay it the first time, word for word. Don't call an
-  install safe or say it can always be undone: undo is not guaranteed.
+  install safe, and don't promise that undo works: it isn't guaranteed.
 - The default scope is project. Pass `--scope user` only when the user explicitly asked for it for
   that one item.
 - When the installer is off and the user asks you to build something (a skill, a slash command, a

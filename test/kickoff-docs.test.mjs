@@ -8,24 +8,24 @@ const section = (md, h) => { const i = md.indexOf(`\n## ${h}`); assert.ok(i > 0,
 const README = read('README.md');
 const USAGE = read('docs/USAGE.md');
 
-test('README has a Project kickoff section, after Build your own', () => {
-  assert.ok(README.indexOf('## Project kickoff') > README.indexOf('## Build your own'));
+test('README has a Project kickoff section, after Check before you install', () => {
+  assert.ok(README.indexOf('## Project kickoff') > README.indexOf('## Check before you install'));
   assert.ok(README.indexOf('## Project kickoff') < README.indexOf('## Command line'));
   const sec = section(README, 'Project kickoff');
   for (const re of [/\/tool-scout:kickoff/, /past(?:e|ed)[^.]*or[^.]*file|file[^.]*or[^.]*past/i, /tasks, stack, domain(?:,)? and conventions/,
-    /never sent/, /local catalog/, /dependency files/, /at most 5/, /nothing needed: Claude handles this without a tool/i,
-    /CLAUDE\.md (?:memory )?note/, /choose|multi-select/i, /its own plan/, /yes\/no/, /never in bulk/i, /undo/, /kickoff\/needs\.json/]) assert.match(sec, re, String(re));
+    /doesn't upload it/, /local catalog/, /dependency files/, /at most 5/, /nothing needed: Claude handles this without a tool/i,
+    /CLAUDE\.md (?:memory )?note/, /choose|multi-select/i, /manual steps/, /installs and builds nothing/, /kickoff\/needs\.json/]) assert.match(sec, re, String(re));
 });
 
 test('README lists the kickoff in Commands, the plain-language table, Privacy and Command line', () => {
   assert.match(section(README, 'Commands'), /\| `\/tool-scout:kickoff` \|/);
   assert.match(section(README, 'Commands'), /\| "[^"]*plan[^"]*" \| `kickoff --plan-file` \|/);
-  assert.match(section(README, 'Privacy'), /project plan[^.]*(?:data folder|needs\.json)[^.]*never sent/i);
+  assert.match(section(README, 'Privacy'), /plan you give `\/tool-scout:kickoff` is kept in full[^.]*needs\.json/i);
   assert.match(README, /node scripts\/scout\.mjs kickoff --plan-file PLAN\.md --project \./);
 });
 
-test('README Build your own mentions --replace and the personal hook scope', () => {
-  const sec = section(README, 'Build your own');
+test('README Experimental installer mentions --replace and the personal hook scope', () => {
+  const sec = section(README, 'Experimental installer (off by default)') + README.slice(README.indexOf('### Build your own (experimental)'), README.indexOf('\n## Command line')).replace(/\s+/g, ' ');
   assert.match(sec, /--replace/);
   assert.match(sec, /settings\.local\.json/);
 });

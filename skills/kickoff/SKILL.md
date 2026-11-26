@@ -14,9 +14,11 @@ mode): it recommends and checks, and the user does the installing by hand.
 
 ## Privacy rules (tell the user if they ask)
 
-- The plan text is never sent anywhere. It is read locally and kept in one file only: the needs
-  file, `kickoff/needs.json` in Tool Scout's data folder. It never goes into a network request,
-  the catalog or its caches, or a log.
+- Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude. The needs list kickoff prints quotes lines of the plan, so those lines go into Claude's
+  context.
+- The plan text is read locally and kept in one file only: the needs file, `kickoff/needs.json` in
+  Tool Scout's data folder, in full. Tool Scout doesn't put it into a network request, the catalog or its
+  caches, or a log. `… privacy --plain` lists every file Tool Scout keeps and how to delete it.
 - Matching uses only the local catalog and the project's dependency files (package.json,
   requirements.txt, pyproject.toml, go.mod, Cargo.toml, Gemfile, Package.swift, Podfile).
 - The only network traffic is the scout's own: refreshing the catalog with its fixed topic
@@ -148,7 +150,7 @@ by default. The rules:
   `scout.mjs experimental on`. Never run `… experimental on --plain` yourself, never say you can do it
   for them, and when a script says the installer is off, relay that and stop.
 - When it is on, every run prints a warning: relay it the first time, word for word. Don't call an
-  install safe or say it can always be undone: undo is not guaranteed.
+  install safe, and don't promise that undo works: it isn't guaranteed.
 - The default scope is project. Pass `--scope user` only when the user explicitly asked for it for
   that one item.
 - When the installer is off and the user asks you to build something (a skill, a slash command, a

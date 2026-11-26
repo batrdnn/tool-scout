@@ -24,7 +24,7 @@ test('install is two lines, and they are the README\'s', () => {
 test('covers what it does, history plus vetting, privacy, and early-beta honesty', () => {
   assert.match(post, /^# /m);
   assert.match(prose, /history/i); assert.match(prose, /vet|check/i);
-  assert.match(prose, /counts/i); assert.match(prose, /never (?:sent|leaves)|nothing about you is sent/i);
+  assert.match(prose, /counts/i); assert.match(prose, /doesn't upload your history/i);
   assert.match(prose, /early beta/i); assert.match(prose, /rate/i);
 });
 

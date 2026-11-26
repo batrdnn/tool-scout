@@ -6,6 +6,16 @@ Picks trending Claude Code skills, plugins and MCP servers that fit how you actu
 
 > **Early beta.** Expect rough edges, and please rate the picks: that's how it gets better.
 
+> **Safe mode (v0.17).** An [independent review of v0.16.1](docs/reviews/independent-v0.16.1.pdf) found
+> that Tool Scout's installer can't be trusted yet: an agent can confirm its own install plan, an
+> existing marketplace name can bring in a different plugin than the one you reviewed, a project-scoped
+> write can follow a symlink out of the project, and undo can report success while the change is still
+> there. So Tool Scout now **only recommends and checks**. It doesn't install, build or turn on hooks;
+> it shows manual steps instead, and anything that writes defaults to project scope, never user. The
+> installer is still in the code, behind an experimental setting that is off by default and warns when
+> it is on (see [Experimental installer](#experimental-installer-off-by-default)). The fixes are
+> planned for v0.18.
+
 ![Tool Scout in a terminal: node scripts/scout.mjs all for a made-up web developer](docs/demo.gif)
 
 ## Install
@@ -60,13 +70,13 @@ sessions, because it reads your local session history. To drive it from a browse
 
 | command | what it does |
 |---|---|
-| `/tool-scout:scout` | up to 5 picks, each with why it fits you, trust flags and the install command |
+| `/tool-scout:scout` | up to 5 picks, each with why it fits you, trust flags and the manual install steps |
 | `/tool-scout:scout mcp` · `skills` · `plugins` | only that kind |
 | `/tool-scout:scout testing` (any topic) | prefer picks for that topic |
 | `/tool-scout:scout refresh` | crawl GitHub again first |
 | `/tool-scout:check owner/repo` | trust check of one repo before you install it |
 | `/tool-scout:me` | your Claude Code animal (Beaver, Owl, Bee, …) from your last 30 days, plus a shareable card |
-| `/tool-scout:kickoff` | give it a project plan: it proposes up to 5 tools for it (install, build or nothing needed) and sets up the ones you choose |
+| `/tool-scout:kickoff` | give it a project plan: it proposes up to 5 tools for it (install, build or nothing needed) with the manual steps for the ones you choose; it installs nothing |
 
 Or just ask, in plain language:
 
@@ -81,6 +91,7 @@ Or just ask, in plain language:
 | "show my share stats" | `stats --share` |
 | "show my scout profile" | `profile --show` |
 | "what's my Claude Code animal?" | `me` |
+| "what does Tool Scout keep about me?" | `privacy` |
 | "here's my project plan: what tools should I set up?" | `kickoff --plan-file` |
 
 ## Your Claude Code animal
@@ -111,18 +122,27 @@ Example cards, made from synthetic profiles (`npm run gallery`).
 
 ## Privacy
 
-- Your session history is read **locally** and kept as **counts only**: no prompt text, file
-  paths or command arguments.
-- GitHub gets fixed topic searches and public repo names. An install plan for an MCP server may
-  also look up a package's current version on npm or PyPI (the package name only). Nothing about
-  you is sent.
-- Data lives in the plugin's data folder (`~/.claude/plugins/data/tool-scout-…`) and is deleted
-  when you uninstall. `profile --show` shows exactly what it learned and where it's stored.
-- Tool Scout installs only after you approve a plan, and every install can be undone. It never
-  asks for, reads or stores your API keys: a plan names the environment variables you set yourself.
-- A project plan you give to `/tool-scout:kickoff` is kept only in the data folder
-  (`kickoff/needs.json`) and is never sent anywhere: matching uses the local catalog and your
-  project's dependency files.
+Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude.
+
+- **What it reads and keeps:** your Claude Code session history, read locally. It saves a profile in
+  its data folder: counts of topics and languages, the first word of commands you repeat, and the
+  names of the tools, plugins and libraries your projects use. It doesn't save prompt text or file
+  contents. A plan you give `/tool-scout:kickoff` is kept in full (`kickoff/needs.json`).
+- **What Claude sees:** when you run a skill, the profile summary, the picks, a repo's scan, or your
+  kickoff needs list (which quotes lines of your plan) goes into Claude's context, and so to the
+  model provider your Claude Code uses. Tool Scout doesn't control that.
+- **What goes over the network:** only to `api.github.com`: fixed topic searches, then the names of
+  the public repos it is checking, their files and star activity (which can show what you are
+  interested in; GitHub sees your token if you set one). With the experimental installer, an install
+  plan may also look up a package's current version on npm or PyPI (the package name only). There is
+  no Tool Scout server, account or telemetry.
+- **Where it is, and how to delete it:** `node scripts/scout.mjs privacy` lists every file Tool Scout
+  keeps, what is in it, and the command that deletes it. It all lives in one data folder
+  (`~/.claude/plugins/data/tool-scout-…`, or `~/.tool-scout`). Removing the plugin can leave that
+  folder behind: delete it with the commands `privacy` prints. `profile --show` shows what the
+  profile holds.
+- **API keys:** Tool Scout never asks for, reads or stores them; a plan only names the environment
+  variables you would set yourself.
 - To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Check before you install
@@ -141,38 +161,9 @@ README, `SKILL.md` files, install scripts, hooks and MCP config, and gives a ver
 plugins, MCP server commands, hooks) from disk, with no network at all.
 
 Both are heuristics: no flags doesn't mean safe. Skills and MCP servers run with your
-permissions. Tool Scout installs only after you approve a plan, and every install can be undone:
-
-- **Plan** (`install owner/repo --plan`) writes nothing. It shows the exact files and settings,
-  the commit it pins, the check verdict and the credentials you set yourself.
-- **Install** (`--confirm <planId>`, within 15 minutes) does exactly that plan, and refuses if the
-  verdict is "do not install" or anything changed. It never runs install scripts or README
-  commands.
-- **Undo** (`undo <name>`) removes exactly what was logged and restores your settings.
-
-## Build your own
-
-When a pick's advice is Build your own, Claude offers **"Build my own"**. You can also just ask:
-"build me a skill that …". It works for a skill, slash command, subagent, hook or CLAUDE.md
-memory (a section between markers):
-
-- Claude asks at most two short questions (what exactly, and for all your projects or just this
-  one), reads the pick's SKILL.md for ideas only, and writes a draft in its own words, tailored to
-  your topics and stack. The draft goes into Tool Scout's data folder: Claude never writes
-  straight into `~/.claude` or your project.
-- **Plan** (`build --form skill --name <name> --from <draft> --plan`) writes nothing. It shows
-  each file and where it goes, the trust scan of the draft (nothing above low, no network call or
-  pipe-to-shell), and the source repo's license: with no license nothing may be copied; a
-  permissive one allows adapting with an attribution line.
-- **Build** (`build --confirm <planId>`) does exactly that plan, after your yes. A hook (a script
-  that runs automatically on Claude Code events, in this project by default) is shown in full,
-  may not use the network, and needs a second, separate confirmation (`--confirm-hook`).
-- **Undo** (`undo <name>`) removes exactly what was built; for memory, just that section.
-- **Replace** (`--replace` on the plan): to update a skill, command, subagent or memory section you
-  already have, the new version is swapped in one step, so it is never missing, and undo puts the
-  previous version back. An installed skill folder works the same way (`install … --replace --plan`).
-- A hook can also be **personal**: it runs in this project for you alone. Its entry goes into the
-  project's `.claude/settings.local.json` (not shared) and its script stays outside the project.
+permissions. The check shows what it looked at (the README and up to eight files, not an MCP
+server's full source), and for a pick it gives **manual steps**: read the repo, then follow its
+README yourself, in your own terminal, at project scope. Tool Scout doesn't install it for you.
 
 ## Project kickoff
 
@@ -180,8 +171,10 @@ Starting something new? Run `/tool-scout:kickoff` and paste your plan, or give t
 file (and the project folder, if there is one). Claude turns it into a needs list: tasks, stack,
 domain and conventions.
 
-- **Private:** the plan text is never sent anywhere. It is kept only in the data folder
-  (`kickoff/needs.json`). Matching uses the local catalog and the project's dependency files.
+- **Where your plan goes:** Tool Scout doesn't upload it. It is kept in full in the data folder
+  (`kickoff/needs.json`), and, as with any skill, the needs list (which quotes lines of your plan)
+  goes into Claude's context when you run kickoff. Matching uses the local catalog and the
+  project's dependency files.
 - **Toolkit, at most 5 items, by impact,** each with one reason tied to your plan. Candidates are
   Anthropic's official marketplace and built-in Claude Code features (like `/ultrareview`) first,
   then the best catalog match (the same ranking, effort estimate and trust checks as the scout), or
@@ -194,9 +187,69 @@ domain and conventions.
   doesn't mention, is ranked lower and labeled "heavy setup".
 - **CLAUDE.md note:** only the conventions not already in your CLAUDE.md; none is offered when all
   are covered. An item Claude has doubts about gets "Skip (recommended)" first in its yes/no.
-- **You choose** the items in one multi-select question. Then each one goes through its own plan,
-  in plain words, and its own yes/no before anything is installed or built: never in bulk.
-- **Summary:** what was installed or built, each with its undo command.
+- **You choose** the items in one multi-select question. Then each one gets its **manual steps**
+  (check it, read it, install it yourself at project scope), or, for something to build, a draft
+  in chat for you to read and save yourself. Kickoff installs and builds nothing.
+- **Summary:** which items got manual steps, and which you skipped.
+
+## Experimental installer (off by default)
+
+Everything Tool Scout used to do to install or build things for you (`install`, `build`, hook
+activation) is switched off in v0.17. The code is still there, behind a setting you turn on yourself,
+**in your own terminal** (in Claude Code, start the line with `!`):
+
+```bash
+node scripts/scout.mjs experimental on     # off again: experimental off; status: experimental
+```
+
+Don't ask Claude to run that for you: the point is that you decide. Every run of `install` or `build`
+then prints a warning, because the independent review reproduced these failures, which are **known and
+planned for v0.18**:
+
+- **Confirmation isn't a human decision (C1).** A plan's confirmation checks that the plan wasn't
+  changed, not that a person agreed: an agent that makes a plan can confirm its own plan.
+- **A marketplace name can bring in a different plugin (C2).** If a marketplace with the same name is
+  already registered from another source, the plugin installs from that one, and the pinned-commit
+  check doesn't run.
+- **A symlink can redirect a project-scoped write (C5).** A `.claude` folder that is a symlink sends a
+  build outside the project.
+- **Undo can report success while the change is still there (C6).** If the inverse command fails, undo
+  still says it worked.
+
+If you do use it: the default scope is project (`--scope user` only when you ask for it), read every
+plan yourself, and check the result by hand afterwards. `undo` and `installed` always work, so what an
+older version installed can still be removed (and checked: look that the thing is really gone).
+
+How it works when it is on:
+
+- **Plan** (`install owner/repo --plan`) writes nothing. It shows the files and settings, the commit it
+  pins, the check verdict and the credentials you set yourself.
+- **Install** (`--confirm <planId>`, within 15 minutes) runs that plan and stops if the verdict is "do
+  not install" or the repo changed. It never runs install scripts or README commands.
+- **Undo** (`undo <name>`) tries to remove what was logged and restore your settings. See C6 above.
+
+### Build your own (experimental)
+
+With the installer on, you can ask "build me a skill that …" for a skill, slash command, subagent, hook
+or CLAUDE.md memory (a section between markers). With it off, Claude can still show you a draft in chat
+for you to read and save yourself.
+
+- Claude asks at most two short questions (what exactly, and for all your projects or just this one),
+  reads a pick's SKILL.md for ideas only, and writes a draft in its own words, tailored to your topics
+  and stack. The draft goes into Tool Scout's data folder, not straight into `~/.claude` or your project.
+- **Plan** (`build --form skill --name <name> --from <draft> --plan`) writes nothing. It shows each file
+  and where it goes, the trust scan of the draft (nothing above low, no network call or pipe-to-shell),
+  and the source repo's license: with no license nothing may be copied; a permissive one allows adapting
+  with an attribution line.
+- **Build** (`build --confirm <planId>`) writes that plan. A hook (a script that runs automatically on
+  Claude Code events, in this project by default) is shown in full, may not use the network, and needs a
+  second, separate confirmation (`--confirm-hook`); this is hook activation, off unless the installer is on.
+- **Undo** (`undo <name>`) tries to remove what was built; for memory, just that section.
+- **Replace** (`--replace` on the plan): to update a skill, command, subagent or memory section you
+  already have, the new version is swapped in one step, and undo puts the previous version back. An
+  installed skill folder works the same way (`install … --replace --plan`).
+- A hook can also be **personal**: it runs in this project for you alone. Its entry goes into the
+  project's `.claude/settings.local.json` (not shared) and its script stays outside the project.
 
 ## Command line
 
@@ -209,13 +262,13 @@ node scripts/scout.mjs rate owner/repo useful|not|clear
 node scripts/scout.mjs dismiss owner/repo # also: undismiss, exclude-project, include-project
 node scripts/scout.mjs stats [--share]
 node scripts/scout.mjs me --card me.svg   # your Claude Code animal, plus a shareable SVG card
-node scripts/scout.mjs install owner/repo --plan            # what an install would do; writes nothing
-node scripts/scout.mjs install owner/repo --confirm <planId> # do exactly that plan
-node scripts/scout.mjs installed          # what Tool Scout installed; scout.mjs undo <name> removes one
-node scripts/scout.mjs build --start --form skill --name <name>   # the draft folder, and what goes in it
-node scripts/scout.mjs build --form skill --name <name> --from <draft> --plan   # then --confirm <planId>
+node scripts/scout.mjs privacy            # every file Tool Scout keeps, what is in it, how to delete it
 node scripts/scout.mjs kickoff --plan-file PLAN.md --project .   # needs list + toolkit for a plan; installs nothing
+node scripts/scout.mjs installed          # what an older version or the experimental installer installed; undo <name> removes one
 ```
+
+The experimental installer's commands (`install … --plan`, `install … --confirm`, `build …`) only run
+after `experimental on`; see [above](#experimental-installer-off-by-default).
 
 Data folder: `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's folder, else
 `~/.tool-scout`. All options, how ranking and trust scoring work, and the eval setup:
@@ -233,24 +286,28 @@ Run directly in a terminal, the output has colors, boxes and aligned columns:
 - `NO_COLOR=1` turns colors off and keeps the layout. Without a UTF-8 locale (for example
   `LANG=C`) the boxes are drawn in ASCII.
 - Inside Claude Code the skills always run the script with `--json` or `--plain`, so Claude never
-  sees escape codes. After the picks, Claude asks what to do next with each one: why build vs
-  install, install it (a plan first, then one yes/no question for that one tool), rate it, or mark
-  it not interested.
+  sees escape codes. After the picks, Claude asks what to do next with each one: how to install it
+  (manual steps), check it first, rate it, or mark it not interested.
 
 ## FAQ
 
 ### What does it send, and what stays on my machine?
-Your session history is read locally and kept as counts only (no prompt text, file paths or
-command arguments). The only requests go to `api.github.com` (fixed topic searches, then public
-repo names), and to npm or PyPI for a package's current version when an install plan pins one.
-Nothing about you is sent, there's no account, and it never reads or stores your API keys.
-`node scripts/scout.mjs profile --show` prints exactly what it learned and where it's stored.
+Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude.
+Your session history is read locally and saved as a profile: counts of topics and languages, the first
+word of commands you repeat, and the names of the tools and libraries your projects use (no prompt
+text or file contents). The only requests go to `api.github.com` (fixed topic searches, then the names
+of public repos it checks), and, with the experimental installer, to npm or PyPI for a package's current
+version. There's no account, and it never reads or stores your API keys. `node scripts/scout.mjs
+privacy` lists every file it keeps and how to delete it; `profile --show` prints what the profile
+holds and where it's stored.
 
-### Does it install anything without asking?
-No. An install or a build starts as a plan that writes nothing: it shows the exact files and
-settings, the commit it pins and the trust verdict. Only your yes to that plan makes it happen,
-within 15 minutes, and it never runs a repo's install scripts or README commands. Every install can
-be undone with `node scripts/scout.mjs undo <name>`.
+### Does it install anything?
+No. Since v0.17 Tool Scout only recommends and checks: it shows manual steps (read the repo, then
+install it yourself, in your own terminal, at project scope), and it doesn't install, build or turn on
+hooks. An independent review found problems in the installer (a plan can be confirmed by the same
+agent that made it, undo can report success when it hasn't worked), so it's off by default, and
+experimental when you turn it on yourself. Its plans, confirmations and undo are described under
+[Experimental installer](#experimental-installer-off-by-default), with the known issues.
 
 ### Does it work offline?
 Partly. `audit`, `me`, `profile --show`, `stats` and `rate` read only local files. `recommend
@@ -259,13 +316,13 @@ catalog is over 20 hours old, even with `--offline` (which only skips the moment
 requests). `check` and installs need GitHub.
 
 ### Does it work on Windows?
-Yes: macOS, Linux and Windows are tested in CI. On Windows, installing an MCP server or an official
-plugin needs `claude.exe` on your PATH, and the pretty terminal output needs Windows Terminal. Each
-limit fails with a message and a command to run yourself, never silently. Details are in
+Yes: macOS, Linux and Windows are tested in CI. The read-only commands (scout, check, audit, me,
+kickoff) work on all three, and the pretty terminal output needs Windows Terminal. The experimental
+installer, if you turn it on, needs `claude.exe` on your PATH. Details are in
 [Requirements](#requirements).
 
 ### What is the animal?
-A bit of fun: `/tool-scout:me` looks at your last 30 days (counts only) and names how you work:
+A bit of fun: `/tool-scout:me` looks at the saved profile from your last 30 days and names how you work:
 Beaver (builder), Owl (debugger), Bee (tester), Octopus (orchestrator), Ant (grinder), Fox
 (explorer) or Turtle (deep diver). Under 10 sessions you're an Egg. It doesn't change your picks.
 See [Your Claude Code animal](#your-claude-code-animal).
@@ -273,11 +330,14 @@ See [Your Claude Code animal](#your-claude-code-animal).
 ### How do I uninstall everything?
 In this order, because the list of what Tool Scout installed lives in its data folder:
 
-1. `node scripts/scout.mjs installed` lists what it installed or built for you. Run
-   `node scripts/scout.mjs undo <name>` for each one you don't want to keep. Undo removes exactly
-   what was logged and restores your settings.
-2. `/plugin uninstall tool-scout@tool-scout` removes the plugin and its data folder.
-3. If you ran it from a copy of the repo, delete `~/.tool-scout` (or the folder you gave to `--data`).
+1. If an older version, or the experimental installer, installed or built things for you:
+   `node scripts/scout.mjs installed` lists them, and `node scripts/scout.mjs undo <name>` removes
+   each one you don't want to keep. Then check the result yourself (undo can say it worked when it
+   didn't: for an MCP server, look at `claude mcp list`). On v0.17 with the installer never turned
+   on, there is nothing to undo.
+2. `/plugin uninstall tool-scout@tool-scout` removes the plugin. It can leave the data folder behind.
+3. Delete the data folder (`node scripts/scout.mjs privacy` prints its path and the command), which is
+   `~/.tool-scout` if you ran it from a copy of the repo (or the folder you gave to `--data`).
 
 ### How do I report a security issue?
 Privately, with GitHub's private vulnerability reporting, not a public issue. The link and what to
@@ -309,7 +369,7 @@ Testers: see [TESTING.md](TESTING.md). Eval setup: [docs/USAGE.md](docs/USAGE.md
 ## Roadmap
 
 - Deeper trust checks: follow scripts that installers download; scan MCP server source, not just configs
-- One-click install with a confirmation prompt
+- v0.18: an approval step outside the agent, verified marketplace sources, project-confined writes and undo that checks its result; then the installer can come back
 - Weekly digest via a Claude Code hook ("3 new tools match your work")
 - Learn from feedback: down-weight topics whose picks keep getting dismissed
 - v1.1: animal evolution (Egg → hatchling → adult → legendary) and a status line companion

@@ -13,11 +13,16 @@ user's own work.
 
 ## Privacy rules (tell the user if they ask)
 
-- The script reads `~/.claude/projects/*.jsonl` locally and keeps **counts only**
-  (topics, languages, command names). No prompt text, file paths or arguments are stored.
-- GitHub is queried with fixed topic searches and public repo names. An install plan for an MCP
-  server may also look up a package's current version on npm or PyPI (the package name only).
-  Nothing about the user is sent anywhere.
+- Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude. That context goes to the model provider the user's Claude Code uses; Tool Scout doesn't
+  control that.
+- The script reads `~/.claude/projects/*.jsonl` locally and saves a profile in its data folder: counts
+  of topics and languages, the first word of commands the user repeats, and the names of the tools,
+  plugins and libraries their projects use. It saves no prompt text or file contents. `… privacy --plain`
+  lists every file Tool Scout keeps, what is in it and how to delete it; run it when the user asks.
+- GitHub is queried with fixed topic searches, then with the names of the public repos being checked
+  (which can show what the user is interested in). With the experimental installer on, an install plan
+  for an MCP server may also look up a package's current version on npm or PyPI (the package name
+  only). There is no Tool Scout server, account or telemetry.
 - Do not read the user's session transcripts yourself. Work only from the script's output.
 
 ## Running the script
@@ -263,7 +268,7 @@ by default. The rules:
   `scout.mjs experimental on`. Never run `… experimental on --plain` yourself, never say you can do it
   for them, and when a script says the installer is off, relay that and stop.
 - When it is on, every run prints a warning: relay it the first time, word for word. Don't call an
-  install safe or say it can always be undone: undo is not guaranteed.
+  install safe, and don't promise that undo works: it isn't guaranteed.
 - The default scope is project. Pass `--scope user` only when the user explicitly asked for it for
   that one item.
 - When the installer is off and the user asks you to build something (a skill, a slash command, a

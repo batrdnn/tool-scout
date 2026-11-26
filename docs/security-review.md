@@ -1,5 +1,7 @@
 # Security review before v1.0 (Tool Scout 0.12.0)
 
+> **Superseded in part (v0.17).** An independent review of v0.16.1 found installer failures this review did not (see [SECURITY.md](../SECURITY.md): C1, C2, C5, C6). The installer is off by default since v0.17. Read the claims below as of 0.12.0.
+
 Date: 2026-11-25. Scope: everything a repo, README, SKILL.md, marketplace file, package name or
 draft can make Tool Scout do: install, build, undo, scan, `head`, and what leaves the machine.
 Method: a malicious fixture and a test per attack against a mock GitHub and a mock `claude`

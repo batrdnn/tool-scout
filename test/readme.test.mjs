@@ -15,16 +15,19 @@ test('README has a "Check before you install" section covering check, audit and 
   assert.match(sec, /no flags[^.\n]*(doesn't|does not) mean[^.\n]*safe/i);
 });
 
-test('safety and privacy wording: installs only after you approve a plan, and every install can be undone', () => {
-  const SENTENCE = 'installs only after you approve a plan, and every install can be undone';
+test('safety and privacy wording (v0.17): Tool Scout installs nothing, says what it keeps, and does not promise undo', () => {
+  const PRIVACY = "Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude.";
   const TESTING = fs.readFileSync(new URL('../TESTING.md', import.meta.url), 'utf8');
   for (const [name, text] of [['README.md', README], ['TESTING.md', TESTING]]) {
-    assert.doesNotMatch(text, /never installs anything|nothing is installed/i, `${name} still says nothing is installed`);
+    assert.doesNotMatch(text, /never installs anything/i, `${name}`);
+    assert.doesNotMatch(text, /every install can be undone|installs only after you approve a plan/i, `${name} still makes the old claim`);
+    assert.match(text.replace(/\s+/g, ' '), /doesn't install anything in this version|installs nothing/i, `${name} should say Tool Scout installs nothing`);
   }
-  for (const sec of ['Privacy', 'Check before you install']) {
-    const s = README.split(/^## /m).find((x) => x.startsWith(sec));
-    assert.ok(s.replace(/\s+/g, ' ').includes(SENTENCE), `${sec}: missing "${SENTENCE}"`);
-  }
+  const priv = README.split(/^## /m).find((x) => x.startsWith('Privacy'));
+  assert.ok(priv.replace(/\s+/g, ' ').includes(PRIVACY), 'Privacy: the accurate sentence');
+  const check = README.split(/^## /m).find((x) => x.startsWith('Check before you install'));
+  assert.match(check.replace(/\s+/g, ' '), /manual steps/);
   const cli = README.split(/^## /m).find((x) => x.startsWith('Command line'));
-  for (const c of ['install owner/repo --plan', 'install owner/repo --confirm', 'scout.mjs undo', 'scout.mjs installed']) assert.ok(cli.includes(c), c);
+  for (const c of ['scout.mjs privacy', 'scout.mjs installed']) assert.ok(cli.includes(c), c);
+  assert.ok(!cli.includes('install owner/repo --plan'), 'the experimental install commands are not in the everyday command list');
 });

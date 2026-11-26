@@ -11,18 +11,18 @@ const faq = /^## FAQ\n([\s\S]*?)(?=^## )/m.exec(readme)?.[1] || '';
 const answer = (q) => { const m = new RegExp(`^### ${q}[^\\n]*\\n([\\s\\S]*?)(?=^### |$(?![\\s\\S]))`, 'm').exec(faq); return m ? m[1] : ''; };
 
 test('the FAQ has the six questions', () => {
-  for (const q of ['What does it send', 'Does it install anything without asking', 'Does it work offline', 'Does it work on Windows', 'What is the animal', 'How do I uninstall everything', 'How do I report a security issue']) {
+  for (const q of ['What does it send', 'Does it install anything', 'Does it work offline', 'Does it work on Windows', 'What is the animal', 'How do I uninstall everything', 'How do I report a security issue']) {
     assert.ok(new RegExp(`^### ${q}`, 'm').test(faq), `missing: ${q}`);
   }
 });
 
-test('privacy: counts only, nothing about you sent', () => {
+test('privacy: what is saved, where requests go, and the accurate upload sentence', () => {
   const a = answer('What does it send');
   assert.match(a, /counts/i); assert.match(a, /api\.github\.com/); assert.match(a, /profile --show/);
 });
 
-test('installs: only after a plan and a yes, never scripts, undo exists', () => {
-  const a = answer('Does it install anything without asking');
+test('installs: No in safe mode, manual steps, the installer is experimental and has plans and undo', () => {
+  const a = answer('Does it install anything');
   assert.match(a, /No\b/); assert.match(a, /plan/i); assert.match(a, /undo/);
 });
 

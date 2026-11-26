@@ -4,7 +4,7 @@ New Claude Code skills, plugins and MCP servers appear every day, and most lists
 
 ## What it does
 
-Run `/tool-scout:scout` and you get up to five picks. Each one says why it fits you, shows trust flags, and gives the install command. You rate them ("1 useful, 2 not"), and that is how it improves.
+Run `/tool-scout:scout` and you get up to five picks. Each one says why it fits you, shows trust flags, and gives the manual install steps. You rate them ("1 useful, 2 not"), and that is how it improves.
 
 - `/tool-scout:check owner/repo` checks any skill, plugin or MCP server before you install it.
 - `/tool-scout:kickoff` takes a project plan and proposes a toolkit of at most five items.
@@ -12,15 +12,15 @@ Run `/tool-scout:scout` and you get up to five picks. Each one says why it fits 
 
 ## Why history, and why vetting
 
-A recommendation that ignores your work is a guess. So Tool Scout reads your last 30 days of local Claude Code sessions and keeps counts of topics, languages and friction. Someone who debugs a lot gets different picks from someone who ships iOS apps.
+A recommendation that ignores your work is a guess. So Tool Scout reads your last 30 days of local Claude Code sessions and keeps a profile of topics, languages and friction. Someone who debugs a lot gets different picks from someone who ships iOS apps.
 
 Fit is only half of it. Skills and MCP servers run with your permissions, so every pick is also scanned for prompt injection, hidden instructions, exfiltration and download-and-run tricks. Those checks are heuristics, not a guarantee: no flags doesn't mean safe, which is why you see the flagged file and line.
 
 ## Privacy, in plain words
 
-Your session history never leaves your machine. Only counts are kept: no prompt text, no file paths, no command arguments. GitHub receives fixed topic searches and public repo names, and nothing about you.
+Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude. What it saves locally is a profile: counts of topics and languages, the first word of commands you repeat, and the names of the tools and libraries you use, with no prompt text or file contents. GitHub receives fixed topic searches and the names of public repos it checks.
 
-It installs nothing on its own. An install starts as a plan that writes nothing, and only your yes makes it happen. Every install can be undone with one command.
+It installs nothing. An independent review found problems in its installer, so v0.17 only recommends and checks, and shows manual steps. The installer is off by default and experimental. `privacy` lists every file it keeps and how to delete it.
 
 ## Install
 

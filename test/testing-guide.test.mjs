@@ -26,7 +26,7 @@ test('what to try: scout, check, me and kickoff, each with a command and what to
   const s = section(/^3\. What to try/);
   for (const c of ['/tool-scout:scout', '/tool-scout:check', '/tool-scout:me', '/tool-scout:kickoff']) assert.ok(s.includes(c), c);
   assert.match(s, /plan/i);
-  assert.match(s, /yes\/no|before anything is installed/i);
+  assert.match(s, /manual steps|nothing is installed/i);
 });
 
 test('rating: the one-line format, changing your mind, and that "not" matters', () => {

@@ -9,7 +9,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 
 | command | what it does |
 |---|---|
-| `profile [--show] [--json]` | build the profile from local history and save it (counts only); prints it and the data folder in use |
+| `profile [--show] [--json]` | build the profile from local history and save it (counts, command names and tool and library names: no prompt text); prints it and the data folder in use |
 | `crawl [--max-pages N]` | refresh the GitHub catalog (fixed topic searches) and save a daily star snapshot |
 | `recommend [--top 8]` | ranked picks from the saved profile and catalog |
 | `all [--refresh]` | profile + crawl (if older than 20 h, or `--refresh`) + recommend |
@@ -17,17 +17,17 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `audit [--json]` | local scan of installed skills, plugins and MCP server commands; no network |
 | `head <owner/repo> [--part NAME] [--json]` | the first 40 lines of the SKILL.md(s) a close call rests on, as fenced data, from the scan's cache; refuses repos the content scan flagged for injection-type content. The skills use it to decide Build your own vs Install |
 | `line <owner/repo> <file>:<line> [--json]` | the one line the check flagged (medium or high), fenced as data with invisible characters written out; refuses lines the check did not flag, and never shows injection-type text. The check skill uses it before offering a plan |
-| `install <owner/repo> [--part NAME] [--scope user\|project] [--replace] --plan` | writes nothing: prints the plan (files, settings, commands, scope, pinned commit, check verdict and coverage, credentials to set yourself) and its ID, valid for 15 minutes. For an MCP server not from a known vendor it looks up npx/uvx package versions on npm or PyPI (the package name only) to pin them. `--replace` (skill folders): swap the skill that is there now for this version in one step, one file at a time, so it never disappears; `undo` puts the previous version back |
-| `install <owner/repo> --confirm <planId>` | does exactly that plan, and only if nothing changed (re-checked at the pinned commit) and the verdict isn't "do not install"; logged in the data folder |
-| `build --start --form F --name N [--fresh]` | makes `drafts/N/` in the data folder (refuses a folder left by an earlier run; `--fresh` clears it) and says which files form F needs (skill, command, subagent, hook, memory) |
-| `build --form F --name N --from DIR [--scope user\|project\|personal] [--replace] [--source owner/repo] --plan` | writes nothing: checks Claude's draft and prints the plan (files and where they go, the trust scan, any source repo's license) and its ID, valid for 15 minutes. Scope `personal` (hooks only): the hook runs in this project for you alone; its entry goes into the project's `.claude/settings.local.json` and its script into `~/.claude/hooks/<name>/`, so nothing is shared through the repo. `--replace` (skill, command, subagent, memory): swap the current version for the draft in one step; `undo` puts the previous version back |
-| `build --confirm <planId>` | writes exactly that plan, logged like an install |
-| `build --confirm-hook <hookId>` | a hook's second, separate confirmation, with the ID that `--confirm` printed: `--confirm` alone only records the first yes and writes nothing |
-| `kickoff --plan-file <path> [--project DIR] [--json]` | a project plan becomes a needs list (tasks, stack, domain, conventions), saved only in the data folder (`kickoff/needs.json`), and a toolkit of at most 5 items; proposes only, never installs |
+| `install <owner/repo> [--part NAME] [--scope project\|user] [--replace] --plan` | **experimental, off by default** (see `experimental`). Writes nothing: prints the plan (files, settings, commands, scope (default project), pinned commit, check verdict and coverage, credentials to set yourself) and its ID, valid for 15 minutes. For an MCP server not from a known vendor it looks up npx/uvx package versions on npm or PyPI (the package name only) to pin them. `--replace` (skill folders): swap the skill that is there now for this version in one step, one file at a time, so it never disappears; `undo` puts the previous version back |
+| `install <owner/repo> --confirm <planId>` | **experimental.** Runs that plan if it is intact, unexpired and the repo hasn't moved, and the verdict isn't "do not install"; logged in the data folder. The confirmation is not a human decision (review C1, known, fixed in v0.18) |
+| `build --start --form F --name N [--fresh]` | **experimental, off by default.** Makes `drafts/N/` in the data folder (refuses a folder left by an earlier run; `--fresh` clears it) and says which files form F needs (skill, command, subagent, hook, memory) |
+| `build --form F --name N --from DIR [--scope project\|user\|personal] [--replace] [--source owner/repo] --plan` | **experimental.** Writes nothing: checks Claude's draft and prints the plan (files and where they go, the trust scan, any source repo's license) and its ID, valid for 15 minutes. Scope `personal` (hooks only): the hook runs in this project for you alone; its entry goes into the project's `.claude/settings.local.json` and its script into `~/.claude/hooks/<name>/`, so nothing is shared through the repo. `--replace` (skill, command, subagent, memory): swap the current version for the draft in one step; `undo` puts the previous version back |
+| `build --confirm <planId>` | **experimental.** Writes that plan, logged like an install |
+| `build --confirm-hook <hookId>` | **experimental** (hook activation). A hook's second, separate confirmation, with the ID that `--confirm` printed: `--confirm` alone only records the first yes and writes nothing |
+| `kickoff --plan-file <path> [--project DIR] [--json]` | a project plan becomes a needs list (tasks, stack, domain, conventions), kept in full in the data folder (`kickoff/needs.json`), and a toolkit of at most 5 items, each with manual steps; proposes only, never installs |
 | `kickoff --rematch` | matches the saved needs list again, after Claude corrected it |
-| `kickoff --summary [--json]` | what was installed or built since the kickoff, each with its undo command |
-| `undo <name>` | removes exactly what an install logged and restores the logged settings; after a `--replace`, puts the previous version back |
-| `installed [--json]` | what Tool Scout installed and hasn't undone |
+| `kickoff --summary [--json]` | only for installs made by an older version or the experimental installer: what was installed or built since the kickoff, each with its undo command |
+| `undo <name>` | for installs made by an older version or the experimental installer: tries to remove what an install logged and restore the logged settings; after a `--replace`, puts the previous version back. It can report success when the removal failed (review C6, known, fixed in v0.18): check the result |
+| `installed [--json]` | what an older version or the experimental installer installed and hasn't undone |
 | `privacy [--json]` | every file Tool Scout keeps (name, size, what is in it, how sensitive, the command that deletes it), what goes into Claude's context and over the network, and how to delete everything. It prints names, never contents. Every command deletes expired install and build plans first (they last 15 minutes) |
 | `experimental [on\|off]` | the experimental installer setting (off by default). `install`, `build` and hook activation only run with it on, and every run prints a warning; `undo` and `installed` always work. Turn it on yourself, in your own terminal, not through Claude |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
@@ -35,7 +35,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `exclude-project [name\|path]` | leave a project's sessions out of the profile (persisted); no argument lists them |
 | `include-project <name\|path> \| --all` | undo |
 | `rate <owner/repo> useful\|not\|clear` | was a shown pick useful? (local `ratings.json`) |
-| `me [--json] [--card [out.svg]] [--open]` | your Claude Code animal from the saved profile (counts only); `--card` writes a shareable SVG, `--open` then opens it; see [Your Claude Code animal](#your-claude-code-animal) |
+| `me [--json] [--card [out.svg]] [--open]` | your Claude Code animal from the saved profile (topic, language and session counts); `--card` writes a shareable SVG, `--open` then opens it; see [Your Claude Code animal](#your-claude-code-animal) |
 | `me --blind-spot [--json] [--offline]` | one line: the best tool for the topic of your animal's blind spot (local matching; the only request is the content scan of the one matched repo); see [The blind-spot tool](#your-claude-code-animal) |
 | `stats [--share] [--json]` | share of rated picks that were useful, and the data folder; `--share` prints the only text a tester is asked to share |
 
@@ -66,7 +66,7 @@ makes the crawl faster.
 
 ```
 /tool-scout:scout
-  ├─ profile   reads your local Claude Code history (~/.claude/projects) → counts only
+  ├─ profile   reads your local Claude Code history (~/.claude/projects) → counts of topics and languages, command names, tool and library names (no prompt text)
   ├─ crawl     GitHub topic search: mcp-server, claude-skills, agent-skills, claude-code-plugin …
   │            saves daily star snapshots → real momentum (stars/day), not just total stars
   ├─ momentum  for the top 25 only: stars actually given in the last 7 days (cached 20h)
@@ -144,13 +144,13 @@ and service-backed repos keep the rules' advice.
 "Build your own" and "Either" come with a form (hook, subagent, slash command, a CLAUDE.md note
 for up to `NOTE_MAX_LINES` = 40 lines of instructions, a skill, or a skill with a script) and a
 time. The facts are cached with the scan; the advice is worked out when read. It's advice:
-Nothing is built or installed without a plan and your yes. Results are in `effort` in the JSON, an "Effort"
+Tool Scout doesn't build or install anything in this version (safe mode). Results are in `effort` in the JSON, an "Effort"
 line in the text output, and `check`.
 
 ## Project kickoff
 
 `/tool-scout:kickoff` (or `kickoff --plan-file <path> [--project DIR]`) turns a project plan into a
-toolkit. It only proposes: each item is then installed or built through its own plan and yes/no.
+toolkit. It only proposes: each item comes with manual steps, and nothing is installed or built (the experimental installer's per-item plans are described in the README).
 
 **The plan text stays local.** It is read from the file (a pasted plan is first written to
 `kickoff/plan.md` in the data folder, then moved) and kept in one place: `kickoff/needs.json` in the
@@ -185,8 +185,8 @@ tool"; other work that takes two or more lines of the plan is a proposal to buil
 marketplace (`anthropics/claude-plugins-official`, its `marketplace.json`, fetched by repo name only
 and cached for a week) and a short list of built-in Claude Code features (`/ultrareview`,
 `/security-review`, `/simplify`). They are preferred over trending repos for the same need. An
-official plugin gets the same install plan as `/tool-scout:check` (hooks, settings changed, pinned
-commit, license, scope) shown before its one yes/no; a built-in
+official plugin gets the same check as `/tool-scout:check` (hooks and MCP servers shown) and the command to
+run yourself at project scope; a built-in
 feature is something you type yourself.
 
 **Judgment.** Before showing the toolkit, Claude applies the scout skill's filtering (steps 2-4) to
@@ -208,7 +208,7 @@ output says so. An item with `doubts` (heavy setup, a middling trust tier, or Cl
 **The list.** Items are ordered by impact (the plan lines a need covers, half a point per project
 library, one more for the domain; installs count fully, builds 0.9, nothing needed 0.4). The list has
 at most 5 items: the memory note takes one slot unless all its conventions are covered, so at most 4 others.
-`kickoff --summary` lists what was installed or built since the kickoff, each with its undo command.
+`kickoff --summary` lists what an older version or the experimental installer installed or built since the kickoff, each with its undo command.
 
 ## How trust scoring works
 
@@ -251,7 +251,7 @@ This is a heuristic, **not** a security review: no flags doesn't mean safe.
 
 ## Your Claude Code animal
 
-`scout.mjs me` (and `/tool-scout:me`) reads the saved profile (counts only; it builds one if
+`scout.mjs me` (and `/tool-scout:me`) reads the saved profile (counts, no prompt text; it builds one if
 there is none) and maps it to one animal. It's just for fun and doesn't change ranking or
 recommendations: the only link is one text line, "Tools that fit a Beaver: run
 /tool-scout:scout". The same profile always gives the same animal, text and card.
@@ -296,8 +296,8 @@ unchanged), applies the content scan, and prefers Anthropic's official plugins a
 (`security-guidance` and `/security-review` for security, `/simplify` for refactoring). A repo the
 scan flags, a heavy setup or a dismissed repo is never offered. If nothing is good enough, the line
 says "nothing needed: Claude covers this directly". It never installs anything: the
-`/tool-scout:me` skill offers to look at the tool through `/tool-scout:check`, then "Install it"
-with the usual plan and one yes/no. `--json` adds the `check` and `next` commands.
+`/tool-scout:me` skill offers to look at the tool through `/tool-scout:check`, then gives the manual
+steps (read it, install it yourself at project scope). `--json` adds the `check` command and the `manual` steps.
 
 **What it shows:** the animal's ASCII art, its title, the time window ("Your last 30 days: N
 sessions across M projects"), up to 3 evidence lines, a

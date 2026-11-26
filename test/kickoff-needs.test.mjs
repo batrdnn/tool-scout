@@ -93,7 +93,7 @@ test('the kickoff skill exists, takes a pasted plan or a file, and keeps the pla
   assert.match(s, /^description: .*(plan|kickoff).*Use when/m);
   assert.match(s, /kickoff --plan-file/);
   assert.match(s, /kickoff\/plan\.md/, 'a pasted plan is written to the data folder first');
-  assert.match(s, /never sen[dt]/i);
+  assert.match(s, /doesn't upload/i);
   assert.match(s, /--rematch/);
   assert.ok(!s.includes(MARKER));
 });
