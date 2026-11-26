@@ -34,6 +34,8 @@
 //   scout.mjs kickoff --plan-file <path> [--project DIR]   a project plan -> needs list (saved only in the data folder)
 //                                              -> toolkit of at most 5 items; proposes only, never installs
 //   scout.mjs kickoff --rematch | --summary    match the saved (corrected) needs again | what was installed since, with undo
+//   scout.mjs privacy [--json]                 every file Tool Scout keeps, what is in it, how to delete it (never prints contents).
+//                                              Every command deletes expired install and build plans first
 //   scout.mjs undo <name>                      removes exactly what an install logged;  scout.mjs installed  lists them
 //   scout.mjs me [--json] [--card [out.svg]]   your Claude Code animal, from the saved profile (counts only);
 //                                              --card writes a shareable SVG (default ./tool-scout-me.svg);
@@ -75,6 +77,7 @@ import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
 import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
 import { runKickoff, formatKickoff, kickoffSummary } from './kickoff.mjs';
+import { privacyReport, formatPrivacy, pruneExpiredPlans } from './privacy.mjs';
 import { isExperimental, setExperimental, EXPERIMENTAL_WARNING, switchedOffMessage, withManualSteps } from './experimental.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
@@ -98,6 +101,8 @@ const { cmd, opts } = parseArgs(process.argv.slice(2));
 const home = opts.home || os.homedir();
 const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, env: process.env, home });
 keepDataDirPrivate(dataDir);
+let prunedPlans = [];
+try { prunedPlans = pruneExpiredPlans(dataDir); } catch { /* best effort: a plan that cannot be removed is listed by `privacy` */ }
 const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;
 const log = (m) => process.stderr.write(`[scout] ${m}\n`);
 const style = detectStyle({ isTTY: process.stdout.isTTY, env: process.env, opts, platform: process.platform });
@@ -369,6 +374,13 @@ async function main() {
       const r = await runKickoff({ planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
       const toolkit = { ...r.toolkit, items: withManualSteps(r.toolkit.items, isExperimental(dataDir)) }; // installer off: manual steps, no Tool Scout install or build command
       console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit }, null, 2) : formatKickoff({ ...r, toolkit }));
+      break;
+    }
+    case 'privacy': {
+      const r = privacyReport(dataDir);
+      if (opts.json) { console.log(JSON.stringify({ dataSource, ...r, expiredPlansRemoved: prunedPlans.length }, null, 2)); break; }
+      console.log(formatPrivacy(r, { dataLine: dataLine() }));
+      if (prunedPlans.length) console.log(`\nRemoved ${prunedPlans.length} expired plan${prunedPlans.length === 1 ? '' : 's'} just now (plans last ${15} minutes).`);
       break;
     }
     case 'experimental': {

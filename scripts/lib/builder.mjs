@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { scanText } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
-import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, planId, planExpiry, expiredReason, fencePlan, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
+import { PLAN_TTL_MIN, NO_LICENSE, sha256, planFile, planIntact, planId, planExpiry, expiredReason, dropPlan, fencePlan, tilde, loadLog, saveLog, readJson, writeJsonStyled } from './installer.mjs';
 import { currentVersion, replaceFiles, restoreReplaced, supersede, replaceLine } from './replace.mjs';
 
 export const FORMS = ['skill', 'command', 'subagent', 'hook', 'memory'];
@@ -351,6 +351,7 @@ const readPlan = (dataDir, id) => (/^[0-9a-f]{12}$/.test(String(id)) ? readJson(
  * can't be given without the first having run: no flag in the plan file stands for the first yes.
  */
 export async function confirmBuild({ client = null, id, home, cwd, dataDir, now = Date.now(), hook = false }) {
+  const given = id;
   let rec = readPlan(dataDir, id);
   if (hook) {
     if (rec?.body?.kind === 'build') return { ok: false, reason: rec.body.hook ? `first confirm the plan with --confirm ${id}: it prints the ID that --confirm-hook takes (not the plan's)` : `plan ${id} is not a hook: use --confirm` };
@@ -360,7 +361,7 @@ export async function confirmBuild({ client = null, id, home, cwd, dataDir, now 
   }
   if (!rec || rec.body?.kind !== 'build') return { ok: false, reason: `unknown plan ID ${id}: make a plan first with build … --plan` };
   if (!planIntact(rec, id)) return { ok: false, reason: `plan ${id} changed since the plan was made (its file was edited): make a new plan and review it` };
-  if (now > planExpiry(rec)) return { ok: false, reason: expiredReason(rec, id) };
+  if (now > planExpiry(rec)) { dropPlan(dataDir, id); dropPlan(dataDir, given); return { ok: false, reason: expiredReason(rec, id) }; }
   const b = rec.body;
   if (b.blockers.length) return { ok: false, reason: `the plan is blocked: ${b.blockers.join('; ')}` };
   let fresh;

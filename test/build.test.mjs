@@ -68,9 +68,11 @@ test('confirm refuses an unknown or expired plan, and a draft changed since the 
   const plan = await makeBuildPlan({ ...ctx(sb), form: 'skill', name: 'x-skill', from });
   assert.match((await confirmBuild({ ...ctx(sb), id: '000000000000' })).reason, /unknown plan/);
   assert.match((await confirmBuild({ ...ctx(sb, { now: NOW + (PLAN_TTL_MIN * 60 + 1) * 1000 }), id: plan.id })).reason, /expired/);
+  assert.ok(!fs.existsSync(path.join(sb.dataDir, 'plans', `${plan.id}.json`)), 'v0.17: an expired plan is deleted when it is refused');
+  const plan2 = await makeBuildPlan({ ...ctx(sb), form: 'skill', name: 'x-skill', from });
   fs.appendFileSync(path.join(from, 'SKILL.md'), '\nmore');
   const before = snapshot(sb);
-  const res = await confirmBuild({ ...ctx(sb), id: plan.id });
+  const res = await confirmBuild({ ...ctx(sb), id: plan2.id });
   assert.equal(res.ok, false);
   assert.match(res.reason, /changed since the plan/);
   assert.deepEqual(changed(before, snapshot(sb)), []);

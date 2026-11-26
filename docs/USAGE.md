@@ -28,6 +28,7 @@ All commands: `node scripts/scout.mjs <command> [options]`.
 | `kickoff --summary [--json]` | what was installed or built since the kickoff, each with its undo command |
 | `undo <name>` | removes exactly what an install logged and restores the logged settings; after a `--replace`, puts the previous version back |
 | `installed [--json]` | what Tool Scout installed and hasn't undone |
+| `privacy [--json]` | every file Tool Scout keeps (name, size, what is in it, how sensitive, the command that deletes it), what goes into Claude's context and over the network, and how to delete everything. It prints names, never contents. Every command deletes expired install and build plans first (they last 15 minutes) |
 | `experimental [on\|off]` | the experimental installer setting (off by default). `install`, `build` and hook activation only run with it on, and every run prints a warning; `undo` and `installed` always work. Turn it on yourself, in your own terminal, not through Claude |
 | `dismiss [owner/repo]` | never recommend this repo again; no argument lists dismissed repos |
 | `undismiss <owner/repo> \| --all` | bring it back |
