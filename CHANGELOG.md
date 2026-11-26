@@ -2,6 +2,23 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.17.1 (2026-11-26)
+
+Review findings that apply with the installer off. No ranking change.
+
+- `--data` (and `SCOUT_DATA`) now refuse a folder that isn't Tool Scout's own: it needs the
+  `.tool-scout-data` marker, or must be new, empty, or hold only files Tool Scout writes. Permissions
+  are only ever changed on Tool Scout's own files, never on a project's.
+- A project you left out now contributes nothing: not its sessions (as before), and now not the tools
+  installed in its folder or its hooks in `audit` either.
+- `--offline` makes no network request at all, which a test checks. `all` uses the saved catalog and says
+  how old it is, instead of crawling; `check`, `crawl` and `line` say they need the network.
+- A small starter catalog ships with Tool Scout, so the first run ranks at once instead of waiting about
+  two minutes. The real crawl runs in the background (or first, with `--refresh`).
+- `kickoff` no longer prints your plan text, the plan's path or the project's path and name into Claude's
+  context. The needs file on disk still keeps the plan.
+- Running the tests no longer opens a browser tab (the `me --open` test).
+
 ## v0.17.0 (2026-11-26)
 
 Safe mode, after an independent review of v0.16.1. Tool Scout now only recommends and checks. No
