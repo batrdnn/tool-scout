@@ -178,6 +178,10 @@ same text without them; `--json` is for reading results.
 Only when the user chose "Install it" (or asked to install this one tool), and never when the check
 says "do not install":
 
+0. Before the plan, examine every medium or high flag in the pick's `trust.flags` (other than the
+   injection-type ones, which are never shown): run `… line <owner/repo> <file>:<line> --plain`, show
+   the line in a code block and say in one plain sentence what it is. Never offer "Install it" with an
+   unexamined medium or high flag.
 1. Make the plan: `… install <owner/repo> --plan --plain` (add `--part <name>` for one skill,
    plugin or server of a collection, e.g. `effort.collection.match.name`; add `--scope project`
    only if the user asked for this project only). It writes nothing.

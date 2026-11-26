@@ -21,6 +21,7 @@
 //   scout.mjs me --blind-spot [--json] [--offline]   one line: the best tool for the topic of your animal's blind spot
 //                                              (local matching; the only request is the content scan of the one matched repo)
 //   scout.mjs head <owner/repo> [--part NAME]  first lines of the SKILL.md(s) a close call rests on, as fenced data
+//   scout.mjs line <owner/repo> <file>:<line>  one line the check flagged, fenced, invisible characters written out
 //                                              (from the scan's cache; refuses repos flagged for injection-type content)
 //   scout.mjs install <owner/repo> [--part NAME] [--scope user|project] [--replace] --plan   writes nothing: prints the plan and its ID
 //                                              --replace: swap an existing skill folder for this version in one step (undo restores it)
@@ -56,7 +57,7 @@ import { scanRepo, headOf, unfence, quoteLines } from './scan.mjs';
 import { slim, classify } from './crawl.mjs';
 import { loadSettings, excludeProject, includeProject } from './settings.mjs';
 import { rate, ratingStats, shareText } from './ratings.mjs';
-import { checkRepo, formatCheck } from './check.mjs';
+import { checkRepo, formatCheck, flagLine } from './check.mjs';
 import { auditLocal, formatAudit } from './audit.mjs';
 import { resolveDataDir, keepDataDirPrivate, SOURCE_LABELS } from './datadir.mjs';
 import { withProjectInstalls } from './installed.mjs';
@@ -202,6 +203,14 @@ async function main() {
       const saved = readJSON('profile.json');
       if (r.effort) matchCollections([r], Object.keys(saved?.topicWeights || saved?.topics || {}), TOPICS);
       console.log(opts.json ? JSON.stringify(r, null, 2) : style.pretty ? prettyCheck(r, P) : formatCheck(r));
+      break;
+    }
+    case 'line': { // one flagged line of a repo, fenced, invisible characters written out (see the check skill)
+      const [repo, at] = opts._;
+      const m = /^(.+):(\d+)$/.exec(at || '');
+      if (!repo || !m) throw new Error('usage: line <owner/repo | GitHub URL> <file>:<line> [--json|--plain]');
+      const r = await flagLine(createClient({ token: githubToken(), log }), repo, m[1], Number(m[2]));
+      console.log(opts.json ? JSON.stringify(r, null, 2) : r.shown ? r.text : `Not shown: ${r.reason}.`);
       break;
     }
     case 'audit': {
@@ -388,7 +397,7 @@ async function main() {
         console.log(`Unknown command: ${cmd}. If a Tool Scout skill asked for it, this Tool Scout (${pkgVersion()}) is older than the skill: run claude plugin update tool-scout@tool-scout, then restart Claude Code.`);
         process.exitCode = 1;
       }
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|audit|head|install|build|kickoff|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|line|audit|head|install|build|kickoff|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

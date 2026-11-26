@@ -270,6 +270,9 @@ export const unfence = (text) => String(text).replace(/\b(BEGIN|END)(\s+)(REPO\s
  * Repo text for inside a fence: every line starts with "| " (line breaks of any kind included), so no
  * line of it can look like the fence's own BEGIN / END line, however the marker is spelled.
  */
+/** Repo text shown in full on one line: newlines, escapes and invisible characters written out as \n, \u{…}. */
+export const visible = (t) => String(t ?? '').replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\u115F\u1160\u3164\uFFA0]/gu,
+  (c) => (c === '\n' ? '\\n' : c === '\t' ? '\\t' : `\\u{${c.codePointAt(0).toString(16)}}`));
 export const quoteLines = (text) => String(text).replace(/\r\n?|[\u0085\u2028\u2029]/g, '\n').split('\n').map((l) => `| ${l}`).join('\n');
 
 export const HEAD_LINES = 40;

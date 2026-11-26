@@ -17,7 +17,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { checkRepo } from './check.mjs';
-import { scanText, explainedHostsOf } from './scan.mjs';
+import { scanText, explainedHostsOf, visible } from './scan.mjs';
 import { normalizeRepo } from './feedback.mjs';
 import { RateLimitError } from './github.mjs';
 import { mcpCommands, installMethod, skillDirsOf, NAME_OK } from './install.mjs';
@@ -188,8 +188,7 @@ const CONTROL = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFE
 const clean = (t) => { const c = String(t ?? '').replace(CONTROL, '').replace(/\s+/g, ' ').trim(); return c.length > 300 ? `${c.slice(0, 299)}…` : c; };
 
 /** Repo text shown in full on one line: newlines, escapes and invisible characters written out as \n, \u{…}. */
-export const visible = (t) => String(t ?? '').replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\u115F\u1160\u3164\uFFA0]/gu,
-  (c) => (c === '\n' ? '\\n' : c === '\t' ? '\\t' : `\\u{${c.codePointAt(0).toString(16)}}`));
+export { visible }; // defined in scan.mjs (shared with `line`)
 
 /** `main`, then every other field of `o` (env, cwd, headers, allowedEnvVars …) as JSON: nothing of it is left out. */
 const withRest = (main, o, shown) => { const rest = Object.fromEntries(Object.entries(o).filter(([k]) => !shown.includes(k))); return Object.keys(rest).length ? `${main} (also: ${JSON.stringify(rest)})` : main; };
