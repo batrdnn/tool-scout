@@ -1,6 +1,6 @@
 {
   "name": "tool-scout",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Personalized recommendations for trending Claude Code skills, plugins and MCP servers",
   "type": "module",
   "bin": {

@@ -2,6 +2,24 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.15.0 (2026-11-26)
+
+Tool Scout now runs and is tested on Windows, and every push is checked on three systems.
+
+- GitHub Actions runs the tests and `claude plugin validate` on ubuntu, macOS and Windows with
+  Node 20, 22 and 24 on every push and pull request (9 jobs, offline, no secrets). A status badge
+  is on the README.
+- The minimum is now Node 20 (it was 18). The startup check, `package.json`, the README, TESTING.md
+  and every skill's "Node is too old" text say the same.
+- Windows fixes found by the CI logs: `npm test` works with Node 20 in PowerShell, file URLs
+  become real paths, hook commands quote Windows paths (with forward slashes), `audit` finds a
+  hook's script, plans show `~/...` paths the same way everywhere, and `me --card --open` opens
+  the card with `start`. Text files are pinned to LF with a `.gitattributes`.
+- What can't work on Windows now fails with a message, and the README Requirements say so:
+  installs that run the `claude` CLI need `claude.exe` (a `claude.cmd` shim is refused, since
+  Tool Scout never runs a shell), and POSIX file modes (0600/0700) don't exist there.
+- The README Requirements now say "Tested on macOS, Linux and Windows."
+
 ## v0.14.1 (2026-11-26)
 
 Kickoff answers every line of your plan, and stops matching tools to tasks that are not tool work.
