@@ -2,6 +2,25 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.17.0 (2026-11-26)
+
+Safe mode, after an independent review of v0.16.1. Tool Scout now only recommends and checks. No
+ranking change.
+
+- Installing, building and turning on hooks are off by default. `scout`, `check`, `audit`, `me` and
+  `kickoff` still work, read-only, and show manual install steps instead of "Install it" or "Build my
+  own". The installer is still in the code, behind `scout.mjs experimental on` (off by default, you turn
+  it on yourself, and every run prints a warning). `undo` and `installed` always work.
+- The review's C1, C2, C5 and C6 (a plan can be confirmed by the agent that made it, a marketplace name
+  can bring in a different plugin, a symlink can redirect a project write, undo can report success when
+  it failed) are reproduced as skipped tests, "known, fixed in v0.18".
+- The README, FAQ, SECURITY.md, TESTING.md, USAGE, the launch post and the skills no longer claim that
+  "every install can be undone" or that nothing about you leaves the machine. They say what Tool Scout
+  keeps, and that a summary goes into Claude's context when you run a skill.
+- New `privacy` command: every file Tool Scout keeps, what is in it and how to delete it (it never
+  prints contents). Expired install and build plans are now deleted by every command.
+- Anything that writes defaults to project scope, never user. `--scope user` is only honored when asked.
+
 ## v0.16.1 (2026-11-26)
 
 Three fixes from a real check and install of a hosted MCP server. No ranking change.
