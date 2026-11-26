@@ -1,6 +1,7 @@
-// v0.9.1 item 1: when Tool Scout itself can install a pick (a skill folder it copies, a plugin
-// marketplace, a README `claude mcp add` it can run), check and scout say so and offer "Install it".
-// They never say "no install command" for those.
+// v0.9.1 item 1, changed in v0.17 (safe mode): when Tool Scout's installer supports a pick (a skill
+// folder, a plugin marketplace, a README `claude mcp add`), check and scout no longer offer to install
+// it: they say to install it yourself, by hand, at project scope. They never say "no install command"
+// for those.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,8 @@ import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
 
 const NOW = Date.parse('2026-11-23T12:00:00Z');
-const PHRASE = "Tool Scout can install this for you (you'll see a plan first)";
+const PHRASE = "By hand, yourself (Tool Scout doesn't install in this version)";
+const OLD_PHRASE = "Tool Scout can install this for you";
 const NO_CMD = /no (?:Claude Code )?install command|no Claude Code command/i;
 const blobs = (paths) => paths.map((p) => ({ path: p, type: 'blob' }));
 
@@ -45,18 +47,18 @@ for (const [label, o, method] of [
   ['a plugin marketplace', { files: { '.claude-plugin/marketplace.json': '{"name":"acme","plugins":[{"name":"tool","source":"./"}]}' } }, 'plugin'],
   ['a README claude mcp add', { repo: { ...meta, topics: ['mcp-server'], description: 'MCP server for tickets' }, readme: '```\nclaude mcp add tool -- npx -y tool-mcp\n```', files: { 'src/index.ts': 'x' } }, 'mcp'],
 ]) {
-  test(`check, ${label}: "${PHRASE}", never "no install command"`, async () => {
+  test(`check, ${label}: "${PHRASE}", never "no install command", and no Tool Scout install command`, async () => {
     const r = await check(o);
     assert.equal(r.install.toolScout, method);
     for (const text of [formatCheck(r), prettyCheck(r, P)]) {
       assert.ok(text.includes(PHRASE), text);
-      assert.ok(text.includes('scout.mjs install acme/tool --plan'), 'how to see the plan');
+      assert.ok(!text.includes(OLD_PHRASE) && !text.includes('scout.mjs install acme/tool --plan'), 'no Tool Scout install offer');
       assert.doesNotMatch(text, NO_CMD);
     }
   });
 }
 
-test('check: README commands are still shown next to it, as "review before running"', async () => {
+test('check: README commands are still shown next to it, as "review before running", to run yourself', async () => {
   const r = await check({ readme: '```\n/plugin marketplace add acme/tool\n/plugin install tool@acme\n```', files: { '.claude-plugin/marketplace.json': '{"name":"acme","plugins":[{"name":"tool"}]}' } });
   const text = formatCheck(r);
   assert.ok(text.includes(PHRASE));
@@ -70,7 +72,7 @@ test('check: a repo Tool Scout cannot install still links the README', async () 
   assert.match(formatCheck(r), /See the README: https:\/\/github\.com\/acme\/tool#readme/);
 });
 
-test('scout picks: toolScoutInstall, and the shortlist text says Tool Scout can install it', async () => {
+test('scout picks: toolScoutInstall is still set, and the shortlist text says to install it yourself', async () => {
   const rec = { name: 'acme/tool', kind: 'skill', description: 'x', stars: 10, starsPerDay: 1, momentumSource: 'measured', evidence: [], trust: { tier: 'high', notes: [] }, install: 'See the README for install steps: https://github.com/acme/tool#readme', installSource: 'readme-link' };
   const client = createClient({ fetchImpl: gh({ files: { 'skills/tidy/SKILL.md': '---\nname: tidy\n---\nTidy.' } }) });
   await scanRecommendations([rec], { repos: { 'acme/tool': { pushedAt: meta.pushed_at } } }, { client, now: NOW });
@@ -81,12 +83,12 @@ test('scout picks: toolScoutInstall, and the shortlist text says Tool Scout can 
 });
 
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\s+/g, ' ');
-test('skills: say the phrase and offer "Install it" when Tool Scout can install a pick; never "no install command" for those', () => {
-  const check = read('skills/check/SKILL.md');
-  assert.ok(check.includes(`\`install.toolScout\` is set, say "${PHRASE}"`), 'check');
-  assert.match(check, /never say[^.]*no install command/i);
-  const scout = read('skills/scout/SKILL.md');
-  assert.ok(scout.includes(`\`toolScoutInstall\` is set, say "${PHRASE}"`), 'scout');
-  assert.match(scout, /never say[^.]*no install command/i);
-  assert.match(scout, /offer "Install it"/);
+test('skills: give manual steps when Tool Scout supports a pick; never "no install command" for those, never an install offer', () => {
+  const check = read('skills/check/SKILL.md').split('## Experimental installer')[0];
+  assert.match(check, /\*\*Install:\*\* Tool Scout doesn't install anything in this version[^.]*manual steps/);
+  assert.match(check, /Only when `install\.commands` is empty and `install\.toolScout` is not set, say the README has no Claude Code install command/);
+  const scout = read('skills/scout/SKILL.md').split('## Experimental installer')[0];
+  assert.match(scout, /\*Install:\* Tool Scout doesn't install anything in this version[^.]*manual steps/);
+  assert.match(scout, /When `toolScoutInstall` is `skill`/);
+  for (const md of [check, scout]) assert.doesNotMatch(md, /Tool Scout can install this for you|offer "Install it"/);
 });

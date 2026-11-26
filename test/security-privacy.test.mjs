@@ -30,6 +30,7 @@ function world() {
   fs.writeFileSync(path.join(root, 'PLAN.md'), `# ${PLAN_TEXT}\n\nA Python service with pytest tests and GitHub Actions CI.\n`);
   fs.writeFileSync(path.join(bin, 'claude'), `#!/bin/sh\necho "$@" >> "${root}/claude-calls.txt"\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(data, 'settings.json'), JSON.stringify({ experimentalInstaller: true })); // v0.17: these runs install, which is off unless this is set
   return { root, home, cwd, data, bin, capture: path.join(root, 'capture.jsonl') };
 }
 

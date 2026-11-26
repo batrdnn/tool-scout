@@ -3,5 +3,5 @@ Verdict: safe-looking
 Checked 2 files: README, skills/a/SKILL.md
 Metadata trust: high (91/100). 120345★, 4100 forks, MIT, organization account, created 2024-02-01, last push 2026-11-24
 Flags: none.
-Install: Tool Scout can install this for you (you'll see a plan first): scout.mjs install big/agent-kit --plan
+Install: By hand, yourself (Tool Scout doesn't install in this version): read the repo first, then copy its skill folder into .claude/skills/ in your project.
 No flags does not mean safe: this is a heuristic scan of the README, SKILL.md files, install scripts, hooks and MCP config, not a security review.

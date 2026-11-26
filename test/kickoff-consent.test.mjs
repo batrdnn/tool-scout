@@ -28,11 +28,9 @@ test('a medium trust tier is a doubt; a high tier with no heavy setup is none', 
   assert.equal(ok.doubts, undefined);
 });
 
-test('the skill puts "Skip (recommended)" first in the yes/no for an item with doubts', () => {
-  const flow = SKILL.split(/^## /m).find((s) => /^Each chosen item/.test(s));
+test('the skill says an item with doubts can be skipped, and says the doubt in one line', () => {
+  const flow = SKILL.split(/^## /m).find((s) => /^Manual steps for each chosen item/.test(s)).replace(/\s+/g, ' ');
   assert.match(flow, /doubts/i);
-  assert.match(flow, /"Skip \(recommended\)"[^.]*first/i);
-  assert.match(flow, /Skip \(recommended\)[^]*Yes, (?:install|build) it/);
-  assert.match(flow, /one yes\/no/, 'still one yes/no per item');
-  assert.match(flow, /"Skip" \(recommended\)|Skip.{0,40}go on to the next item|skip it and go on/i);
+  assert.match(flow, /heavy setup, a middling trust tier/);
+  assert.match(flow, /Say the doubt in one line, and say skipping it is fine/i);
 });

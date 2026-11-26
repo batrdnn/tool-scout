@@ -38,16 +38,18 @@ const buildRules = (md, label) => {
 test('scout: "Build my own" flow', () => buildRules(read('skills/scout/SKILL.md'), 'scout'));
 test('check: "Build my own" flow', () => buildRules(read('skills/check/SKILL.md'), 'check'));
 
-test('scout offers "Build my own" for Build your own picks; check offers it next to "Install it"', () => {
-  const scout = flat(read('skills/scout/SKILL.md'));
-  assert.match(scout, /- "Build my own": instead of "Install it", for a pick whose advice is Build your own[^.]*Building your own, with consent/);
-  const check = flat(read('skills/check/SKILL.md'));
-  assert.match(check, /When the advice is Build your own, offer "Build my own" as well[^.]*Building your own, with consent/);
+test('v0.17: "Build my own" is not offered; the build flow is only in the experimental-installer section', () => {
+  for (const name of ['scout', 'check']) {
+    const md = flat(read(`skills/${name}/SKILL.md`));
+    const [main, exp] = md.split('## Experimental installer (off by default)');
+    assert.doesNotMatch(main, /offer "Build my own"|- "Build my own"/, name);
+    assert.ok(exp.includes('## Building your own, with consent'), name);
+  }
 });
 
 // ---- v0.10.0 item 4: "build me a skill that …", without a pick -----------------------------------
 
-test('scout: "build me a skill that …" (no pick) triggers the skill and goes through the same flow', () => {
+test('scout: "build me a skill that …" (no pick) still triggers the skill; the flow is experimental-only, and with the installer off it only drafts in chat', () => {
   const md = read('skills/scout/SKILL.md');
   const desc = md.match(/^description: (.*)$/m)[1];
   assert.match(desc, /build (?:me )?(?:a|their own) (?:skill|slash command)[^"]*"build me a skill that …"/i);
@@ -55,6 +57,8 @@ test('scout: "build me a skill that …" (no pick) triggers the skill and goes t
   for (const name of ['scout', 'check']) {
     const sec = section(read(`skills/${name}/SKILL.md`), '## Building your own, with consent');
     assert.match(sec, /without a pick \("build me a skill that …"[^)]*\)[^.]*the same steps[^.]*skip step 3[^.]*no `--source`/i, name);
+    const md = flat(read(`skills/${name}/SKILL.md`));
+    assert.match(md, /the installer is off and the user asks you to build something.*?Tool Scout doesn't build it in this version\. Show a draft in chat/i, name);
   }
 });
 

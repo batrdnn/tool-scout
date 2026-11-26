@@ -86,14 +86,18 @@ same text without them; `--json` is for reading results.
    *Why you:* tie it to concrete evidence: the `stackNote` when there is one ("you use pytest in
    2 projects"), otherwise the topic counts ("testing came up in 10 of your 20 sessions, and you
    hit trouble with it in 2").
-   *Install:* when `toolScoutInstall` is set, say "Tool Scout can install this for you (you'll see
-   a plan first)" and offer "Install it" in step 7; never say there is no install command for
-   these. The `install` value goes in a code span. When `installSource` is `readme`, it's the
-   real Claude Code command taken from the repo's README (`installCommands` lists them in order,
-   e.g. marketplace add, then plugin install; `installNote` "then choose a plugin with /plugin"
-   means the marketplace holds several plugins); say "from the README". When it's `readme-link`
-   and `toolScoutInstall` is not set, the README has no Claude Code command: give the README link
-   and don't invent one. Never run it yourself; the user decides.
+   *Install:* Tool Scout doesn't install anything in this version (safe mode), so give the manual
+   steps: never offer to install it for them, and never say a Tool Scout command will. When
+   `installSource` is `readme`, the `install` value is the real Claude Code command taken from the
+   repo's README (`installCommands` lists them in order, e.g. marketplace add, then plugin install;
+   `installNote` "then choose a plugin with /plugin" means the marketplace holds several plugins):
+   put it in a code span, say "from the README, review before running", and say the user runs it
+   themselves, in their own terminal, after reading the repo, at project scope (`--scope project`
+   where the command takes a scope). When `toolScoutInstall` is `skill` and the README has no command,
+   the manual steps are: read its SKILL.md, then copy the skill folder into `.claude/skills/` in the
+   project. When `installSource` is `readme-link` and `toolScoutInstall` is not set, the README has no
+   Claude Code command: give the README link and don't invent one. Never run any of it yourself; the
+   user decides.
    *Build or install:* one line from `effort`: `effort.adviceLabel` (Build your own, Either,
    Install or Reference), then, unless it's Install or Reference, `effort.buildForm` and
    `effort.buildTime` in parentheses, then `effort.reason`. Say Reference as "Reference: read it,
@@ -137,41 +141,135 @@ same text without them; `--json` is for reading results.
 
 6. End with a short safety reminder: skills and MCP servers run with your permissions.
    Skim the repo (especially `SKILL.md`, install scripts and any network calls) before
-   installing. Install only as in Installing, with consent below: a plan, the user's yes to that
-   plan, then --confirm.
+   installing, and run `/tool-scout:check <owner/repo>` on it first. Tool Scout only recommends and
+   checks in this version: the user installs by hand, from the manual steps.
 
 7. **Ask what's next, as multiple choice.** With the AskUserQuestion tool, ask one question per
    pick, all in one call (it takes up to 4 questions; with 5 picks, ask about picks 1 to 4, then
    pick 5 in a second call). Each question: "What next for owner/repo?", header `Pick N`,
    `multiSelect: true`, and exactly these options, each mapped to something that already exists:
-   - "Why build vs install?": explain the pick's `effort` estimate in a few plain lines: what it is
+   - "How to install it": explain the pick's `effort` estimate in a few plain lines: what it is
      (`typeLabel`), its size (`codeFiles`, `loc` and `languages`, or `instructionLines` when it's
      only instructions; `dependencies`), what it needs (`needs.credentials`, `needs.services`,
      `needs.network`), and why that gives `adviceLabel` (the thresholds: up to 300 lines of code
      and no external API is small, 3,000 or more is large, recently pushed with 1,000 or more is
-     hard to keep up with). Then end with the install steps: when `toolScoutInstall` is set, "Tool
-     Scout can install this for you (you'll see a plan first)" ("Install it"), and the pick's
-     `install` value (or `installCommands`) in a code block, as "from the README, review before
-     running". Don't run it. Without `effort`, say the repo wasn't scanned, then give the install
-     steps.
-   - "Install it": as in Installing, with consent below (the plan includes the check's verdict and
-     coverage). For a pick whose `trust.flags` has a `high` entry (its check says "do not install"), offer "Check it first" instead: run `… check <owner/repo> --json` and present it the way
-     the `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't
-     mean safe").
-   - "Build my own": instead of "Install it", for a pick whose advice is Build your own (the
-     `effort` advice build, or your own Build your own decision on a close call): as in Building
-     your own, with consent below.
+     hard to keep up with). Then end with the manual steps from step 5: the pick's `install` value
+     (or `installCommands`) in a code block, as "from the README, review before running", at project
+     scope, for the user to run themselves. Don't run it. Without `effort`, say the repo wasn't
+     scanned, then give the manual steps. When the advice is Build your own, add that you can draft
+     it in chat, as text, for the user to read and save themselves; Tool Scout doesn't write it into
+     the project in this version.
+   - "Check it first": run `… check <owner/repo> --json` and present it the way the
+     `/tool-scout:check` skill does (verdict, coverage, flags, metadata, "no flags doesn't mean
+     safe"). Offer this first for a pick whose `trust.flags` has a `high` entry (its check says
+     "do not install"): give no install steps for it.
    - "Rate useful / not": ask one follow-up question per such pick with the options "Useful" and
      "Not useful", then record each answer as in Ratings below.
    - "Not interested": dismiss it as in Feedback: "not interested" below, and mention undo.
 
-   None of these installs anything without the user's yes to a plan: "Install it" makes a plan and
-   asks. When several picks get "Install it", each one gets its own plan and its own yes/no question,
-   one at a time. Never offer to build a pick except as "Build my own", which drafts, plans and asks the same way. When several are picked, do them in the order above. A typed "Other" answer is a
-   normal message: handle it as you would in chat. If the user skips a question, do nothing for
-   that pick. If AskUserQuestion isn't available, ask for a rating in one line instead, for
-   example: "Was each pick useful? Reply like `1 useful, 2 not, 3 useful`, or skip." Either way,
-   this is how the scout learns whether it helps.
+   None of these installs or writes anything: Tool Scout is read-only in this version. When several
+   are picked, do them in the order above. A typed "Other" answer is a normal message: handle it as
+   you would in chat. If the user skips a question, do nothing for that pick. If AskUserQuestion isn't
+   available, ask for a rating in one line instead, for example: "Was each pick useful? Reply like
+   `1 useful, 2 not, 3 useful`, or skip." Either way, this is how the scout learns whether it helps.
+
+## If the script fails
+
+If running the script fails because Node.js is missing (`node: command not found`) or too old
+(the script prints "Tool Scout needs Node.js 20 or newer"), tell the user in plain words: Tool
+Scout needs Node.js 20 or newer; they can check with `node --version` and install it from
+nodejs.org or with `brew install node`, then try again. If it says it could not reach GitHub,
+say it needs internet access to api.github.com, and behind a proxy to run it with
+`NODE_USE_ENV_PROXY=1` in front. Don't try to install Node yourself.
+
+If the script says `Unknown command`, or prints its usage line instead of a result, for a command
+this skill describes, the installed Tool Scout is older than this skill. Tell the user to run
+`claude plugin update tool-scout@tool-scout` and then restart Claude Code. Never run another copy
+of `scout.mjs` instead, such as a working copy of the repo: it isn't what they installed or
+approved.
+
+## Ratings
+
+When the user rates picks (by number, name, 👍/👎, "useful"/"not", "yes"/"no"), record each one:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --plain --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+- Resolve numbers and names to the exact `owner/repo` you showed. Skip any pick they didn't rate.
+- Confirm in one short line. Don't ask follow-up questions about the ratings.
+- A `not` rating is not a dismissal. If they also say "never show it again", dismiss it too.
+- `… stats --plain` prints the share of rated picks that were useful. For "share stats", run
+
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" stats --share --plain --data "${CLAUDE_PLUGIN_DATA}"
+  ```
+
+  and show its output verbatim in a code block. It's the only text a tester is asked to share
+  (counts and rated repo names). Never send it anywhere yourself.
+- To correct a rating: `… rate <owner/repo> clear --plain`, then rate again.
+
+## Feedback: "not interested"
+
+When the user says they don't want a pick ("not interested in X", "skip X", "never show X",
+"dismiss X"), dismiss it so it never comes back:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --plain --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+- Resolve X to the exact `owner/repo` from the results you just showed (X may be a number like
+  "#3", a repo name, or a description). If it's ambiguous, ask which one.
+- If X is a category ("not interested in trading tools"), dismissal is per repo: dismiss the
+  shown picks in that category, list them, and say the profile itself is unchanged.
+- Confirm in one line, mention undo, and offer the next-best pick from the shortlist.
+- Undo: `… undismiss <owner/repo> --plain` (or `undismiss --all --plain`). List: `… dismiss --plain` with no repo.
+- `dismissedCount` in the JSON says how many repos are hidden.
+
+## Leaving a project out
+
+If the user wants a project left out of their profile ("ignore my tool-scout sessions", "don't
+count project X", typical while developing this plugin), persist it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" exclude-project <folder name or path> --plain --data "${CLAUDE_PLUGIN_DATA}"
+```
+
+Then re-run the scout. Undo: `… include-project <name> --plain` (or `--all`); list: `… exclude-project --plain`.
+For a single run only, add `--exclude-project <name>` to the scout command instead.
+`profile.excludedProjects` in the JSON says how many projects were left out.
+
+## Limited history
+
+When `limitedHistory` is true (fewer than 10 sessions in the window), start by saying so in one
+line, e.g. "Limited history: only 4 sessions in the last 30 days, so treat these as early
+guesses", and show **at most 3** picks. Relay every entry in `notes`. Picks marked
+`thinEvidence` rest on a topic from a single session: don't present them as a fit; mention them
+only if the user asks for more. If `profile.sessions` is 0, say there's no history yet and
+suggest running the scout again after a few sessions.
+
+## Experimental installer (off by default)
+
+Tool Scout's installer and builder are switched off in this version (v0.17, safe mode), because an
+independent review found they can't be trusted yet: a plan's confirmation is not a human decision (an
+agent can confirm its own plan), an existing marketplace name can bring in a different plugin than the
+one reviewed, a project-scoped write can follow a symlink out of the project, and undo can report
+success while the change is still there. The code stays, behind an experimental setting that is off
+by default. The rules:
+
+- Everything below this heading applies only when `… experimental --plain` says the installer is on.
+  Check that before you offer anything. When it is off, give manual steps (step 5) and nothing else.
+- The user turns it on or off, in their own terminal (in Claude Code, a line that starts with `!`):
+  `scout.mjs experimental on`. Never run `… experimental on --plain` yourself, never say you can do it
+  for them, and when a script says the installer is off, relay that and stop.
+- When it is on, every run prints a warning: relay it the first time, word for word. Don't call an
+  install safe or say it can always be undone: undo is not guaranteed.
+- The default scope is project. Pass `--scope user` only when the user explicitly asked for it for
+  that one item.
+- When the installer is off and the user asks you to build something (a skill, a slash command, a
+  subagent, a hook, a CLAUDE.md rule), Tool Scout doesn't build it in this version. Show a draft in
+  chat for them to read and save themselves; don't write into `~/.claude` or the project's `.claude/`
+  folder for them through Tool Scout, and never turn on a hook for them.
 
 ## Installing, with consent
 
@@ -271,78 +369,3 @@ reference repo:
 11. Report what was written where, and how to undo it: `… undo <name> --plain`.
 
 Nothing from the reference repo is ever run, and nothing is written outside the plan.
-
-## If the script fails
-
-If running the script fails because Node.js is missing (`node: command not found`) or too old
-(the script prints "Tool Scout needs Node.js 20 or newer"), tell the user in plain words: Tool
-Scout needs Node.js 20 or newer; they can check with `node --version` and install it from
-nodejs.org or with `brew install node`, then try again. If it says it could not reach GitHub,
-say it needs internet access to api.github.com, and behind a proxy to run it with
-`NODE_USE_ENV_PROXY=1` in front. Don't try to install Node yourself.
-
-If the script says `Unknown command`, or prints its usage line instead of a result, for a command
-this skill describes, the installed Tool Scout is older than this skill. Tell the user to run
-`claude plugin update tool-scout@tool-scout` and then restart Claude Code. Never run another copy
-of `scout.mjs` instead, such as a working copy of the repo: it isn't what they installed or
-approved.
-
-## Ratings
-
-When the user rates picks (by number, name, 👍/👎, "useful"/"not", "yes"/"no"), record each one:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" rate <owner/repo> useful|not --plain --data "${CLAUDE_PLUGIN_DATA}"
-```
-
-- Resolve numbers and names to the exact `owner/repo` you showed. Skip any pick they didn't rate.
-- Confirm in one short line. Don't ask follow-up questions about the ratings.
-- A `not` rating is not a dismissal. If they also say "never show it again", dismiss it too.
-- `… stats --plain` prints the share of rated picks that were useful. For "share stats", run
-
-  ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" stats --share --plain --data "${CLAUDE_PLUGIN_DATA}"
-  ```
-
-  and show its output verbatim in a code block. It's the only text a tester is asked to share
-  (counts and rated repo names). Never send it anywhere yourself.
-- To correct a rating: `… rate <owner/repo> clear --plain`, then rate again.
-
-## Feedback: "not interested"
-
-When the user says they don't want a pick ("not interested in X", "skip X", "never show X",
-"dismiss X"), dismiss it so it never comes back:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" dismiss <owner/repo> --plain --data "${CLAUDE_PLUGIN_DATA}"
-```
-
-- Resolve X to the exact `owner/repo` from the results you just showed (X may be a number like
-  "#3", a repo name, or a description). If it's ambiguous, ask which one.
-- If X is a category ("not interested in trading tools"), dismissal is per repo: dismiss the
-  shown picks in that category, list them, and say the profile itself is unchanged.
-- Confirm in one line, mention undo, and offer the next-best pick from the shortlist.
-- Undo: `… undismiss <owner/repo> --plain` (or `undismiss --all --plain`). List: `… dismiss --plain` with no repo.
-- `dismissedCount` in the JSON says how many repos are hidden.
-
-## Leaving a project out
-
-If the user wants a project left out of their profile ("ignore my tool-scout sessions", "don't
-count project X", typical while developing this plugin), persist it:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/scout.mjs" exclude-project <folder name or path> --plain --data "${CLAUDE_PLUGIN_DATA}"
-```
-
-Then re-run the scout. Undo: `… include-project <name> --plain` (or `--all`); list: `… exclude-project --plain`.
-For a single run only, add `--exclude-project <name>` to the scout command instead.
-`profile.excludedProjects` in the JSON says how many projects were left out.
-
-## Limited history
-
-When `limitedHistory` is true (fewer than 10 sessions in the window), start by saying so in one
-line, e.g. "Limited history: only 4 sessions in the last 30 days, so treat these as early
-guesses", and show **at most 3** picks. Relay every entry in `notes`. Picks marked
-`thinEvidence` rest on a topic from a single session: don't present them as a fit; mention them
-only if the user asks for more. If `profile.sessions` is 0, say there's no history yet and
-suggest running the scout again after a few sessions.

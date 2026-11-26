@@ -21,14 +21,22 @@ test('the skill asks one multi-select question to choose items (4 options at mos
   assert.match(SKILL, /"nothing needed" items are not options/i);
 });
 
-test('each chosen item gets its own plan, plain words, one yes/no and confirm: never in bulk', () => {
-  const flow = SKILL.split(/^## /m).find((s) => /^Each chosen item/.test(s));
-  assert.ok(flow, 'needs an "Each chosen item" section');
-  const order = ['--plan', 'plain words', 'one yes/no', '--confirm'].map((k) => flow.indexOf(k));
+test('v0.17: each chosen item gets its own manual steps, after a check; nothing runs', () => {
+  const flow = SKILL.split(/^## /m).find((s) => /^Manual steps for each chosen item/.test(s));
+  assert.ok(flow, 'needs a "Manual steps for each chosen item" section');
+  assert.match(flow, /in toolkit order/i);
+  assert.match(flow, /\/tool-scout:check/);
+  assert.match(flow, /Never run an install command/);
+  assert.doesNotMatch(flow, /--confirm|"Yes, install it"/);
+});
+
+test('the old per-item plan flow is only in the experimental section: plan, plain words, one yes/no, confirmation, never in bulk', () => {
+  const flow = SKILL.split(/^## /m).find((s) => /^Experimental installer/.test(s));
+  assert.ok(flow, 'needs an experimental-installer section');
+  const order = ['plan', 'plain words', 'one yes/no', 'confirmation'].map((k) => flow.indexOf(k));
   assert.ok(order.every((i) => i >= 0), `${order}`);
-  assert.deepEqual(order, [...order].sort((a, b) => a - b), 'plan, then plain words, then the question, then confirm');
-  assert.match(flow, /one item at a time/i);
-  assert.match(flow, /never (?:in bulk|several)/i);
+  assert.match(flow, /one at a time/i);
+  assert.match(flow, /never in bulk/i);
   assert.match(flow, /Installing, with consent|Building your own, with consent/);
 });
 

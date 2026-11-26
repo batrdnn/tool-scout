@@ -2,7 +2,7 @@
 // me.mjs), drawn with colors, boxes, dividers and aligned columns. Only used when stdout is a
 // TTY (see term.mjs: detectStyle); every function takes a painter P from term.mjs.
 
-import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT, TOOL_SCOUT_INSTALL } from './output.mjs';
+import { evidenceText, leftOutText, SHORTLIST_TITLE, SHORTLIST_HINT, installByHand } from './output.mjs';
 import { EGG_SESSIONS } from './me.mjs';
 import { NBSP, strWidth } from './term.mjs';
 import { halfBlocks, shaded } from './sprites.mjs';
@@ -57,7 +57,7 @@ function pickBox(P, r, i) {
   if (r.trust.notes.length) rows.push(['Watch out', r.trust.notes.join(', '), 'yellow', 'yellow']);
   if (r.effort) rows.push(['Effort', effortLine(r.effort), ADVICE[r.effort.advice] || 'magenta', ADVICE[r.effort.advice] || 'magenta']);
   if (r.toolScoutInstall) {
-    rows.push(['Install', TOOL_SCOUT_INSTALL]);
+    rows.push(['Install', installByHand(r.toolScoutInstall)]);
     if (r.installSource === 'readme') rows.push(['README', `${r.install}  (review before running)`]);
   } else rows.push(['Install', `${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`]);
   body.push(...P.fields(rows, { w: P.inner }));
@@ -182,8 +182,7 @@ export function prettyCheck(r, P) {
   if (r.effort) out.push('', P.divider('Build or install'), ...effortFields(r.effort, P));
   out.push('', P.divider('Install'));
   if (r.install.toolScout) {
-    out.push(...indented(P, `${TOOL_SCOUT_INSTALL}:`, 2));
-    out.push(...indented(P, `scout.mjs install ${r.name} --plan`, 4, 'cyan'));
+    out.push(...indented(P, installByHand(r.install.toolScout), 2));
   }
   if (r.install.commands.length) {
     out.push(...indented(P, `${r.install.toolScout ? 'Or from' : 'From'} the README; review before running:`, 2, 'dim'));

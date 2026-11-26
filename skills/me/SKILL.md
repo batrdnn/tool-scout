@@ -68,13 +68,11 @@ blind-spot tool":
 4. If it is `builtin` (a built-in Claude Code feature), there is nothing to install: tell them to type the feature themselves (it
    runs in their session), and stop.
 5. Otherwise (`install` or `official-plugin`), run `/tool-scout:check` on `blindSpotTool.check`
-   and show its verdict. Then offer "Install it" (one yes/no question) unless the verdict is "do not
-   install". On "Install it", follow the check skill's "Installing, with consent" with `blindSpotTool.next`
-   (`install <repo> [--part <plugin>] --plan`): show the plan in plain words and ask its one
-   yes/no before confirming it. Never pass `--confirm` before that answer.
+   and show its verdict. Then, unless the verdict is "do not install", give `blindSpotTool.manual`
+   (the manual steps: read the repo, then install it yourself at project scope, in your own terminal).
+   Tool Scout doesn't install anything in this version.
 
-This never installs anything on its own: the check, the plan and the "Install it" yes/no are each
-the user's step.
+This never installs anything: the check is read-only and the manual steps are the user's to run.
 
 ## Shareable card
 

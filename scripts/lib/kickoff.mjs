@@ -379,6 +379,7 @@ export function formatKickoff({ needsFile, needs: n, toolkit }) {
   toolkit.items.forEach((i, k) => {
     const what = i.kind === 'official-plugin' ? `${i.plugin} (official plugin)` : i.action === 'install' ? i.repo : i.action === 'builtin' ? i.name : i.action === 'nothing' ? i.topic : `${i.form} ${i.name}${i.source ? ` (idea from ${i.source})` : ''}`;
     out.push(`${k + 1}. ${ACTION_LABEL[i.action]}: ${what}`, `   ${i.reason}`);
+    if (i.manual) out.push(`   Manual steps: ${i.manual}`);
     if (i.next) out.push(`   Next: scout.mjs ${i.next}`);
     if (i.command) out.push(`   Command: ${i.command}`);
   });

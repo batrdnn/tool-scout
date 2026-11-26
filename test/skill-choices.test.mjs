@@ -1,6 +1,7 @@
 // Interactive choices in Claude Code: after the picks (and after /tool-scout:me) the skill asks
 // multiple-choice questions with AskUserQuestion. Every option maps to an action that already
-// exists. Installing happens only through the plan flow, one item and one "yes" at a time.
+// exists. Since v0.17 (safe mode) none of them installs or writes anything: "How to install it" gives
+// manual steps. The old plan flow lives only in the experimental-installer section.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -30,26 +31,26 @@ const ME_RAW = choices(ME, /^## Ask what's next/m);
 const SCOUT_SEC = flat(SCOUT_RAW);
 const ME_SEC = flat(ME_RAW);
 
-test('scout: after the picks, one multiple-choice question per pick with four existing actions ("Build my own" in place of "Install it" for Build your own picks)', () => {
+test('scout: after the picks, one multiple-choice question per pick with four existing actions, none of which installs', () => {
   assert.match(SCOUT_SEC, /AskUserQuestion/);
   assert.match(SCOUT_SEC, /one question per pick/i);
   assert.match(SCOUT_SEC, /multiSelect: true/);
   const opts = options(SCOUT_RAW);
-  assert.deepEqual(opts.map((o) => o.label), ['Why build vs install?', 'Install it', 'Build my own', 'Rate useful / not', 'Not interested']);
-  assert.match(opts[2].does, /^instead of "Install it"/, 'still four options per question');
+  assert.deepEqual(opts.map((o) => o.label), ['How to install it', 'Check it first', 'Rate useful / not', 'Not interested']);
+  assert.equal(opts.length, 4, 'four options per question');
   for (const o of opts) assert.ok(o.label.split(/\s+/).length <= 5, `label too long: ${o.label}`);
 });
 
 test('scout: each option maps to something that already exists', () => {
   const by = Object.fromEntries(options(SCOUT_RAW).map((o) => [o.label, o.does]));
-  assert.match(by['Why build vs install?'], /`effort`/);
-  assert.match(by['Why build vs install?'], /end with the install steps/i, 'install steps are not lost');
-  assert.match(by['Why build vs install?'], /`install`/);
-  assert.match(by['Why build vs install?'], /don't run/i);
-  assert.match(by['Install it'], /Installing, with consent/);
-  assert.match(by['Install it'], /`high` entry[^.]*offer "Check it first" instead/, '"do not install" picks get the check');
-  assert.deepEqual(commandsIn(by['Install it']), ['check']);
-  assert.match(by['Install it'], /`… check <owner\/repo> --json`/);
+  assert.match(by['How to install it'], /`effort`/);
+  assert.match(by['How to install it'], /end with the manual steps/i, 'the install steps are not lost');
+  assert.match(by['How to install it'], /`install`/);
+  assert.match(by['How to install it'], /project\s+scope/);
+  assert.match(by['How to install it'], /don't run/i);
+  assert.match(by['Check it first'], /`high` entry[^.]*give no install steps/, '"do not install" picks get the check and no steps');
+  assert.deepEqual(commandsIn(by['Check it first']), ['check']);
+  assert.match(by['Check it first'], /`… check <owner\/repo> --json`/);
   assert.match(by['Rate useful / not'], /"Useful".*"Not useful"/);
   assert.match(by['Rate useful / not'], /Ratings/);
   assert.match(by['Not interested'], /Feedback: "not interested"/);
@@ -66,9 +67,8 @@ test('scout: question shape fits AskUserQuestion (≤4 questions per call, heade
   for (const h of headers) assert.ok(h.replace('N', '5').length <= 12, `header too long: ${h}`);
 });
 
-test('scout: nothing is installed without a yes to a plan, and there is a text fallback', () => {
-  assert.match(SCOUT_SEC, /none of these installs anything without the user's yes to a plan/i);
-  assert.match(SCOUT_SEC, /each (?:one )?gets its own plan and its own yes\/no question/i);
+test('scout: none of the options installs or writes anything, and there is a text fallback', () => {
+  assert.match(SCOUT_SEC, /none of these installs or writes anything: Tool Scout is read-only in this version/i);
   assert.ok(!/\b(?:npm|pip|brew) install\b|\/plugin install|git clone/.test(SCOUT_SEC), 'an install command in the choices');
   assert.match(SCOUT_SEC, /without (?:the )?AskUserQuestion|AskUserQuestion isn't available/i);
   assert.match(SCOUT_SEC, /1 useful, 2 not, 3 useful/, 'the one-line rating fallback stays');
@@ -97,17 +97,18 @@ test('scout step 5 shows the build-or-install advice in one line per pick', () =
   assert.match(step5, /one line/i);
 });
 
-test('building is offered only as "Build my own", through its plan flow; installing only as "Install it"', () => {
+test('building and installing are not offered at all (outside the experimental section)', () => {
   for (const sec of [SCOUT_SEC, flat(choices(SCOUT, /^5\. \*\*Present\*\*/m))]) {
-    assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create)\b/i.test(sec), sec);
+    assert.ok(!/\b(?:I|I'll|I can|let me|want me to)\b[^.]{0,30}\b(?:build|write|create|install)\b/i.test(sec), sec);
+    assert.doesNotMatch(sec, /"Install it"|"Build my own"/);
   }
-  assert.match(SCOUT_SEC, /never offer to build[^.]* except as "Build my own"/i);
+  assert.match(SCOUT_SEC, /Tool Scout doesn't write it into the project in this version/);
 });
 
 test('the check skill presents the build-or-install estimate too', () => {
   const CHECK = read('skills/check/SKILL.md');
   assert.match(flat(CHECK), /\*\*Build or install:\*\*.*`effort\.adviceLabel`/);
-  assert.match(flat(CHECK), /never offer to build[^.]* except as "Build my own"/i);
+  assert.match(flat(CHECK), /Tool Scout doesn't\s+build anything in this version/i);
 });
 
 // ---- v0.8.1: Claude decides the close calls ------------------------------------------------
@@ -157,9 +158,11 @@ const installRules = (md, label) => {
   has(/do not install/, 'never for a do-not-install verdict');
 };
 
-test('scout: "Install it" goes plan → plain words → one yes/no → --confirm, nothing else', () => installRules(SCOUT, 'scout'));
-test('check: offers the same, only when the verdict is not "do not install"', () => {
+// Since v0.17 this flow exists only for the experimental installer (off by default).
+test('scout: the experimental install flow goes plan → plain words → one yes/no → --confirm, nothing else', () => installRules(SCOUT, 'scout'));
+test('check: the same flow, and the main steps end with manual steps, never an install question', () => {
   const CHECK = read('skills/check/SKILL.md');
   installRules(CHECK, 'check');
-  assert.match(flat(CHECK), /If the verdict is not "do not install", ask one yes\/no question: "Install it\?"/);
+  assert.match(flat(CHECK), /If the verdict is not "do not install" \(and step 3 is done\), end with the manual steps from step 2/);
+  assert.match(flat(CHECK), /Don't ask an install question: nothing here installs anything/);
 });

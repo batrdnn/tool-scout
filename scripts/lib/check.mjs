@@ -7,7 +7,7 @@ import { scanRepo, scanText, unfence, visible } from './scan.mjs';
 import { slim, classify } from './crawl.mjs';
 import { trust } from './rank.mjs';
 import { advise, effortLine } from './effort.mjs';
-import { TOOL_SCOUT_INSTALL } from './output.mjs';
+import { installByHand } from './output.mjs';
 
 const NO_TEXT = new Set(['prompt-injection', 'hidden-instructions', 'invisible-unicode', 'exfiltration', 'obfuscated-exec']);
 const SEV = { high: 3, medium: 2, low: 1 };
@@ -97,7 +97,7 @@ export function formatCheck(r) {
   if (!r.flags.length) lines.push('Flags: none.');
   for (const f of r.flags) lines.push(`  ⚑ ${f.severity.toUpperCase()} ${f.id}: ${f.detail} (${f.file}${f.line ? `:${f.line}` : ''})${f.excerpt ? ` → ${f.excerpt}` : ''}`);
   if (r.effort) lines.push(`Effort: ${effortLine(r.effort, { where: '/tool-scout:check' })}`);
-  if (r.install.toolScout) lines.push(`Install: ${TOOL_SCOUT_INSTALL}: scout.mjs install ${r.name} --plan`);
+  if (r.install.toolScout) lines.push(`Install: ${installByHand(r.install.toolScout)}`);
   if (r.install.commands.length) lines.push(`${r.install.toolScout ? 'Or' : 'Install'} (from the README; review before running): ${r.install.commands.join(' then ')}${r.install.note ? `, ${r.install.note}` : ''}`);
   else if (!r.install.toolScout) lines.push(`Install: no Claude Code command in the README. See the README: ${r.url}#readme`);
   lines.push('No flags does not mean safe: this is a heuristic scan of the README, SKILL.md files, install scripts, hooks and MCP config, not a security review.');

@@ -7,6 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { startDraft, makeBuildPlan, formatBuildPlan } from '../scripts/lib/builder.mjs';
 import { sandbox, draft, SKILL, ctx, NOW } from './build-helpers.mjs';
 import { fileURLToPath } from 'node:url';
+import { setExperimental } from '../scripts/lib/experimental.mjs';
 
 test('start refuses an existing draft folder that has files, says so, and names --fresh', () => {
   const sb = sandbox();
@@ -29,7 +30,7 @@ test('an empty or missing draft folder starts without --fresh', () => {
 });
 
 test('the CLI refuses a stale draft and accepts --fresh', () => {
-  const sb = sandbox();
+  const sb = sandbox(); setExperimental(sb.dataDir, true); // v0.17: installing and building are off unless the experimental setting is on
   draft(sb, 'fx', { 'SKILL.md': SKILL('fx') });
   const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
   const run = (...a) => spawnSync(process.execPath, [cli, 'build', '--start', '--form', 'skill', '--name', 'fx', ...a, '--plain', '--data', sb.dataDir], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: sb.home } });

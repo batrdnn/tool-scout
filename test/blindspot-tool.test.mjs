@@ -112,7 +112,7 @@ test('the Egg has no blind-spot tool', async () => {
   assert.match(res.line, /come back after 10 sessions/i);
 });
 
-test('the CLI: me --blind-spot prints the one line; --json has the check and plan commands', () => {
+test('the CLI: me --blind-spot prints the one line; --json has the check command and manual steps, no Tool Scout install command', () => {
   const sb = sandbox();
   fs.writeFileSync(path.join(sb.dataDir, 'profile.json'), JSON.stringify(prof({ topics: { debugging: 10, testing: 6 }, friction: { testing: 6, debugging: 3 } })));
   const run = (...a) => spawnSync(process.execPath, [SCOUT, 'me', '--blind-spot', '--offline', '--home', sb.home, '--data', sb.dataDir, ...a], { encoding: 'utf8', cwd: sb.root });
@@ -123,6 +123,7 @@ test('the CLI: me --blind-spot prints the one line; --json has the check and pla
   assert.equal(json.animal, 'Owl');
   assert.equal(json.blindSpotTool.repo, 'acme/pytest-helper');
   assert.equal(json.blindSpotTool.check, 'acme/pytest-helper');
-  assert.match(json.blindSpotTool.next, /^install acme\/pytest-helper --plan$/);
+  assert.ok(!('next' in json.blindSpotTool), 'the installer is off: no Tool Scout install command');
+  assert.match(json.blindSpotTool.manual, /\/tool-scout:check acme\/pytest-helper.*project scope/);
   assert.equal(json.blindSpotTool.line, plain.stdout.trim());
 });

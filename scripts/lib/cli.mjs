@@ -75,6 +75,7 @@ import { TOPICS } from './taxonomy.mjs';
 import { makePlan, formatPlan, confirmInstall, undoInstall, listInstalled } from './installer.mjs';
 import { startDraft, makeBuildPlan, formatBuildPlan, confirmBuild } from './builder.mjs';
 import { runKickoff, formatKickoff, kickoffSummary } from './kickoff.mjs';
+import { isExperimental, setExperimental, EXPERIMENTAL_WARNING, switchedOffMessage, withManualSteps } from './experimental.mjs';
 
 // Flags that never take a value, so `--plain owner/repo` keeps owner/repo as an argument.
 const BOOLEAN = new Set(['plain', 'json', 'open', 'plan', 'start', 'fresh', 'replace', 'rematch', 'summary']);
@@ -124,8 +125,21 @@ function showProfile(p) {
   console.log(style.pretty ? prettyProfile(p, { profilePath: profilePath() }, P).join('\n') : formatProfile(p, { dataLine: dataLine(), profilePath: profilePath() }));
 }
 
+// Safe mode (v0.17): install and build (and so hook activation) run only with the experimental setting on.
+const GATED = { install: 'installed', build: 'built' };
+
 async function main() {
   const days = Number(opts.days || 30);
+  if (GATED[cmd]) {
+    if (!isExperimental(dataDir)) {
+      const msg = switchedOffMessage(GATED[cmd]);
+      if (opts.json) console.log(JSON.stringify({ ok: false, experimental: false, reason: `${msg.split('\n')[0]} The experimental installer is off by default.`, manual: 'Install by hand after reading the repo, and choose project scope.' }, null, 2));
+      else console.log(msg);
+      process.exitCode = 1;
+      return;
+    }
+    if (opts.json) log(EXPERIMENTAL_WARNING); else console.log(`${EXPERIMENTAL_WARNING}\n`);
+  }
   switch (cmd) {
     case 'profile': {
       const p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days });
@@ -251,7 +265,8 @@ async function main() {
         const client = opts.offline ? null : createClient({ token: githubToken(), log });
         const scan = client ? (recs) => scanRecommendations(recs, cat, { client, dataDir, log }).catch((e) => log(`trust scan skipped: ${e.message}`)) : null;
         const official = await loadOfficial({ client: null, dataDir, log }); // cache only: no marketplace request from here
-        const tool = await findBlindSpotTool(r, p, cat, { home, dataDir, official, scan });
+        const found = await findBlindSpotTool(r, p, cat, { home, dataDir, official, scan });
+        const tool = withManualSteps([found], isExperimental(dataDir))[0]; // installer off: manual steps, no Tool Scout install command
         console.log(opts.json ? JSON.stringify({ animal: r.animal, blindSpotTool: tool }, null, 2) : tool.line);
         break;
       }
@@ -352,7 +367,18 @@ async function main() {
       // The plan text stays in the needs file: the log gets no messages that could quote it.
       const client = opts.offline ? null : createClient({ token: githubToken(), log });
       const r = await runKickoff({ planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
-      console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit: r.toolkit }, null, 2) : formatKickoff(r));
+      const toolkit = { ...r.toolkit, items: withManualSteps(r.toolkit.items, isExperimental(dataDir)) }; // installer off: manual steps, no Tool Scout install or build command
+      console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit }, null, 2) : formatKickoff({ ...r, toolkit }));
+      break;
+    }
+    case 'experimental': {
+      const arg = opts._[0];
+      if (arg !== undefined && arg !== 'on' && arg !== 'off') throw new Error('usage: experimental [on|off]');
+      if (arg) setExperimental(dataDir, arg === 'on');
+      const on = isExperimental(dataDir);
+      if (opts.json) { console.log(JSON.stringify({ experimentalInstaller: on }, null, 2)); break; }
+      if (arg === 'on') console.log(EXPERIMENTAL_WARNING);
+      console.log(`Experimental installer: ${on ? 'on' : 'off'}${on ? '' : ' (the default: Tool Scout only recommends and checks)'}.`);
       break;
     }
     case 'undo': {
@@ -397,7 +423,7 @@ async function main() {
         console.log(`Unknown command: ${cmd}. If a Tool Scout skill asked for it, this Tool Scout (${pkgVersion()}) is older than the skill: run claude plugin update tool-scout@tool-scout, then restart Claude Code.`);
         process.exitCode = 1;
       }
-      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|line|audit|head|install|build|kickoff|undo|installed|rate|stats|me> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
+      console.log('Usage: scout.mjs <profile|crawl|recommend|all|dismiss|undismiss|exclude-project|include-project|check|line|audit|head|kickoff|rate|stats|me|privacy|undo|installed|experimental|install|build> [owner/repo|project] [--days N] [--top N] [--kind skill,plugin,mcp-server] [--json] [--plain] [--refresh] [--offline] [--exclude-project NAME] [--data DIR]');
   }
 }
 

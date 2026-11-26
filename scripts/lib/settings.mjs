@@ -14,7 +14,7 @@ export function loadSettings(dataDir) {
   } catch { return { excludeProjects: [] }; }
 }
 
-function save(dataDir, s) {
+export function saveSettings(dataDir, s) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, FILE), JSON.stringify(s, null, 2));
 }
@@ -28,7 +28,7 @@ export function excludeProject(dataDir, name) {
   const s = loadSettings(dataDir);
   const added = !s.excludeProjects.includes(n);
   if (added) s.excludeProjects.push(n);
-  save(dataDir, s);
+  saveSettings(dataDir, s);
   return { name: n, added };
 }
 
@@ -38,6 +38,6 @@ export function includeProject(dataDir, name) {
   const n = name == null ? null : clean(name);
   const removed = n == null ? s.excludeProjects : s.excludeProjects.filter((x) => x === n);
   s.excludeProjects = n == null ? [] : s.excludeProjects.filter((x) => x !== n);
-  save(dataDir, s);
+  saveSettings(dataDir, s);
   return removed;
 }

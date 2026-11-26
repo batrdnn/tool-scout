@@ -23,21 +23,16 @@ test('an official-plugin item carries a plan command for the install planner, wi
   assert.equal(it.next, `install ${OFFICIAL_REPO} --part github --scope project --plan`);
 });
 
-test('the skill makes the plan and shows it before the yes/no for an official plugin', () => {
-  const s = section('**Official plugin** items');
-  const plan = s.search(/--plan/);
-  const ask = s.search(/AskUserQuestion|yes\/no question/);
-  assert.ok(plan >= 0, 'the plan command is named');
-  assert.ok(ask >= 0, 'the question is named');
-  assert.ok(plan < ask, 'plan comes before the question');
-  assert.match(s, /show it in plain words|show the plan/i);
-  for (const w of ['hook', 'settings', 'commit', 'license', 'scope']) assert.match(s, new RegExp(w, 'i'), w);
-  assert.match(s, /never ask[^.]*before[^.]*plan|only after[^.]*plan/i);
+test('v0.17: the skill checks an official plugin, shows its hooks and MCP servers, and gives the command to run yourself at project scope', () => {
+  const s = section('- **Install** and **official plugin** items').replace(/\s+/g, ' ');
+  assert.match(s, /\/tool-scout:check/);
+  for (const w of ['hook', 'MCP', 'verdict', '--scope project', 'themselves']) assert.match(s, new RegExp(w, 'i'), w);
+  assert.match(s, /plainly that hooks run automatically/);
 });
 
-test('the skill never runs the bare official-plugin command without a confirmed plan', () => {
-  const s = section('**Official plugin** items');
-  assert.doesNotMatch(s, /there is no Tool Scout plan/i);
-  assert.match(s, /--confirm <planId>/);
-  assert.doesNotMatch(s, /only after "Yes" run the\s+`command`/);
+test('the skill never runs the official-plugin command or any install command itself', () => {
+  const s = section('- **Install** and **official plugin** items');
+  assert.doesNotMatch(s, /--confirm|--plan/);
+  const all = SKILL.split('## Experimental installer')[0].replace(/\s+/g, ' ');
+  assert.match(all, /Never run an install command, a README command or `claude plugin install` yourself/);
 });

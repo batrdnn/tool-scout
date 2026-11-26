@@ -111,7 +111,7 @@ test('each chosen item has its own confirmation: one plan per item, and kickoff 
   assert.throws(() => execFileSync(process.execPath, [SCOUT, 'kickoff', '--confirm', 'abc', '--plain', '--data', sb.dataDir], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
     /kickoff never installs or builds: confirm each item's own plan/);
   const skill = fs.readFileSync(new URL('../skills/kickoff/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skill, /its own yes\/no/i);
+  assert.match(skill, /one yes\/no for that one item/i);
 });
 
 // v0.14.0 item 4: the blind-spot lookup sends nothing new. Matching is local; the only requests are

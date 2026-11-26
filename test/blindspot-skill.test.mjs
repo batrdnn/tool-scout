@@ -1,5 +1,5 @@
-// v0.14.0 item 3: the me skill offers "Look at my blind-spot tool". It goes through /tool-scout:check,
-// then "Install it" with the usual plan and one yes/no, and never installs on its own.
+// v0.14.0 item 3: the me skill offers "Look at my blind-spot tool". It goes through /tool-scout:check.
+// Since v0.17 (safe mode) it then gives manual steps, and never installs anything.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,14 +15,14 @@ test('the "What next?" question has the new option, after the existing two', () 
   assert.match(next, /Egg/i, 'not offered for the Egg');
 });
 
-test('the blind-spot section runs the lookup, then check, then the usual plan with one yes/no', () => {
+test('the blind-spot section runs the lookup, then check, then manual steps', () => {
   assert.ok(blind, 'a "The blind-spot tool" section');
   assert.match(blind, /scout\.mjs" me --blind-spot --json/);
   assert.match(blind, /\/tool-scout:check/);
-  assert.match(blind, /"Install it"/);
-  assert.match(blind, /one yes\/no/i);
-  assert.match(blind, /plan/i);
-  assert.match(blind, /never installs? (anything )?on its own/i);
+  assert.doesNotMatch(blind, /"Install it"/);
+  assert.match(blind, /blindSpotTool\.manual/);
+  assert.match(blind, /manual steps/i);
+  assert.match(blind, /never installs anything/i);
   assert.match(blind, /nothing needed/i, 'the "nothing needed" answer ends it');
   assert.match(blind, /built-in|built in/i, 'a built-in feature is typed by the user, never installed');
 });

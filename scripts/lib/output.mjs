@@ -40,8 +40,12 @@ export function formatProfile(p, { dataLine, profilePath }) {
   return out.join('\n');
 }
 
-/** Said when Tool Scout's own installer supports a repo (check's install.toolScout, a pick's toolScoutInstall). */
-export const TOOL_SCOUT_INSTALL = "Tool Scout can install this for you (you'll see a plan first)";
+/**
+ * What the read-only commands say for a repo Tool Scout's installer supports (check's install.toolScout, a
+ * pick's toolScoutInstall): install by hand. v0.17 safe mode: Tool Scout only recommends and checks.
+ */
+const BY_HAND = { skill: 'copy its skill folder into .claude/skills/ in your project', plugin: 'run its /plugin commands yourself and choose project scope', mcp: 'run its `claude mcp add` command yourself, with --scope project' };
+export const installByHand = (method) => `By hand, yourself (Tool Scout doesn't install in this version): read the repo first, then ${BY_HAND[method] || 'follow its README at project scope'}.`;
 
 /** The CLI lists the keyword-ranked shortlist; Claude's judgment step is in the scout skill. */
 export const SHORTLIST_TITLE = 'Shortlist (unfiltered)';
@@ -59,7 +63,7 @@ export function formatRecs(recs) {
     if (r.trust.scanned === false && r.trust.flags) out.push('   (content not scanned)');
     if (r.effort) out.push(`   Effort: ${effortLine(r.effort)}`);
     if (r.toolScoutInstall) {
-      out.push(`   Install: ${TOOL_SCOUT_INSTALL}`);
+      out.push(`   Install: ${installByHand(r.toolScoutInstall)}`);
       if (r.installSource === 'readme') out.push(`   README: ${r.install}  (review before running)`);
     } else out.push(`   Install: ${r.install}${r.installSource === 'readme' ? '  (from README; review before running)' : ''}`);
   });

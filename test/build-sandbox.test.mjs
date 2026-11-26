@@ -10,6 +10,7 @@ import { makeBuildPlan, confirmBuild } from '../scripts/lib/builder.mjs';
 import { undoInstall, listInstalled } from '../scripts/lib/installer.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx, relPosix } from './build-helpers.mjs';
 import { fileURLToPath } from 'node:url';
+import { setExperimental } from '../scripts/lib/experimental.mjs';
 
 const DRAFTS = {
   skill: ['pytest-fixtures', { 'SKILL.md': SKILL('pytest-fixtures'), 'templates/conftest.py': 'import pytest\n\n@pytest.fixture\ndef user():\n    return {"id": 1}\n' }],
@@ -109,7 +110,7 @@ test('a hook: --confirm twice still writes nothing; --confirm-hook first is refu
 });
 
 test('a hook through the CLI: --confirm, then --confirm-hook', () => {
-  const sb = sandbox();
+  const sb = sandbox(); setExperimental(sb.dataDir, true); // v0.17: installing and building are off unless the experimental setting is on
   const cli = (...a) => spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), ...a, '--plain', '--home', sb.home, '--data', sb.dataDir], { cwd: sb.cwd, encoding: 'utf8' });
   const [name, files] = DRAFTS.hook;
   const dir = draft(sb, name, files);

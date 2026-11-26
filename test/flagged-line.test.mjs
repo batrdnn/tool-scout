@@ -79,11 +79,11 @@ test('an injection-type flag anywhere in the file blocks showing any line of it 
   assert.match(r.reason, /prompt-injection/);
 });
 
-test('the check skill examines flagged lines before it offers any plan', () => {
+test('the check skill examines flagged lines before it gives any install steps', () => {
   const md = fs.readFileSync(new URL('../skills/check/SKILL.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
   assert.match(md, /`… line <owner\/repo> <file>:<line> --plain`/);
-  assert.match(md, /before (?:you )?offer(?:ing)? (?:a plan|"Install it")/i);
-  assert.match(md, /Never offer "Install it" with an unexamined medium or high flag/);
+  assert.match(md, /before (?:you )?(?:offer(?:ing)? a plan|give(?:ing)? install steps)/i);
+  assert.match(md, /Never give install steps for a repo with an unexamined medium or high flag/);
   const cli = fs.readFileSync(new URL('../scripts/lib/cli.mjs', import.meta.url), 'utf8');
   assert.match(cli, /case 'line':/);
 });
