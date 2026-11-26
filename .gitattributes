@@ -1,0 +1,4 @@
+# Text files are LF in every checkout, on Windows too: tests compare exact text.
+* text=auto eol=lf
+*.png binary
+*.gif binary

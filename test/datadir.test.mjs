@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { resolveDataDir } from '../scripts/lib/datadir.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const tmpHome = () => fs.mkdtempSync(path.join(os.tmpdir(), 'scout-home-'));
 const mk = (...p) => { const d = path.join(...p); fs.mkdirSync(d, { recursive: true }); return d; };
 
@@ -54,5 +55,5 @@ test('profile --show and stats print the data folder in use', () => {
   assert.match(run('stats'), /Data folder: .*tool-scout-tool-scout \(installed plugin\)/);
   fs.rmSync(dir, { recursive: true });
   assert.match(run('stats'), /Data folder: .*\.tool-scout \(default\)/);
-  assert.match(run('stats', '--data', path.join(home, 'd')), /Data folder: .*\/d \(--data\)/);
+  assert.match(run('stats', '--data', path.join(home, 'd')), /Data folder: .*[\\/]d \(--data\)/);
 });

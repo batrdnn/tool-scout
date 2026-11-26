@@ -1,5 +1,7 @@
 # Tool Scout
 
+[![test](https://github.com/batrdnn/tool-scout/actions/workflows/test.yml/badge.svg)](https://github.com/batrdnn/tool-scout/actions/workflows/test.yml)
+
 Picks trending Claude Code skills, plugins and MCP servers that fit how you actually work, and checks them before you install.
 
 > **Early beta.** Expect rough edges, and please rate the picks: that's how it gets better.
@@ -24,8 +26,19 @@ sessions, because it reads your local session history. To drive it from a browse
   locally and use `/remote-control`.
 - **Some history: about 20+ Claude Code sessions in the last 30 days** is recommended. With
   fewer than 10, you get a "limited history" note and at most 3 picks.
-- **macOS or Linux.** Tested on both. Windows is untested (WSL should work).
-- **Node.js 18 or newer.** Check with `node --version`. If it's missing or older, install it
+- **macOS, Linux or Windows.** Tested on macOS, Linux and Windows. What differs on Windows, and
+  what can't work there (each fails with a message, never silently):
+  - Installing an MCP server or an official plugin runs the `claude` CLI, and Tool Scout only runs
+    it directly, never through a shell. It needs `claude.exe` (the native installer provides it) on
+    your PATH. With only a `claude.cmd` shim (an npm install) it stops and says so; run the printed
+    command yourself in that case.
+  - File modes (0600/0700) don't exist on Windows. Tool Scout's data folder is under your user
+    profile and is protected by that folder's own permissions; if you point `--data` somewhere
+    shared, set its permissions yourself.
+  - Colors and box drawing need Windows Terminal (or VS Code's terminal). The older console gets
+    colors with plain ASCII boxes. `--plain` and `--json` work everywhere.
+  - `me --card <file> --open` opens the card with `start`.
+- **Node.js 20 or newer.** Check with `node --version`. If it's missing or older, install it
   from [nodejs.org](https://nodejs.org) or with `brew install node`. No other dependencies,
   accounts or API keys are needed.
 - **Internet access to `api.github.com`** for the crawl, momentum and trust checks, and to

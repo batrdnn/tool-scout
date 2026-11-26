@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { rate, loadRatings, ratingStats, shareText } from '../scripts/lib/ratings.mjs';
+import { fileURLToPath } from 'node:url';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'scout-rate-'));
 
@@ -43,7 +44,7 @@ test('stats --share contains counts and rated repo names only, never profile dat
 
 test('CLI: rate, stats, stats --share', () => {
   const d = tmp();
-  const cli = (...a) => execFileSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, ...a, '--data', d], { encoding: 'utf8' });
+  const cli = (...a) => execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), ...a, '--data', d], { encoding: 'utf8' });
   assert.match(cli('rate', 'acme/tool', 'useful'), /acme\/tool: useful/);
   cli('rate', 'acme/other', 'not');
   assert.match(cli('stats'), /2 rated picks: 1 useful \(50%\), 1 not useful/);

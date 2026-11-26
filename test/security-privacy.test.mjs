@@ -2,14 +2,16 @@
 // undo) with every network request captured. No profile, plan or local path data may leave the
 // machine, and the GitHub token goes only to api.github.com, in the Authorization header, and is
 // never printed or written to disk. (docs/security-review.md, "Privacy")
+import { WIN, NO_MODES, NO_SH_SHIM } from './platform-skip.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const PRELOAD = new URL('./fixtures/security/capture-fetch.mjs', import.meta.url).href;
 const TOKEN = 'ghp_SENTINELtoken0123456789abcdef';
 const PROJECT = 'okapi-ledger-5150'; // project folder name: in the profile only
@@ -39,7 +41,7 @@ function cli(w, args) {
 }
 const idIn = (out) => out.match(/--confirm ([0-9a-f]{12})/)[1];
 
-test('a full run sends no profile, plan or path data anywhere, and the token only to api.github.com', () => {
+test('a full run sends no profile, plan or path data anywhere, and the token only to api.github.com', { skip: WIN && NO_SH_SHIM }, () => {
   const w = world();
   const outs = [];
   const run = (...a) => { const r = cli(w, a); outs.push(r.stdout, r.stderr); return r.stdout; };
@@ -81,7 +83,7 @@ test('a full run sends no profile, plan or path data anywhere, and the token onl
 
 // Medium M6 in docs/security-review.md (fixed in 0.12.2): the data folder is 0700 and nothing in it
 // is readable by group or others, including a folder made earlier with the default umask (--data).
-test('the data folder and its files are private to the user (0700 / 0600)', () => {
+test('the data folder and its files are private to the user (0700 / 0600)', { skip: WIN && (NO_MODES + '; also ' + NO_SH_SHIM) }, () => {
   const w = world();
   fs.chmodSync(w.data, 0o755);
   fs.writeFileSync(path.join(w.data, 'old-log.json'), '{}', { mode: 0o644 });

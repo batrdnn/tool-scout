@@ -5,8 +5,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const FX = path.join(ROOT, 'test', 'fixtures', 'reporter');
 const run = (files) => spawnSync(process.execPath, ['--test', '--test-reporter=./test/reporter.mjs', ...files.map((f) => path.join(FX, f))], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } });
 
@@ -29,6 +30,6 @@ test('all passing: just the summary line', () => {
 
 test('npm test uses the quiet reporter; npm run test:verbose gives the full output', () => {
   const { scripts } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-  assert.equal(scripts.test, 'node --test --test-reporter=./test/reporter.mjs test/*.test.mjs');
-  assert.equal(scripts['test:verbose'], 'node --test --test-reporter=spec test/*.test.mjs');
+  assert.equal(scripts.test, 'node test/run-tests.mjs');
+  assert.equal(scripts['test:verbose'], 'node test/run-tests.mjs spec');
 });

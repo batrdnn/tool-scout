@@ -8,8 +8,9 @@ import { execFileSync } from 'node:child_process';
 import { whoAmI, formatMe, ANIMALS, ORDER, EGG_SESSIONS } from '../scripts/lib/me.mjs';
 import { shaded } from '../scripts/lib/sprites.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 
 const cmds = (n, sessions = 3) => Array.from({ length: n }, (_, i) => ({ command: `tool${i} run`, count: 10, sessions }));
 

@@ -18,9 +18,10 @@ import { formatCheck } from '../scripts/lib/check.mjs';
 import { formatAudit } from '../scripts/lib/audit.mjs';
 import { whoAmI, formatMe } from '../scripts/lib/me.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const fx = (f) => JSON.parse(fs.readFileSync(new URL(`./fixtures/output/${f}`, import.meta.url), 'utf8'));
-const SNAP = new URL('./snapshots/', import.meta.url).pathname;
+const SNAP = fileURLToPath(new URL('./snapshots/', import.meta.url));
 function snap(name, text) {
   const file = path.join(SNAP, name);
   if (process.env.UPDATE_SNAPSHOTS && !name.includes('.plain.')) fs.writeFileSync(file, text);
@@ -56,10 +57,21 @@ test('pretty only on a TTY; --plain, --json, TERM=dumb and Claude Code always ge
 });
 
 test('NO_COLOR (any non-empty value) turns colors off but keeps the layout', () => {
-  const s = detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '1' }, opts: {} });
+  const s = detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '1' }, opts: {}, platform: 'linux' });
   assert.deepEqual(s, { pretty: true, color: false, unicode: true });
-  assert.equal(detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '' }, opts: {} }).color, true);
-  assert.equal(detectStyle({ isTTY: true, env: UTF8, opts: {} }).color, true);
+  assert.equal(detectStyle({ isTTY: true, env: { ...UTF8, NO_COLOR: '' }, opts: {}, platform: 'linux' }).color, true);
+  assert.equal(detectStyle({ isTTY: true, env: UTF8, opts: {}, platform: 'linux' }).color, true);
+});
+
+// v0.15.0: Windows. Windows Terminal (WT_SESSION) draws boxes and colors; the legacy console gets
+// colors but ASCII boxes; NO_COLOR is honored there too.
+test('detectStyle on Windows: Windows Terminal is unicode and color, a legacy console is color with ASCII', () => {
+  const win = (env) => detectStyle({ isTTY: true, env, opts: {}, platform: 'win32' });
+  assert.deepEqual(win({ WT_SESSION: 'abc' }), { pretty: true, color: true, unicode: true });
+  assert.deepEqual(win({ WT_SESSION: 'abc', NO_COLOR: '1' }), { pretty: true, color: false, unicode: true });
+  assert.deepEqual(win({ TERM_PROGRAM: 'vscode' }), { pretty: true, color: true, unicode: true });
+  assert.deepEqual(win({}), { pretty: true, color: true, unicode: false });
+  assert.equal(detectStyle({ isTTY: true, env: { WT_SESSION: 'abc', CLAUDECODE: '1' }, opts: {}, platform: 'win32' }).pretty, false, 'inside Claude Code: plain');
 });
 
 test('Unicode only when the locale or terminal supports it; ASCII otherwise', () => {
@@ -228,7 +240,7 @@ test('strWidth: escape codes take no room, CJK takes two columns', () => {
 
 // ---- CLI ------------------------------------------------------------------------------
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 function cliEnv() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-out-home-'));
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-out-data-'));

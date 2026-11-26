@@ -33,10 +33,28 @@ const MAX_BYTES = 5_000_000;
 const LOG = 'installs.json';
 const UNPINNED_RUNNERS = new Set(['npx', 'uvx', 'pipx', 'bunx', 'pnpm', 'yarn', 'npm', 'deno', 'docker', 'podman', 'bun']);
 
+/**
+ * What to execute for the claude CLI. Anything is run with execFile, never through a shell. On Windows
+ * Node can't execFile a .cmd shim (and a shell would put argument quoting into security-sensitive
+ * code), so only claude.exe on PATH is used; a .cmd alone, or nothing, fails with what to do.
+ */
+export function claudeCommand({ platform = process.platform, pathEnv = process.env.PATH ?? process.env.Path ?? '', exists = fs.existsSync } = {}) {
+  if (platform !== 'win32') return 'claude';
+  const dirs = String(pathEnv).split(';').filter(Boolean);
+  const find = (name) => dirs.map((d) => path.win32.join(d, name)).find((f) => exists(f));
+  const exe = find('claude.exe');
+  if (exe) return exe;
+  if (find('claude.cmd') || find('claude.bat')) {
+    throw new Error("claude is a claude.cmd shim on this PATH, and Tool Scout never runs commands through a shell, so it needs claude.exe. Install Claude Code with its native installer (it provides claude.exe), or run the command yourself in a terminal.");
+  }
+  throw new Error('claude was not found on PATH: install Claude Code (its native installer provides claude.exe), or run the command yourself in a terminal.');
+}
+
 /** The only way anything is run: the claude CLI, or `git -C <dir> rev-parse HEAD` to verify a checkout. */
 export function defaultRun(cmd, argv) {
   const ok = cmd === 'claude' || (cmd === 'git' && argv.length === 4 && argv[0] === '-C' && argv[2] === 'rev-parse' && argv[3] === 'HEAD');
   if (!ok) throw new Error(`refusing to run ${cmd}`);
+  if (cmd === 'claude') cmd = claudeCommand();
   return execFileSync(cmd, argv, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180_000 });
 }
 
@@ -324,7 +342,8 @@ async function scanWrites({ client, api, writes, dir, blockers, notes, extra, re
 // ---- the plan -----------------------------------------------------------------------------------
 
 export const planFile = (dataDir, id) => path.join(dataDir, 'plans', `${id}.json`);
-export const tilde = (p, home) => (p.startsWith(home + path.sep) ? `~${p.slice(home.length)}` : p);
+/** A path under home as ~/..., always with forward slashes (the same on every system); other paths as they are. */
+export const tilde = (p, home, sep = path.sep) => (p.startsWith(home + sep) ? `~${p.slice(home.length).split(sep).join('/')}` : p);
 
 /**
  * Read-only: the exact plan for installing `repo` (at `sha`, or its current HEAD) with `scope`.

@@ -9,8 +9,9 @@ import { whoAmI, meCard, cardStats, ORDER, ANIMALS } from '../scripts/lib/me.mjs
 import { buildProfile } from '../scripts/lib/profile.mjs';
 import { materialize, PERSONAS } from './eval/personas.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const card = (p, as) => meCard(whoAmI(p, { as }), p);
 
 /** Every string a profile holds: string values anywhere, plus the keys of count maps (topic, tool, library … names). */

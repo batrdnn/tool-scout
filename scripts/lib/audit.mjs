@@ -109,8 +109,13 @@ function projectDirs(home, cwd) {
   return [...out.values()];
 }
 
-/** The script file a hook command runs, if it names one that exists: { abs, shown } or null. */
-function hookScript(command, { home, projectDir }) {
+/**
+ * The script file a hook command runs, if it names one that exists: { abs, shown } or null. `shown` is
+ * relative to the project, or ~/..., always with forward slashes. A command may mix "/" and "\" (a
+ * Windows path in a hook is written C:/Users/...), so the path is normalized before it is compared.
+ */
+export function hookScript(command, { home, projectDir, pathApi = path, stat = fs.statSync }) {
+  const posix = (p) => p.split(pathApi.sep).join('/');
   const expand = (t) => t
     .replace(/^["']|["']$/g, '')
     .replace(/\$\{?CLAUDE_PROJECT_DIR\}?/g, projectDir || '\0')
@@ -119,10 +124,11 @@ function hookScript(command, { home, projectDir }) {
   for (const raw of command.split(/\s+/)) {
     const t = expand(raw);
     if (!t || t.includes('\0') || t.startsWith('-') || /\$/.test(t) || !/[\/.]/.test(t)) continue;
-    const abs = path.isAbsolute(t) ? t : projectDir ? path.join(projectDir, t) : null;
+    const abs = pathApi.isAbsolute(t) ? pathApi.normalize(t) : projectDir ? pathApi.join(projectDir, t) : null;
     if (!abs) continue;
-    try { if (!fs.statSync(abs).isFile() || fs.statSync(abs).size > MAX_BYTES) continue; } catch { continue; }
-    const shown = projectDir && abs.startsWith(projectDir + path.sep) ? path.relative(projectDir, abs) : abs.replace(home, '~');
+    try { if (!stat(abs).isFile() || stat(abs).size > MAX_BYTES) continue; } catch { continue; }
+    const shown = projectDir && abs.startsWith(pathApi.normalize(projectDir) + pathApi.sep) ? posix(pathApi.relative(projectDir, abs))
+      : abs.startsWith(pathApi.normalize(home) + pathApi.sep) ? `~${posix(abs.slice(pathApi.normalize(home).length))}` : abs;
     return { abs, shown };
   }
   return null;

@@ -7,8 +7,9 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { extractNeeds, runKickoff, needsPath } from '../scripts/lib/kickoff.mjs';
 import { sandbox, PLAN, NOW, MARKER } from './kickoff-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
-const SCOUT = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const SCOUT = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 const run = (sb, ...a) => execFileSync(process.execPath, [SCOUT, 'kickoff', ...a, '--home', sb.home, '--data', sb.dataDir, '--offline'], { encoding: 'utf8', cwd: sb.root, stdio: ['ignore', 'pipe', 'pipe'] });
 
 test('a plan becomes tasks (by topic), stack, domain and conventions', () => {
@@ -81,7 +82,7 @@ test('the CLI: kickoff --plan-file <path> [--project DIR] prints the needs and t
   assert.ok(out.toolkit.items.length >= 1);
   const plain = run(sb, '--plan-file', sb.planFile, '--project', sb.project, '--plain');
   assert.match(plain, /Needs from your plan/);
-  assert.match(plain, /Saved locally: .*kickoff\/needs\.json/);
+  assert.match(plain, /Saved locally: .*kickoff[\\/]needs\.json/);
   assert.ok(!plain.includes('\u001b'));
   assert.throws(() => run(sb, '--plain'), /usage: kickoff --plan-file/);
 });

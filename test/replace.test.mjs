@@ -10,7 +10,7 @@ import { createClient } from '../scripts/lib/github.mjs';
 import { makePlan, confirmInstall, undoInstall, listInstalled, formatPlan } from '../scripts/lib/installer.mjs';
 import { makeBuildPlan, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
 import { mockFetch } from './helpers.mjs';
-import { sandbox, snapshot, changed, draft, SKILL, ctx, NOW } from './build-helpers.mjs';
+import { sandbox, snapshot, changed, draft, SKILL, ctx, NOW, relPosix } from './build-helpers.mjs';
 
 const gitSha = (t) => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(t)}\0`).update(t).digest('hex');
 const SHA = 'e'.repeat(40);
@@ -67,7 +67,7 @@ test('install --replace: one step, never a moment without the skill, and undo re
   const plan = await makePlan({ ...c, repo: 'o/fixtures', replace: true });
   assert.deepEqual(plan.body.blockers, []);
   assert.deepEqual(changed(before, snapshot(sb)), [], 'the plan writes nothing');
-  assert.deepEqual(plan.body.replace.files.map((f) => path.relative(dir, f.path)).sort(), ['SKILL.md', path.join('ref', 'old.md')]);
+  assert.deepEqual(plan.body.replace.files.map((f) => relPosix(dir, f.path)).sort(), ['SKILL.md', 'ref/old.md']);
   const text = formatPlan(plan, { home: sb.home });
   assert.match(text, /Replaces:  ~\/\.claude\/skills\/fixtures \(2 files now\)/);
   assert.match(text, /undo puts the current version back/);

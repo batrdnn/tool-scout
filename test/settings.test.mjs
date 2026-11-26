@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { buildProfile, projectMatches } from '../scripts/lib/profile.mjs';
 import { excludeProject, includeProject, loadSettings } from '../scripts/lib/settings.mjs';
+import { fileURLToPath } from 'node:url';
 
 const user = (text, cwd) => JSON.stringify({ type: 'user', cwd, message: { role: 'user', content: text } });
 
@@ -52,7 +53,7 @@ test('exclude-project is persisted in the data dir and can be undone', () => {
 test('CLI: --exclude-project for one run, exclude-project to persist it', () => {
   const home = twoProjects();
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-data-'));
-  const cli = (...a) => execFileSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, ...a, '--home', home, '--data', data, '--include-current'], { encoding: 'utf8' });
+  const cli = (...a) => execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), ...a, '--home', home, '--data', data, '--include-current'], { encoding: 'utf8' });
   assert.equal(JSON.parse(cli('profile', '--json')).sessions, 4);
   assert.equal(JSON.parse(cli('profile', '--json', '--exclude-project', 'tool-scout')).sessions, 2);
   assert.match(cli('exclude-project', 'tool-scout'), /tool-scout/);

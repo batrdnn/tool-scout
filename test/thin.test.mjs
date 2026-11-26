@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { recommend } from '../scripts/lib/rank.mjs';
 import { mergeRepos } from '../scripts/lib/crawl.mjs';
+import { fileURLToPath } from 'node:url';
 
 const gh = (name, description, stars = 1000) => ({ full_name: `o/${name}`, name, owner: { login: 'o', type: 'Organization' }, html_url: `https://github.com/o/${name}`,
   description, topics: ['mcp-server'], language: 'Python', stargazers_count: stars, forks_count: 50, license: { spdx_id: 'MIT' }, archived: false, fork: false,
@@ -50,7 +51,7 @@ test('CLI: fewer than 10 sessions adds a limited-history note', () => {
   const cat = { updatedAt: new Date().toISOString(), repos: {} };
   mergeRepos(cat, items);
   fs.writeFileSync(path.join(data, 'catalog.json'), JSON.stringify(cat));
-  const run = (...a) => execFileSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, ...a, '--home', home, '--data', data, '--offline', '--include-current'], { encoding: 'utf8' });
+  const run = (...a) => execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), ...a, '--home', home, '--data', data, '--offline', '--include-current'], { encoding: 'utf8' });
   const out = JSON.parse(run('all', '--json', '--top', '5'));
   assert.equal(out.limitedHistory, true);
   assert.match(out.notes.join(' '), /limited history: 3 sessions/i);

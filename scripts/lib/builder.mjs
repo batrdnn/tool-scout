@@ -160,9 +160,10 @@ const FORM = {
     // personal: the script lives outside the project (~/.claude/hooks), the entry in its settings.local.json.
     const dir = p.scope === 'project' ? path.join(p.cwd, '.claude', 'hooks', p.name) : path.join(p.home, '.claude', 'hooks', p.name);
     const dest = path.join(dir, script.rel);
-    if (/["$`\\]/.test(dest)) { p.blockers.push(`the hook's path ${dest} has characters a command can't quote safely`); return; }
+    const quoted = hookCommandPath(dest);
+    if (quoted == null) { p.blockers.push(`the hook's path ${dest} has characters a command can't quote safely`); return; }
     if (fs.existsSync(dir)) p.blockers.push(`${tilde(dir, p.home)} already exists: Tool Scout never overwrites it`);
-    const command = `${RUNNERS[ext]} "${p.scope === 'project' ? `$CLAUDE_PROJECT_DIR/.claude/hooks/${p.name}/${script.rel}` : dest}"`;
+    const command = `${RUNNERS[ext]} "${p.scope === 'project' ? `$CLAUDE_PROJECT_DIR/.claude/hooks/${p.name}/${script.rel}` : quoted}"`;
     const file = p.scope === 'project' ? path.join(p.cwd, '.claude', 'settings.json') : p.scope === 'personal' ? path.join(p.cwd, '.claude', 'settings.local.json') : path.join(p.home, '.claude', 'settings.json');
     if (fs.existsSync(file) && !readJson(file)) p.blockers.push(`${tilde(file, p.home)} is not valid JSON: Tool Scout won't change it`);
     if (JSON.stringify(readJson(file)?.hooks || {}).includes(JSON.stringify(command).slice(1, -1))) p.blockers.push('that hook command is already in the settings');
@@ -170,6 +171,16 @@ const FORM = {
     p.extra.hook = { event: h.event, matcher: h.matcher || null, file, entry: { ...(h.matcher ? { matcher: h.matcher } : {}), hooks: [{ type: 'command', command }] }, script: script.rel, scriptText: text };
   },
 };
+
+/**
+ * A script path as it goes inside the double quotes of a hook command, or null when a double-quoted
+ * shell string can't hold it. On Windows the backslashes become forward slashes (C:/Users/...), which
+ * Git Bash and node both accept; on other systems a backslash would be eaten by the shell, so it is refused.
+ */
+export function hookCommandPath(dest, platform = process.platform) {
+  const p = platform === 'win32' ? String(dest).replace(/\\/g, '/') : String(dest);
+  return /["$`\\]/.test(p) ? null : p;
+}
 
 /** The marked section `name` in a CLAUDE.md text (begin marker through end marker and its newline), or null. */
 function sectionIn(raw, name) {

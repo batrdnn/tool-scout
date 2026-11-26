@@ -5,7 +5,7 @@ back is one short block of text, shown in full below **before** you share anythi
 
 ## 1. Install
 
-You need Claude Code and Node 18 or newer. From a local copy of this repo, inside Claude Code:
+You need Claude Code and Node 20 or newer. From a local copy of this repo, inside Claude Code:
 
 ```text
 /plugin marketplace add ./tool-scout

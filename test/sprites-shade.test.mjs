@@ -10,6 +10,7 @@ import { whoAmI, formatMe, ORDER } from '../scripts/lib/me.mjs';
 import { painter, stripAnsi } from '../scripts/lib/term.mjs';
 import { prettyMe } from '../scripts/lib/pretty.mjs';
 import { prof } from './helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const NAMES = [...ORDER, 'Egg'];
 
@@ -75,7 +76,7 @@ test('NO_COLOR (pretty, Unicode) gets the shaded sprite and no color codes; ASCI
 test('`me --plain` and `me --json` from the CLI: shading in the text, art stays ASCII in the JSON', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-shade-'));
   fs.writeFileSync(path.join(dir, 'profile.json'), JSON.stringify(prof({ sessions: 30 })));
-  const cli = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+  const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
   const run = (...a) => execFileSync(process.execPath, [cli, 'me', ...a, '--data', dir], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: dir, CLAUDECODE: '1' } });
   const plain = run('--plain');
   assert.match(plain, /[▓█]{2}/);

@@ -11,6 +11,7 @@ import { undoInstall, listInstalled, NO_LICENSE, PLAN_TTL_MIN } from '../scripts
 import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx, NOW } from './build-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 
 test('start makes drafts/<name>/ in the data folder and says which files the form needs', () => {
@@ -136,7 +137,7 @@ test('a permissive source: adapting is allowed with an attribution line, which t
 test('CLI: build --start, --plan, --confirm, then installed and undo', async () => {
   const { spawnSync } = await import('node:child_process');
   const sb = sandbox();
-  const cli = (...a) => spawnSync(process.execPath, [new URL('../scripts/scout.mjs', import.meta.url).pathname, ...a, '--plain', '--home', sb.home, '--data', sb.dataDir], { cwd: sb.cwd, encoding: 'utf8' });
+  const cli = (...a) => spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url)), ...a, '--plain', '--home', sb.home, '--data', sb.dataDir], { cwd: sb.cwd, encoding: 'utf8' });
   const start = cli('build', '--start', '--form', 'command', '--name', 'standup');
   assert.equal(start.status, 0, start.stderr);
   const dir = path.join(sb.dataDir, 'drafts', 'standup');

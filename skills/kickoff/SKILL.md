@@ -152,8 +152,8 @@ text, and they can delete it.
 ## If the script fails
 
 If running the script fails because Node.js is missing (`node: command not found`) or too old
-(the script prints "Tool Scout needs Node.js 18 or newer"), tell the user in plain words: Tool
-Scout needs Node.js 18 or newer; they can check with `node --version` and install it from
+(the script prints "Tool Scout needs Node.js 20 or newer"), tell the user in plain words: Tool
+Scout needs Node.js 20 or newer; they can check with `node --version` and install it from
 nodejs.org or with `brew install node`, then try again. Don't try to install Node yourself.
 
 If the script says `Unknown command` for `kickoff`, the installed Tool Scout is older than this

@@ -7,6 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createClient } from '../scripts/lib/github.mjs';
 import { mockFetch } from './helpers.mjs';
+import { relPosix } from './build-helpers.mjs';
 
 export const NOW = Date.parse('2026-11-25T12:00:00Z');
 export const gitSha = (t) => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(t)}\0`).update(t).digest('hex');
@@ -28,8 +29,8 @@ export function snapshot(sb) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (p === sb.dataDir) continue;
-      if (e.isDirectory()) { out[`${path.relative(sb.root, p)}/`] = 'dir'; walk(p); }
-      else out[path.relative(sb.root, p)] = e.isSymbolicLink() ? 'link' : crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+      if (e.isDirectory()) { out[`${relPosix(sb.root, p)}/`] = 'dir'; walk(p); }
+      else out[relPosix(sb.root, p)] = e.isSymbolicLink() ? 'link' : crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
     }
   };
   walk(sb.root);

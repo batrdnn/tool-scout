@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeBuildPlan, confirmBuild, formatBuildPlan } from '../scripts/lib/builder.mjs';
+import { makeBuildPlan, confirmBuild, formatBuildPlan, hookCommandPath } from '../scripts/lib/builder.mjs';
 import { undoInstall } from '../scripts/lib/installer.mjs';
 import { sandbox, snapshot, changed, draft, SKILL, ctx } from './build-helpers.mjs';
 
@@ -24,7 +24,7 @@ test('a personal hook writes .claude/settings.local.json in the project, not set
   assert.equal(plan.body.hook.file, local);
   const script = path.join(sb.home, '.claude', 'hooks', 'fmt', 'fmt.sh');
   assert.deepEqual(plan.body.writes.map((w) => w.path), [script], 'the script stays out of the project');
-  assert.equal(plan.body.hook.entry.hooks[0].command, `bash "${script}"`);
+  assert.equal(plan.body.hook.entry.hooks[0].command, `bash "${hookCommandPath(script)}"`);
   const text = formatBuildPlan(plan, { home: sb.home });
   assert.match(text, /Scope:     personal \(this project, only you\)/);
   assert.ok(text.includes(`${path.join(sb.cwd, '.claude', 'settings.local.json')}: adds that entry to hooks.PostToolUse`), text);
@@ -33,7 +33,7 @@ test('a personal hook writes .claude/settings.local.json in the project, not set
   assert.equal(first.pending, 'hook');
   const res = await confirmBuild({ ...ctx(sb), id: first.hookId, hook: true });
   assert.ok(res.ok, res.reason);
-  assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')).hooks.PostToolUse, [{ matcher: 'Edit', hooks: [{ type: 'command', command: `bash "${script}"` }] }]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')).hooks.PostToolUse, [{ matcher: 'Edit', hooks: [{ type: 'command', command: `bash "${hookCommandPath(script)}"` }] }]);
   assert.equal(fs.readFileSync(path.join(sb.cwd, '.claude', 'settings.json'), 'utf8'), '{\n  "shared": true\n}\n', 'shared settings untouched');
   assert.deepEqual(changed(before, snapshot(sb)).filter((p) => p.startsWith('project')), ['project/.claude/settings.local.json']);
 

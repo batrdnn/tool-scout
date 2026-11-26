@@ -1,5 +1,5 @@
 // tool-scout: recommend trending Claude Code skills, plugins and MCP servers
-// based on how you actually work. Zero dependencies, Node 18+ (checked in scripts/scout.mjs).
+// based on how you actually work. Zero dependencies, Node 20+ (checked in scripts/scout.mjs).
 // Loaded by scripts/scout.mjs once the Node version check has passed.
 //
 //   scout.mjs profile   [--days 30] [--show]

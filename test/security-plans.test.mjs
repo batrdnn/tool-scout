@@ -9,12 +9,13 @@ import { spawnSync } from 'node:child_process';
 import { makePlan, confirmInstall, planFile, PLAN_TTL_MIN } from '../scripts/lib/installer.mjs';
 import { startDraft, makeBuildPlan, confirmBuild } from '../scripts/lib/builder.mjs';
 import { setup, snapshot, changed, SKILL_MD, gitSha } from './security-helpers.mjs';
+import { fileURLToPath } from 'node:url';
 
 const REPOS = () => ({
   good: { readme: '# good', files: { 'SKILL.md': SKILL_MD('good') } },
   evil: { readme: '# evil', files: { 'SKILL.md': SKILL_MD('evil') } },
 });
-const CLI = new URL('../scripts/scout.mjs', import.meta.url).pathname;
+const CLI = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
 
 test('a plan made for one repo cannot be confirmed as another repo', async () => {
   const s = setup(REPOS());

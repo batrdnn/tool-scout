@@ -9,8 +9,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { judgeInstructions } from './eval/e2e.mjs';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const skills = Object.fromEntries(fs.readdirSync(path.join(ROOT, 'skills')).map((d) => [d, fs.readFileSync(path.join(ROOT, 'skills', d, 'SKILL.md'), 'utf8')]));
 
 /** Every full script call (`node … scout.mjs …`) in a skill's code blocks and inline code. */
@@ -44,7 +45,7 @@ test('the commands skills run print no escape codes, even with a color TERM insi
     .map((c) => c.replace(/<owner\/repo>/g, 'acme/x').replace(/useful\|not/, 'useful').replace(/<folder name or path>|<name>/g, 'proj'));
   assert.ok(runnable.length >= 6, runnable.join('\n'));
   for (const c of runnable) {
-    const args = c.replace(/^node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/scout\.mjs" /, '').replace(/"\$\{CLAUDE_PLUGIN_DATA\}"/g, data).split(/\s+/);
+    const args = c.replace(/^node "\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/scout\.mjs" /, '').replace(/"?\$\{CLAUDE_PLUGIN_DATA\}([^"\s]*)"?/g, (_, rest) => path.join(data, rest)).split(/\s+/);
     const out = execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'scout.mjs'), ...args, '--home', home, '--offline'], { encoding: 'utf8', env, cwd: data, stdio: ['ignore', 'pipe', 'pipe'] });
     assert.ok(!out.includes('\u001b'), `escape codes from: ${c}`);
   }
