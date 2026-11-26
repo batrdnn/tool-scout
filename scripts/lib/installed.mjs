@@ -8,6 +8,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { projectMatches } from './profile.mjs';
 
 const readJSON = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
 
@@ -20,8 +21,13 @@ function sessionCwd(file) {
   return null;
 }
 
-/** Distinct session cwds from transcripts modified in the last `days` days. */
-export function sessionProjectDirs(home, days = 30) {
+/** Claude Code's folder name for a project under ~/.claude/projects: every non-alphanumeric character becomes '-'. */
+const encoded = (cwd) => String(cwd).replace(/[^A-Za-z0-9]/g, '-');
+/** Is this project folder one the user left out (exclude-project, --exclude-project)? The one test every step uses (review D3). */
+export const projectExcluded = (cwd, excludeProjects = [], dir = null) => excludeProjects.filter(Boolean).some((n) => projectMatches({ dir: dir ?? encoded(cwd), cwd }, n));
+
+/** Distinct session cwds from transcripts modified in the last `days` days, without the projects left out. */
+export function sessionProjectDirs(home, days = 30, excludeProjects = []) {
   const root = path.join(home, '.claude', 'projects');
   const since = Date.now() - days * 86400e3;
   const dirs = new Set();
@@ -36,7 +42,7 @@ export function sessionProjectDirs(home, days = 30) {
       const full = path.join(root, d.name, f);
       try { if (fs.statSync(full).mtimeMs < since) continue; } catch { continue; }
       const cwd = sessionCwd(full);
-      if (cwd) dirs.add(cwd);
+      if (cwd && !projectExcluded(cwd, excludeProjects, d.name)) dirs.add(cwd);
     }
   }
   return [...dirs];
@@ -73,8 +79,8 @@ export function detectProjectInstalls(dirs) {
 }
 
 /** The profile with project-level installs merged into `installed` (a new object). */
-export function withProjectInstalls(profile, { home, days = 30 }) {
-  const found = detectProjectInstalls(sessionProjectDirs(home, days));
+export function withProjectInstalls(profile, { home, days = 30, excludeProjects = [] }) {
+  const found = detectProjectInstalls(sessionProjectDirs(home, days, excludeProjects));
   const cur = profile.installed || { names: [], repos: [] };
   return { ...profile, installed: {
     names: [...new Set([...(cur.names || []), ...found.names])].sort(),

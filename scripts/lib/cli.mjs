@@ -147,7 +147,7 @@ async function main() {
   }
   switch (cmd) {
     case 'profile': {
-      const p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days });
+      const p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days, excludeProjects: profileOpts.excludeProjects });
       writeJSON('profile.json', p);
       if (opts.json) console.log(JSON.stringify(p, null, 2)); else showProfile(p);
       break;
@@ -159,7 +159,7 @@ async function main() {
     case 'recommend':
     case 'all': {
       let p = readJSON('profile.json');
-      if (cmd === 'all' || !p || oneOff.length) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
+      if (cmd === 'all' || !p || oneOff.length) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days, excludeProjects: profileOpts.excludeProjects }); writeJSON('profile.json', p); }
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
       if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
@@ -233,7 +233,7 @@ async function main() {
       break;
     }
     case 'audit': {
-      const r = auditLocal({ home, cwd: process.cwd() }); // local files only, never the network
+      const r = auditLocal({ home, cwd: process.cwd(), excludeProjects: profileOpts.excludeProjects }); // local files only, never the network
       console.log(opts.json ? JSON.stringify(r, null, 2) : style.pretty ? prettyAudit(r, P) : formatAudit(r));
       break;
     }
@@ -262,7 +262,7 @@ async function main() {
     case 'me': {
       // Reads the saved profile (builds one only if there is none, or for another window).
       let p = readJSON('profile.json');
-      if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days }); writeJSON('profile.json', p); }
+      if (!p || oneOff.length || (opts.days && p.windowDays !== days)) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days, excludeProjects: profileOpts.excludeProjects }); writeJSON('profile.json', p); }
       const r = whoAmI(p);
       if (opts['blind-spot']) { // local lookup: the catalog on disk, the cached official list, and the content scan of the one matched repo
         const cat = loadCatalog(dataDir);

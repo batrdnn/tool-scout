@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { scanText, pickFiles, explainedHostsOf } from './scan.mjs';
-import { sessionProjectDirs } from './installed.mjs';
+import { sessionProjectDirs, projectExcluded } from './installed.mjs';
 
 const MAX_BYTES = 300_000;
 const MAX_ENTRIES = 3000;
@@ -98,10 +98,11 @@ function installedPlugins(home) {
 }
 
 /** Project folders to look in: the cwd, every session cwd, and the projects in ~/.claude.json. */
-function projectDirs(home, cwd) {
+function projectDirs(home, cwd, excludeProjects = []) {
   const cj = readJSON(path.join(home, '.claude.json')) || {};
   const out = new Map();
-  for (const d of [cwd, ...sessionProjectDirs(home, 3650), ...Object.keys(cj.projects || {})].filter(Boolean)) {
+  for (const d of [cwd, ...sessionProjectDirs(home, 3650, excludeProjects), ...Object.keys(cj.projects || {})].filter(Boolean)) {
+    if (projectExcluded(d, excludeProjects)) continue;
     let real;
     try { real = fs.realpathSync(d); } catch { continue; }
     if (real !== fs.realpathSync(home) && !out.has(real)) out.set(real, d);
@@ -135,11 +136,11 @@ export function hookScript(command, { home, projectDir, pathApi = path, stat = f
 }
 
 /** Every hook in the user, local and project settings files. */
-function hookSources(home, cwd) {
+function hookSources(home, cwd, excludeProjects = []) {
   const files = [
     { file: path.join(home, '.claude', 'settings.json'), where: '~/.claude/settings.json', projectDir: null },
     { file: path.join(home, '.claude', 'settings.local.json'), where: '~/.claude/settings.local.json', projectDir: null },
-    ...projectDirs(home, cwd).map((d) => ({ file: path.join(d, '.claude', 'settings.json'), where: `${path.basename(d)}/.claude/settings.json`, projectDir: d })),
+    ...projectDirs(home, cwd, excludeProjects).map((d) => ({ file: path.join(d, '.claude', 'settings.json'), where: `${path.basename(d)}/.claude/settings.json`, projectDir: d })),
   ];
   const out = [];
   for (const { file, where, projectDir } of files) {
@@ -162,7 +163,7 @@ const keep = (flags) => flags.filter((f) => SEV[f.severity] >= 2).map(({ excerpt
   .sort((a, b) => SEV[b.severity] - SEV[a.severity]);
 
 /** { checked: { skills, plugins, mcpServers }, counts: { high, medium, low }, findings: [...] } */
-export function auditLocal({ home, cwd = process.cwd() }) {
+export function auditLocal({ home, cwd = process.cwd(), excludeProjects = [] }) {
   const findings = [];
   const counts = { high: 0, medium: 0, low: 0 };
   const record = (type, name, where, flags, extra = {}) => {
@@ -187,7 +188,7 @@ export function auditLocal({ home, cwd = process.cwd() }) {
   // Hooks: the command (or prompt) and any script it runs go through the same rules. The
   // label is event + matcher; the command itself never leaves this function.
   const hooks = [];
-  for (const h of hookSources(home, cwd)) {
+  for (const h of hookSources(home, cwd, excludeProjects)) {
     const label = `${h.event}${h.matcher ? ` [${h.matcher}]` : ''}`;
     const flags = scanText(h.text, { file: `${h.where}#${label}`, role: h.kind === 'prompt' ? 'skill' : 'script' });
     const script = h.kind === 'command' ? hookScript(h.text, { home, projectDir: h.projectDir }) : null;
