@@ -44,7 +44,9 @@ Below, `…` stands for running the bundled script as in the Summary block: node
 
 2. **Make the needs list and the toolkit:**
    `… kickoff --plan-file <path> --project <folder> --json`
-   (leave out `--project` when there is no folder). It uses the saved catalog, or the starter that ships
+   (leave out `--project` when there is no folder). The output doesn't echo the plan text, the plan's path or the project path
+   (you already have them from the user; the needs file on disk keeps the plan). Don't print the plan or its path back
+   to the user unless they ask. It uses the saved catalog, or the starter that ships
    with Tool Scout on a first run, and refreshes it in the background; the next run uses the fresh one.
 
 3. **Check the needs list.** Read the plan yourself and compare it with `needs`: `needs[].topic`

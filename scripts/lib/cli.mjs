@@ -397,8 +397,14 @@ async function main() {
       const stale = !opts.offline && (() => { const c = loadCatalog(dataDir); return c.starter || !c.updatedAt || (Date.now() - Date.parse(c.updatedAt)) / 36e5 > 20; })();
       if (stale) startBackgroundRefresh(dataDir);
       const r = await runKickoff({ refresh: false, planFile, rematch: !!opts.rematch, project: typeof opts.project === 'string' ? opts.project : null, home, dataDir, client, log, platform: process.platform });
-      const toolkit = { ...r.toolkit, items: withManualSteps(r.toolkit.items, isExperimental(dataDir)) }; // installer off: manual steps, no Tool Scout install or build command
-      console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs: r.needs, toolkit }, null, 2) : formatKickoff({ ...r, toolkit }));
+      const exp = isExperimental(dataDir);
+      // What is printed goes into Claude's context (review D1): not the raw plan, the plan's path or the project's path or name;
+      // the needs file on disk keeps them (a rematch needs the plan). With the installer off, items are named without the project's name too.
+      const base = r.needs.project ? path.basename(r.needs.project) : null;
+      const generic = (items) => (exp || !base ? items : items.map((i) => (typeof i.name === 'string' ? { ...i, name: i.name.split(base).join('project') } : i)));
+      const toolkit = { ...r.toolkit, items: withManualSteps(generic(r.toolkit.items), exp) }; // installer off: manual steps, no Tool Scout install or build command
+      const { plan: _plan, planFile: _planFile, project: _project, toolkit: _saved, ...needs } = r.needs; // (the saved toolkit is the one printed below, with the project's name in it)
+      console.log(opts.json ? JSON.stringify({ needsFile: r.needsFile, needs, toolkit }, null, 2) : formatKickoff({ ...r, needs, toolkit }));
       break;
     }
     case 'privacy': {
