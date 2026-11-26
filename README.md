@@ -237,6 +237,52 @@ Run directly in a terminal, the output has colors, boxes and aligned columns:
   install, install it (a plan first, then one yes/no question for that one tool), rate it, or mark
   it not interested.
 
+## FAQ
+
+### What does it send, and what stays on my machine?
+Your session history is read locally and kept as counts only (no prompt text, file paths or
+command arguments). The only requests go to `api.github.com` (fixed topic searches, then public
+repo names), and to npm or PyPI for a package's current version when an install plan pins one.
+Nothing about you is sent, there's no account, and it never reads or stores your API keys.
+`node scripts/scout.mjs profile --show` prints exactly what it learned and where it's stored.
+
+### Does it install anything without asking?
+No. An install or a build starts as a plan that writes nothing: it shows the exact files and
+settings, the commit it pins and the trust verdict. Only your yes to that plan makes it happen,
+within 15 minutes, and it never runs a repo's install scripts or README commands. Every install can
+be undone with `node scripts/scout.mjs undo <name>`.
+
+### Does it work offline?
+Partly. `audit`, `me`, `profile --show`, `stats` and `rate` read only local files. `recommend
+--offline` ranks from the saved catalog with no network at all. `all` crawls GitHub again when the
+catalog is over 20 hours old, even with `--offline` (which only skips the momentum and trust-scan
+requests). `check` and installs need GitHub.
+
+### Does it work on Windows?
+Yes: macOS, Linux and Windows are tested in CI. On Windows, installing an MCP server or an official
+plugin needs `claude.exe` on your PATH, and the pretty terminal output needs Windows Terminal. Each
+limit fails with a message and a command to run yourself, never silently. Details are in
+[Requirements](#requirements).
+
+### What is the animal?
+A bit of fun: `/tool-scout:me` looks at your last 30 days (counts only) and names how you work:
+Beaver (builder), Owl (debugger), Bee (tester), Octopus (orchestrator), Ant (grinder), Fox
+(explorer) or Turtle (deep diver). Under 10 sessions you're an Egg. It doesn't change your picks.
+See [Your Claude Code animal](#your-claude-code-animal).
+
+### How do I uninstall everything?
+In this order, because the list of what Tool Scout installed lives in its data folder:
+
+1. `node scripts/scout.mjs installed` lists what it installed or built for you. Run
+   `node scripts/scout.mjs undo <name>` for each one you don't want to keep. Undo removes exactly
+   what was logged and restores your settings.
+2. `/plugin uninstall tool-scout@tool-scout` removes the plugin and its data folder.
+3. If you ran it from a copy of the repo, delete `~/.tool-scout` (or the folder you gave to `--data`).
+
+### How do I report a security issue?
+Privately, with GitHub's private vulnerability reporting, not a public issue. The link and what to
+include are in [SECURITY.md](SECURITY.md).
+
 ## Updating
 
 To update to the newest version:
