@@ -2,6 +2,13 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## Unreleased
+
+- Fix: the data-folder guard (v0.17.1) refused the plugin's own data folder once `/tool-scout:me` had
+  saved its card there (`tool-scout-me.svg`), so every command failed with "not Tool Scout's data
+  folder". The card is now one of Tool Scout's own files, and a test checks that every file a skill
+  writes into `${CLAUDE_PLUGIN_DATA}` is.
+
 ## v0.17.2 (2026-11-26)
 
 Windows CI fix, a generated starter catalog, and a network tripwire for the tests. No ranking change.

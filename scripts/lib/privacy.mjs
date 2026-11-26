@@ -66,7 +66,7 @@ export function formatPrivacy(r, { dataLine = '' } = {}) {
     '',
     'What goes over the network: only to api.github.com, with your GitHub token if you set one (fixed topic searches; then the names of public repos being checked, their files and star activity, which can show what you are interested in), and, with the experimental installer, to npm or PyPI (a package name). There is no Tool Scout server, account or telemetry.',
     '',
-    'Outside the data folder: a card made with me --card is written where you ask (tool-scout-me.svg by default), with your animal, session count, top language and top topic: delete it like any file. The experimental installer writes into your projects and home folder: installs.json lists everything it wrote.');
+    'Outside the data folder: a card made with me --card is written where you ask (./tool-scout-me.svg by default; /tool-scout:me keeps it in the data folder instead), with your animal, session count, top language and top topic: delete it like any file. The experimental installer writes into your projects and home folder: installs.json lists everything it wrote.');
   return out.join('\n');
 }
 

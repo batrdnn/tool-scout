@@ -53,6 +53,23 @@ test('every file Tool Scout writes counts as its own (the list is the privacy co
   }
 });
 
+test('every file a skill writes into ${CLAUDE_PLUGIN_DATA} counts as Tool Scout\'s own (v0.17.3: the /tool-scout:me card locked users out)', () => {
+  const skills = fileURLToPath(new URL('../skills', import.meta.url));
+  const own = new Set(KEPT.map((k) => k.path.split('/')[0]));
+  const paths = new Set();
+  for (const n of fs.readdirSync(skills)) {
+    const f = path.join(skills, n, 'SKILL.md');
+    if (!fs.existsSync(f)) continue;
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(/\$\{CLAUDE_PLUGIN_DATA\}\/([A-Za-z0-9._-]+)/g)) paths.add(m[1]);
+  }
+  assert.ok(paths.has('tool-scout-me.svg'));
+  for (const p of paths) assert.ok(own.has(p), `${p} is written by a skill but not in KEPT`);
+  const d = tmp();
+  fs.writeFileSync(path.join(d, 'profile.json'), '{}');
+  fs.writeFileSync(path.join(d, 'tool-scout-me.svg'), '<svg/>');
+  assert.equal(claimDataDir(d).ok, true);
+});
+
 test('a project folder (or any folder with other files) is refused, and left exactly as it was', { skip: WIN }, () => {
   const d = tmp();
   fs.mkdirSync(path.join(d, 'src')); fs.writeFileSync(path.join(d, 'src', 'main.py'), 'x', { mode: 0o644 });
