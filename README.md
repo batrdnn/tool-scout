@@ -6,6 +6,8 @@ Picks trending Claude Code skills, plugins and MCP servers that fit how you actu
 
 > **Early beta.** Expect rough edges, and please rate the picks: that's how it gets better.
 
+<!-- demo-gif: record it with `vhs docs/demo.tape`, then replace this line with ![Tool Scout in a terminal](docs/demo.gif) -->
+
 ## Install
 
 In Claude Code:
