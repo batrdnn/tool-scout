@@ -30,6 +30,7 @@ function world() {
   fs.writeFileSync(path.join(root, 'PLAN.md'), `# ${PLAN_TEXT}\n\nA Python service with pytest tests and GitHub Actions CI.\n`);
   fs.writeFileSync(path.join(bin, 'claude'), `#!/bin/sh\necho "$@" >> "${root}/claude-calls.txt"\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(data, '.tool-scout-data'), ''); // the folder is Tool Scout's (v0.17.1)
   fs.writeFileSync(path.join(data, 'settings.json'), JSON.stringify({ experimentalInstaller: true })); // v0.17: these runs install, which is off unless this is set
   return { root, home, cwd, data, bin, capture: path.join(root, 'capture.jsonl') };
 }
@@ -87,7 +88,7 @@ test('a full run sends no profile, plan or path data anywhere, and the token onl
 test('the data folder and its files are private to the user (0700 / 0600)', { skip: WIN && (NO_MODES + '; also ' + NO_SH_SHIM) }, () => {
   const w = world();
   fs.chmodSync(w.data, 0o755);
-  fs.writeFileSync(path.join(w.data, 'old-log.json'), '{}', { mode: 0o644 });
+  fs.writeFileSync(path.join(w.data, 'ratings.json'), '{}', { mode: 0o644 }); // one of Tool Scout's own files, made with the default umask
   const outside = path.join(w.root, 'shared.txt'); fs.writeFileSync(outside, 'x', { mode: 0o644 });
   fs.symlinkSync(outside, path.join(w.data, 'link')); // a link in the folder is never followed
   cli(w, ['profile']);

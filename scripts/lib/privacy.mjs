@@ -4,57 +4,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PLAN_TTL_MIN } from './installer.mjs';
+import { KEPT } from './kept.mjs';
 
 export const PRIVACY_LINE = "Tool Scout doesn't upload your history. When you run a skill, a summary goes into Claude's context like anything else you show Claude.";
 
-// sensitivity: public = public GitHub data; low = your choices; personal = how you work; high = your own text or paths.
-export const KEPT = [
-  { path: 'profile.json', sensitivity: 'personal', created: 'scout, me, profile',
-    contains: 'What your Claude Code history showed, from your last 30 days: counts per topic and language, the first word of commands you repeat (for example "pytest", "git"), the names of the tools, plugins and libraries your projects use, and session and project counts. No prompt text, no file contents.',
-    loses: 'It is rebuilt the next time you run scout, me or profile.' },
-  { path: 'last-recommendations.json', sensitivity: 'personal', created: 'scout',
-    contains: 'The last picks, with the profile summary they were based on (topics, installed tool names, repeated command names) and why each was picked.',
-    loses: 'Nothing: it is rebuilt by the next scout run.' },
-  { path: 'settings.json', sensitivity: 'low', created: 'exclude-project, experimental',
-    contains: 'The project names or paths you left out of your profile, and the experimental-installer setting (off by default).',
-    loses: 'Your exclusions come back into the profile, and the installer goes back to off.' },
-  { path: 'dismissed.json', sensitivity: 'low', created: 'dismiss',
-    contains: 'The repos you said "not interested" in, with the date.',
-    loses: 'Those repos can be recommended again.' },
-  { path: 'ratings.json', sensitivity: 'low', created: 'rate',
-    contains: 'Your useful / not useful ratings of repos (repo names and the date).',
-    loses: 'Your stats start from zero.' },
-  { path: 'catalog.json', sensitivity: 'public', created: 'crawl, scout',
-    contains: 'The public GitHub repos the crawl found (names, descriptions, star counts, topics) and a daily star snapshot. Nothing about you.',
-    loses: 'The next scout crawls again (1 to 3 minutes).' },
-  { path: 'momentum-cache.json', sensitivity: 'public', created: 'scout',
-    contains: 'Public star activity for the repos in your shortlists, kept about 20 hours. It shows which repos were looked up.',
-    loses: 'Nothing: it is fetched again.' },
-  { path: 'trust-cache.json', sensitivity: 'public', created: 'scout, check',
-    contains: 'The content scan of each repo that was checked: flags, effort facts and the first lines of its SKILL.md files (public repo text). It shows which repos were checked.',
-    loses: 'Nothing: the repos are scanned again.' },
-  { path: 'kickoff/needs.json', sensitivity: 'high', created: 'kickoff',
-    contains: 'The project plan you gave /tool-scout:kickoff, in full, its project folder, and the needs list made from it. This is the only copy of your plan text.',
-    loses: 'The saved needs list: run kickoff again with the plan.' },
-  { path: 'kickoff/plan.md', sensitivity: 'high', created: 'kickoff',
-    contains: 'A pasted plan, until kickoff moves it into needs.json (normally deleted at once, so you should not see it).',
-    loses: 'Nothing.' },
-  { path: 'kickoff/official.json', sensitivity: 'public', created: 'kickoff',
-    contains: 'The cached list of plugins in Anthropic\'s official marketplace.',
-    loses: 'Nothing: it is fetched again.' },
-  { path: 'installs.json', sensitivity: 'high', created: 'the experimental installer',
-    contains: 'Only if you turned the experimental installer on: every install or build it did, with the paths it wrote, the settings it changed and what undo needs to put them back.',
-    loses: 'The ability to undo those installs with Tool Scout: you would remove them by hand.' },
-  { path: 'plans/', sensitivity: 'high', created: 'the experimental installer',
-    contains: 'Only with the experimental installer: install and build plans (destinations, commands, settings). They last 15 minutes and are deleted automatically after that.',
-    loses: 'Nothing that is still needed: plans expire anyway.' },
-  { path: 'drafts/', sensitivity: 'personal', created: 'the experimental installer',
-    contains: 'Only with the experimental builder: the draft skills, commands, hook scripts and notes written for you before they were built.',
-    loses: 'The drafts.' },
-  { path: 'backups/', sensitivity: 'personal', created: 'the experimental installer (--replace)',
-    contains: 'Only after a --replace: the previous version of a skill folder, so undo can put it back.',
-    loses: 'The ability to undo that --replace.' },
-];
+export { KEPT };
 
 const KNOWN = new Set(KEPT.map((k) => k.path.replace(/\/$/, '')));
 const rmCmd = (p, dir) => (dir ? `rm -r "${p}"` : `rm "${p}"`);

@@ -62,6 +62,7 @@ test('openFile skips quietly: unsupported system, a missing opener (async error)
 
 test('CLI: --card <file> --open saves the card, survives a missing opener and says nothing about it', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-open-'));
+  fs.writeFileSync(path.join(dir, '.tool-scout-data'), ''); // helper files live in the data folder: say it is Tool Scout's (v0.17.1)
   fs.writeFileSync(path.join(dir, 'profile.json'), JSON.stringify(prof({ sessions: 30 })));
   const card = path.join(dir, 'out', 'me.svg');
   const cli = fileURLToPath(new URL('../scripts/scout.mjs', import.meta.url));
@@ -74,6 +75,7 @@ test('CLI: --card <file> --open saves the card, survives a missing opener and sa
 
 test('without --open nothing is launched', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-noopen-'));
+  fs.writeFileSync(path.join(dir, '.tool-scout-data'), '');
   fs.writeFileSync(path.join(dir, 'profile.json'), JSON.stringify(prof({ sessions: 30 })));
   const bin = path.join(dir, 'bin'); fs.mkdirSync(bin);
   const marker = path.join(dir, 'launched');

@@ -100,7 +100,7 @@ function parseArgs(argv) {
 const { cmd, opts } = parseArgs(process.argv.slice(2));
 const home = opts.home || os.homedir();
 const { dir: dataDir, source: dataSource } = resolveDataDir({ data: opts.data, env: process.env, home });
-keepDataDirPrivate(dataDir);
+{ const claim = keepDataDirPrivate(dataDir); if (!claim.ok) { process.stderr.write(`[scout] ${claim.reason}\n`); process.exit(1); } }
 let prunedPlans = [];
 try { prunedPlans = pruneExpiredPlans(dataDir); } catch { /* best effort: a plan that cannot be removed is listed by `privacy` */ }
 const dataLine = () => `Data folder: ${dataDir} (${SOURCE_LABELS[dataSource]})`;

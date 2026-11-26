@@ -57,7 +57,7 @@ Options:
 
 **Data folder.** `--data DIR`, else `$SCOUT_DATA`, else the installed plugin's data folder
 (`~/.claude/plugins/data/tool-scout-tool-scout`, or the newest `tool-scout-*` folder there), else
-`~/.tool-scout`. `profile --show` and `stats` print which one is in use and why.
+`~/.tool-scout`. `profile --show` and `stats` print which one is in use and why. Tool Scout only uses a folder that is its own: new or empty, or one with the `.tool-scout-data` marker (or holding only files Tool Scout writes). It refuses any other folder, such as a project, and only changes permissions on its own files.
 
 Behind a proxy, use `NODE_USE_ENV_PROXY=1`. A GitHub token (`GITHUB_TOKEN`, or `gh auth login`)
 makes the crawl faster.

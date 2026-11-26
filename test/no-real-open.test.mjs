@@ -53,6 +53,7 @@ test('an injected spawn is still used (unit tests of the opener keep working)', 
 test('the real CLI with --open, run from a test with the inherited environment, opens nothing (the skills-plain case)', async () => {
   const t = trap();
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-trap-home-'));
+  fs.writeFileSync(path.join(t.dir, '.tool-scout-data'), '');
   fs.writeFileSync(path.join(t.dir, 'profile.json'), fs.readFileSync(path.join(ROOT, 'test/fixtures/output/profile.json')));
   const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts/scout.mjs'), 'me', '--plain', '--card', path.join(t.dir, 'c.svg'), '--open', '--data', t.dir, '--home', home],
     { encoding: 'utf8', env: { ...process.env, PATH: `${t.bin}${path.delimiter}${process.env.PATH}` } });

@@ -33,6 +33,7 @@ test('dismiss and undismiss persist in the data dir', () => {
 
 test('CLI: a dismissed repo is excluded from recommendations until undismissed', () => {
   const data = tmp();
+  fs.writeFileSync(path.join(data, '.tool-scout-data'), ''); // v0.17.1: these tests keep helper files in the data folder, so they say it is Tool Scout's
   fs.copyFileSync(path.join(root, 'test/eval/catalog.json'), path.join(data, 'catalog.json'));
   const home = materialize('webdev', data);
   const run = (...args) => execFileSync(process.execPath, [path.join(root, 'scripts/scout.mjs'), ...args, '--data', data, '--home', home], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
