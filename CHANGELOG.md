@@ -2,6 +2,22 @@
 
 One short entry per release. Details, numbers and commits are in [docs/reports](docs/reports/).
 
+## v0.16.0 (2026-11-26)
+
+A polish round before the tester round. No ranking change.
+
+- The plugin has an icon: an original pixel-art compass in the style of the animals, made by a
+  script with no dependencies. The missing-icon warning from `claude plugin validate` is gone.
+- A demo for the README: `docs/demo.tape` records `all` for a made-up user in a clean terminal
+  (`brew install vhs && vhs docs/demo.tape`). The README shows the recorded GIF.
+- The README has a FAQ: privacy, installs, offline use, Windows, the animal, how to uninstall
+  everything and how to report a security issue. A launch post draft is in `docs/launch-post.md`.
+- Kickoff: a plugin switched on in the project's own `.claude/settings.json` or
+  `settings.local.json` now counts as already installed (a plan line about GitHub issues answers
+  "already installed: github" there).
+- TESTING.md is refreshed for testers: install, what to try (scout, check, me, kickoff), how to
+  rate, how to file a GitHub issue, and what `stats --share` contains.
+
 ## v0.15.0 (2026-11-26)
 
 Tool Scout now runs and is tested on Windows, and every push is checked on three systems.
