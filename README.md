@@ -310,10 +310,11 @@ experimental when you turn it on yourself. Its plans, confirmations and undo are
 [Experimental installer](#experimental-installer-off-by-default), with the known issues.
 
 ### Does it work offline?
-Partly. `audit`, `me`, `profile --show`, `stats` and `rate` read only local files. `recommend
---offline` ranks from the saved catalog with no network at all. `all` crawls GitHub again when the
-catalog is over 20 hours old, even with `--offline` (which only skips the momentum and trust-scan
-requests). `check` and installs need GitHub.
+Yes, with `--offline`, which makes **no network request at all** (this is checked by a test). `audit`,
+`me`, `profile`, `stats`, `rate`, `privacy` and `kickoff` read only local files. `recommend --offline`
+and `all --offline` rank from the saved catalog and say how old it is (`all` normally crawls GitHub
+again when the catalog is over 20 hours old; offline it doesn't). With no saved catalog yet, they stop
+with a message: run once without `--offline`. `check`, `crawl` and `line` need GitHub and say so.
 
 ### Does it work on Windows?
 Yes: macOS, Linux and Windows are tested in CI. The read-only commands (scout, check, audit, me,

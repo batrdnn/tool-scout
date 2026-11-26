@@ -130,11 +130,17 @@ function showProfile(p) {
   console.log(style.pretty ? prettyProfile(p, { profilePath: profilePath() }, P).join('\n') : formatProfile(p, { dataLine: dataLine(), profilePath: profilePath() }));
 }
 
+// --offline makes no network request at all (review E2): these commands only work online, and fetch itself
+// is replaced, so a code path that forgot to check cannot reach the network either.
+const NEEDS_NETWORK = new Set(['crawl', 'check', 'line', 'install']);
+if (opts.offline) globalThis.fetch = async () => { throw new Error('--offline: no network request is made'); };
+
 // Safe mode (v0.17): install and build (and so hook activation) run only with the experimental setting on.
 const GATED = { install: 'installed', build: 'built' };
 
 async function main() {
   const days = Number(opts.days || 30);
+  if (opts.offline && NEEDS_NETWORK.has(cmd)) throw new Error(`${cmd} needs the network (GitHub), and --offline makes no requests: run it without --offline`);
   if (GATED[cmd]) {
     if (!isExperimental(dataDir)) {
       const msg = switchedOffMessage(GATED[cmd]);
@@ -162,8 +168,14 @@ async function main() {
       if (cmd === 'all' || !p || oneOff.length) { p = withProjectInstalls(buildProfile({ home, days, ...profileOpts }), { home, days, excludeProjects: profileOpts.excludeProjects }); writeJSON('profile.json', p); }
       let cat = loadCatalog(dataDir);
       const ageH = cat.updatedAt ? (Date.now() - new Date(cat.updatedAt)) / 36e5 : Infinity;
-      if (cmd === 'all' && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
+      const offlineNotes = [];
+      if (opts.offline && !cat.updatedAt && cmd === 'all') throw new Error('--offline makes no requests, and there is no catalog saved yet (nothing to rank): run it once without --offline to fetch one');
+      if (cmd === 'all' && !opts.offline && (opts.refresh || ageH > 20)) cat = await crawl({ dataDir, maxPages: Number(opts['max-pages'] || 1), log });
       else if (!cat.updatedAt) { log('catalog is empty; run `crawl` first'); }
+      else if (opts.offline && ageH > 20) {
+        const note = `Offline: using the saved catalog from ${cat.updatedAt.slice(0, 10)} (${Math.floor(ageH / 24)} day${Math.floor(ageH / 24) === 1 ? '' : 's'} old), because --offline makes no requests. Run without --offline to refresh it.`;
+        offlineNotes.push(note); log(note);
+      }
       const top = Number(opts.top || 8);
       const dismissed = dismissedSet(dataDir);
       const rankOpts = {
@@ -179,7 +191,7 @@ async function main() {
       matchCollections(recs, Object.keys(p.topicWeights || p.topics || {}), TOPICS);
       const LIMITED = 10;
       const limitedHistory = p.sessions < LIMITED;
-      const notes = [];
+      const notes = [...offlineNotes];
       if (limitedHistory) notes.push(`Limited history: ${p.sessions} session${p.sessions === 1 ? '' : 's'} in the last ${p.windowDays} days (under ${LIMITED}), so these picks rest on little evidence.`);
       if (recs.thinOmitted) notes.push(`${recs.thinOmitted} match${recs.thinOmitted === 1 ? '' : 'es'} left out: they rest on a topic seen in a single session, with no friction.`);
       const out = { generatedAt: new Date().toISOString(), catalogUpdatedAt: cat.updatedAt, catalogSize: Object.keys(cat.repos).length, dismissedCount: dismissed.size, limitedHistory, notes, profile: { sessions: p.sessions, projects: p.projects, excludedProjects: p.excludedProjects || 0, topics: p.topics, topicWeights: p.topicWeights, topicSources: p.topicSources, friction: p.friction, languages: p.languages, repeatedCommands: p.repeatedCommands, installed: p.installed.names }, recommendations: recs };

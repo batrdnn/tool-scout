@@ -47,7 +47,7 @@ Options:
 | `--top N` | recommend, all | number of picks (default 8) |
 | `--kind skill,plugin,mcp-server,tool,app` | recommend, all | only these kinds; standalone apps (chat UIs, editors) are left out unless `app` is listed |
 | `--include-low` | recommend, all | show low-trust repos too |
-| `--offline` | recommend, all | no network after the crawl: no momentum or trust scan |
+| `--offline` | every command | no network request at all: ranks from the saved catalog (and says how old it is), or stops if there is none; `check`, `crawl`, `line` and `install` refuse |
 | `--exclude-project a,b` | profile, recommend, all | leave these projects out for one run |
 | `--include-current` | profile, recommend, all | count the session you run it from (left out by default: it's the request, not your work) |
 | `--json` | most | machine-readable output |
